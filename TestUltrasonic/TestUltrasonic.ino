@@ -8,7 +8,7 @@ SensorModule sensor;
 
 void setup() {
   Serial.begin(115200);
-  sensor.addModule("sonar", new UltrasonicSens(26, 25));
+  sensor.addModule("sonar", new UltrasonicSens(32, 33));
   sensor.init();
 }
 
