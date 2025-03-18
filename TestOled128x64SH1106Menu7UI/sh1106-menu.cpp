@@ -400,6 +400,7 @@ void SH1106Menu::renderInfoScreen(const char *title, const char *line1, const ch
   display();
 }
 
+#ifdef WIFI_SUPPORTED
 bool SH1106Menu::connectToWiFi(const char *ssid, const char *password, int timeoutSeconds) {
   Serial.println("Connecting to WiFi...");
   WiFi.begin(ssid, password);
@@ -471,6 +472,7 @@ String SH1106Menu::getIPAddress() {
     return "0.0.0.0";
   }
 }
+#endif
 
 void SH1106Menu::showLoadingBar(const char *title, int progressPercent) {
   progressPercent = constrain(progressPercent, 0, 100);

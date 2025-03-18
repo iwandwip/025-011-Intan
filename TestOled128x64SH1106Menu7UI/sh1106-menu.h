@@ -6,7 +6,16 @@
 #include "Arduino.h"
 #include "SH1106Wire.h"
 #include "SPI.h"
+
+// WiFi support only for ESP32 and ESP8266
+#if defined(ESP32) || defined(ESP8266)
+#define WIFI_SUPPORTED
+#if defined(ESP32)
 #include <WiFi.h>
+#elif defined(ESP8266)
+#include <ESP8266WiFi.h>
+#endif
+#endif
 
 const uint8_t MAX_BUFF_LEN = 24;
 
@@ -77,9 +86,11 @@ public:
   void wait(uint32_t time);
   void renderInfoScreen(const char *title, const char *line1, const char *line2, const char *line3);
 
+#ifdef WIFI_SUPPORTED
   bool connectToWiFi(const char *ssid, const char *password, int timeoutSeconds = 10);
   String getWiFiStatus();
   String getIPAddress();
+#endif
 
   void showLoadingBar(const char *title, int progressPercent);
   void showLoadingBarTimed(const char *title, int durationSeconds);

@@ -1,8 +1,11 @@
 #include <Arduino.h>
 #include "sh1106-menu.h"
 
+// WiFi credentials only used when WiFi is supported
+#if defined(ESP32) || defined(ESP8266)
 const char *ssid = "TIMEOSPACE";
 const char *password = "1234Saja";
+#endif
 
 SH1106Menu display(0x3C, 21, 22);
 MenuCursor cursor = { false, false, false, false, true };
@@ -31,7 +34,9 @@ void setup() {
 
   display.setListenerCallback(listenSerialInput);
 
+#if defined(ESP32) || defined(ESP8266)
   display.connectToWiFi(ssid, password, 15);
+#endif
 
   mainMenu = display.createMenu(5, "Display", "System", "Loading Demos", "UI Demos", "About");
   displayMenu = display.createMenu(3, "Display Settings", "Brightness: 75%", "Back");
@@ -59,7 +64,12 @@ void loop() {
     [](MenuCursor *cursor) {
       String tempStr = "Temp: " + String(temperatureValue) + "C";
       String uptimeStr = "Uptime: " + String(millis() / 1000) + "s";
+
+#if defined(ESP32) || defined(ESP8266)
       String wifiStr = "WiFi: " + display.getWiFiStatus();
+#else
+      String wifiStr = "WiFi: Not supported";
+#endif
 
       display.renderInfoScreen("System Info", tempStr.c_str(), uptimeStr.c_str(), wifiStr.c_str());
 
@@ -85,7 +95,12 @@ void loop() {
   display.onSelect(
     mainMenu, "About", nullptr,
     [](MenuCursor *cursor) {
+#if defined(ESP32) || defined(ESP8266)
       String ipText = "IP: " + display.getIPAddress();
+#else
+      String ipText = "IP: Not supported";
+#endif
+
       display.renderInfoScreen("About Device", "Model: ESP32", ipText.c_str(), "FW: v1.0.0");
 
       Serial.println("Untuk kembali ke menu utama, ketik 'b'");
