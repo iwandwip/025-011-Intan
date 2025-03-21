@@ -11,7 +11,9 @@
 
 #define ENABLE_SENSOR_MODULE
 #define ENABLE_SENSOR_MODULE_UTILITY
-#define ENABLE_SENSOR_ANALOG
+#define ENABLE_SENSOR_RFID
+#define ENABLE_SENSOR_ULTRASONIC
+#define ENABLE_SENSOR_HX711
 
 #include "Kinematrix.h"
 #include "Preferences.h"
