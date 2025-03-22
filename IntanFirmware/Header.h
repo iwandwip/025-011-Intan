@@ -8,6 +8,7 @@
 #define ENABLE_MODULE_FIREBASE_RTDB_V2
 #define ENABLE_MODULE_FIREBASE_FIRESTORE_V2
 #define ENABLE_MODULE_FIREBASE_MESSAGING_V2
+#define ENABLE_MODULE_SH1106_MENU
 
 #define ENABLE_SENSOR_MODULE
 #define ENABLE_SENSOR_MODULE_UTILITY
@@ -19,6 +20,7 @@
 #include "Preferences.h"
 #include "WiFi.h"
 #include "WiFiClientSecure.h"
+#include "HTTPClient.h"
 
 ////////// Utility //////////
 const char *ntpServer = "pool.ntp.org";
@@ -40,11 +42,15 @@ SensorModule sensor;
 HardSerial usbSerial;
 
 ////////// Input Module //////////
-DigitalIn buttonDown(-1);
-DigitalIn buttonOk(-1);
+DigitalIn buttonOk(39);
+DigitalIn buttonDown(36);
 
 ////////// Output Module //////////
-DigitalOut buzzer(LED_BUILTIN);
+SH1106Menu menu(0x3C, 21, 22);
+DigitalOut buzzer(2);
+DigitalOut ledRed(4);
+DigitalOut ledGreen(16);
+DigitalOut ledYellow(17);
 
 ////////// Global Variable //////////
 bool firebaseEnable = false;
@@ -75,3 +81,9 @@ enum FirebaseMessagingState {
 FirebaseRTDBState firebaseRTDBState = RTDB_IDLE;
 FirebaseFirestoreState firebaseFirestoreState = FIRESTORE_IDE;
 FirebaseMessagingState firebaseMessagingState = MESSAGING_IDLE;
+
+bool apiTestingSend = false;
+uint32_t userCount = 0;
+String userEmail = "";
+String userPassword = "";
+String uuidRFID = "";

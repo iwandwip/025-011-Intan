@@ -2,6 +2,17 @@
 
 void setup() {
   usbSerial.begin(&Serial, 115200);
+
+  preferences.begin("intan", false);
+  userCount = preferences.getULong("userCount", 0);
+  preferences.end();
+
+  Serial.print("| userCount: ");
+  Serial.print(userCount);
+  Serial.println();
+
+  menu.flipVertical(true);
+  menu.initialize(true, initDisplayCallback, true);
   task.initialize(wifiTask);
 
   sensor.addModule("rfid", new RFID_Mfrc522(5, 27));
@@ -11,9 +22,9 @@ void setup() {
     auto loadCell = sensor.getModule<HX711Sens>("lCell");
     preferences.begin("intan", false);
     float cal = preferences.getFloat("cal", -22.5);
+    preferences.end();
     loadCell->setScale(cal);
     loadCell->tare();
-    preferences.end();
 
     Serial.print("| cal: ");
     Serial.print(cal);
@@ -24,13 +35,19 @@ void setup() {
 
 void loop() {
   sensor.update([]() {
-    String uuid = sensor["rfid"].as<String>();
-    if (!uuid.isEmpty()) {
-      sensor.debug();
-    }
+    uuidRFID = sensor["rfid"].as<String>();
   });
+
+  MenuCursor cursor{
+    .up = false,
+    .down = buttonDown.isPressed(),
+    .select = buttonOk.isPressed(),
+    .back = false,
+    .show = true
+  };
+  menu.onListen(&cursor, lcdMenuCallback);
   usbSerial.receive(usbCommunicationTask);
 
-  DigitalIn::updateAll(&buttonDown, &buttonOk, DigitalIn::stop());
+  DigitalIn::updateAll(&buttonOk, &buttonDown, DigitalIn::stop());
   DigitalOut::updateAll(&buzzer, DigitalOut::stop());
 }

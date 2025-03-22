@@ -10,13 +10,7 @@ const char PRIVATE_KEY[] PROGMEM = "-----BEGIN PRIVATE KEY-----\nMIIEvgIBADANBgk
 void wifiTask() {
   task.setInitCoreID(1);
   task.createTask(10000, [](void* pvParameter) {
-    WiFi.begin("TIMEOSPACE", "1234Saja");
-    // WiFi.begin("silenceAndSleep", "11111111");
-    while (WiFi.status() != WL_CONNECTED) {
-      delay(500);
-      Serial.print(".");
-    }
-    Serial.println("IP: " + WiFi.localIP().toString());
+    menu.connectToWiFi("TIMEOSPACE", "1234Saja", 30);
     client.setInsecure();
 
     if (!dateTime.begin()) {
@@ -52,6 +46,11 @@ void wifiTask() {
       firestore.loop();
       messaging.loop();
 
+      if (apiTestingSend) {
+        apiRegisterAccount();
+        apiTestingSend = false;
+      }
+
       static uint32_t dateTimeNTPTimer;
       if (millis() - dateTimeNTPTimer >= 1000 && dateTime.update()) {
         Serial.println(dateTime.getDateTimeString());
@@ -65,7 +64,7 @@ void wifiTask() {
       }  // FIREBASE_RTDB_END
 
       if (!firestore.isReady()) {  // FIREBASE_FIRESTORE_START
-        buzzer.toggleAsync(250, [](bool state) {
+        ledRed.toggleAsync(250, [](bool state) {
           Serial.println("Wait for Firestore Ready !!");
         });
       } else {
@@ -131,7 +130,7 @@ void wifiTask() {
       }  // FIREBASE_FIRESTORE_END
 
       if (!messaging.isReady()) {  // FIREBASE_MESSAGING_START
-        buzzer.toggleAsync(250, [](bool state) {
+        ledRed.toggleAsync(250, [](bool state) {
           Serial.println("Wait for Mesagging Ready !!");
         });
       } else {
@@ -147,4 +146,33 @@ void wifiTask() {
       }  // FIREBASE_MESSAGING_END
     }
   });
+}
+
+bool apiRegisterAccount() {
+  if (WiFi.status() != WL_CONNECTED) return false;
+  HTTPClient http;
+  http.begin("https://api-tcoyjjfyla-et.a.run.app/register");
+  http.addHeader("Content-Type", "application/json");
+
+  userEmail = "testing_user" + String(userCount) + "@gmail.com";
+  userPassword = "testing_password" + String(userCount);
+
+  JsonDocument jsonDoc;
+  jsonDoc["email"] = userEmail;
+  jsonDoc["password"] = userPassword;
+  jsonDoc["username"] = "testing_username" + String(userCount);
+  jsonDoc["namaAnak"] = "namaAnak" + String(userCount);
+  jsonDoc["birthdate"] = "2010-01-15T00:00:00.000Z";
+  jsonDoc["gender"] = "perempuan";
+  jsonDoc["rfid"] = uuidRFID;
+
+  String requestBody;
+  serializeJson(jsonDoc, requestBody);
+
+  int httpResponseCode = http.POST(requestBody);
+  if (httpResponseCode != 201) return false;
+  String payload = http.getString();
+  Serial.println(payload);
+  http.end();
+  return true;
 }
