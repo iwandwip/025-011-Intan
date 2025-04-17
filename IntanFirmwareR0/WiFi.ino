@@ -53,7 +53,7 @@ void wifiTask() {
 
       static uint32_t dateTimeNTPTimer;
       if (millis() - dateTimeNTPTimer >= 1000 && dateTime.update()) {
-        Serial.println(dateTime.getDateTimeString());
+        // Serial.println(dateTime.getDateTimeString());
         dateTimeNTPTimer = millis();
       }
 

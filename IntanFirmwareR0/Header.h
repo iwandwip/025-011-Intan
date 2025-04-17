@@ -22,6 +22,9 @@
 #include "WiFiClientSecure.h"
 #include "HTTPClient.h"
 
+#define KG_TO_G(x) x * 1000.f
+#define G_TO_KG(x) x / 1000.f
+
 ////////// Utility //////////
 const char *ntpServer = "pool.ntp.org";
 const long gmtOffset_sec = 7 * 3600;  // Offset for WIB (UTC+7)
@@ -87,3 +90,6 @@ uint32_t userCount = 0;
 String userEmail = "";
 String userPassword = "";
 String uuidRFID = "";
+
+float weight = 0.0;
+float height = 0.0;

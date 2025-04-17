@@ -1,18 +1,39 @@
 void lcdMenuCallback() {
-  static auto mainMenu = menu.createMenu(5, "Timbang", "Kalibrasi", "Tare", "Daftar", "Test Sensor");
+  static auto mainMenu = menu.createMenu(4, "Kalibrasi", "Tare", "Daftar", "Test Sensor");
 
   menu.onSelect(mainMenu, "Kalibrasi", []() {
-    menu.renderCountdownScreen("Menunggu...", 75, true);
-    if (buttonOk.isPressed()) {
-      menu.clearMenu(mainMenu, menu.end());
-    }
+    auto loadCell = sensor.getModule<HX711Sens>("lCell");
+
+    const char* kalibrasilines1[] = { "Hilangkan Semua", "Objek Pada", "Timbangan" };
+    menu.renderBoxedText(kalibrasilines1, 3);
+    loadCell->setScaleDelay(5000);
+
+    const char* kalibrasilines2[] = { "Letakan", "Objek Yang", "Terukur (2 KG)" };
+    menu.renderBoxedText(kalibrasilines2, 3);
+    loadCell->tareDelay(5000);
+
+    float units = loadCell->getUnits(10);
+    float cal = loadCell->getCalibrateFactor(units, KG_TO_G(2));
+    Serial.printf("| Cal Factor: %.2f\n", cal);
+
+    preferences.begin("intan", false);
+    preferences.putFloat("cal", cal);
+    preferences.end();
+
+    loadCell->setScale(cal);
+    menu.renderStatusScreen("Tare Loadcell", "Berhasil", true);
+    delay(5000);
+
+    loadCell->tare();
+    menu.clearMenu(mainMenu, menu.end());
   });
 
   menu.onSelect(mainMenu, "Tare", []() {
-    menu.renderStatusScreen("Koneksi WiFi", "Terhubung", true);
-    if (buttonOk.isPressed()) {
-      menu.clearMenu(mainMenu, menu.end());
-    }
+    auto loadCell = sensor.getModule<HX711Sens>("lCell");
+    loadCell->tare();
+    menu.renderStatusScreen("Tare Loadcell", "Berhasil", true);
+    delay(2000);
+    menu.clearMenu(mainMenu, menu.end());
   });
 
   menu.onSelect(
@@ -52,7 +73,14 @@ void lcdMenuCallback() {
     });
 
   menu.onSelect(mainMenu, "Test Sensor", []() {
-    menu.renderInfoScreen("Test Sensor", "Line 1", "Line 2", "Line 3");
+    static uint32_t testSensorTimer;
+    if (millis() - testSensorTimer >= 500) {
+      testSensorTimer = millis();
+      char bufferLine1[30], bufferLine2[30];
+      sprintf(bufferLine1, "Loadcell  : %6.2f Kg", weight);
+      sprintf(bufferLine2, "Ultrasonic: %6.2f Cm", height);
+      menu.renderInfoScreen("Test Sensor", String(bufferLine1).c_str(), String(bufferLine2).c_str(), "Line 3");
+    }
     if (buttonOk.isPressed()) {
       menu.clearMenu(mainMenu, menu.end());
     }
