@@ -76,10 +76,11 @@ void lcdMenuCallback() {
     static uint32_t testSensorTimer;
     if (millis() - testSensorTimer >= 500) {
       testSensorTimer = millis();
-      char bufferLine1[30], bufferLine2[30];
-      sprintf(bufferLine1, "Loadcell  : %6.2f Kg", weight);
-      sprintf(bufferLine2, "Ultrasonic: %6.2f Cm", height);
-      menu.renderInfoScreen("Test Sensor", String(bufferLine1).c_str(), String(bufferLine2).c_str(), "Line 3");
+      char bufferLine1[30], bufferLine2[30], bufferLine3[30];
+      sprintf(bufferLine1, "Weight  : %6.2f Kg", weight);
+      sprintf(bufferLine2, "Height  : %6.2f Cm", height);
+      sprintf(bufferLine3, "BMI     : %6.2f", float(weight / ((height / 100) * (height / 100))));
+      menu.renderInfoScreen("Test Sensor", String(bufferLine1).c_str(), String(bufferLine2).c_str(), String(bufferLine3).c_str());
     }
     if (buttonOk.isPressed()) {
       menu.clearMenu(mainMenu, menu.end());

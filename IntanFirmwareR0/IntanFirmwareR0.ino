@@ -38,7 +38,7 @@ void loop() {
     uuidRFID = sensor["rfid"].as<String>();
     weight = sensor["lCell"];
     height = sensor["sonar"];
-    sensor.debug();
+    // sensor.debug();
   });
 
   MenuCursor cursor{

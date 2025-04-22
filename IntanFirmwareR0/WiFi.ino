@@ -1,11 +1,11 @@
-#define FIREBASE_DATABASE_URL "https://anisa-km-default-rtdb.firebaseio.com/"
-#define FIREBASE_PROJECT_ID "anisa-km"
-#define FIREBASE_API_KEY "AIzaSyAE0KeDPNL-oHbnMY_BJz-ekqd6wJ_anpQ"
-#define FIREBASE_USER_EMAIL "iwan.dwp@gmail.com"
+#define FIREBASE_DATABASE_URL "https://intan-28dc8-default-rtdb.firebaseio.com/"
+#define FIREBASE_PROJECT_ID "intan-28dc8"
+#define FIREBASE_API_KEY "AIzaSyDPHpVgwHMWCvRdHHSlvopTHuXw0WgzVYI"
+#define FIREBASE_USER_EMAIL "admin@gmail.com"
 #define FIREBASE_USER_PASSWORD "admin123"
-#define FIREBASE_CLIENT_EMAIL "firebase-adminsdk-fbsvc@anisa-km.iam.gserviceaccount.com"
+#define FIREBASE_CLIENT_EMAIL "firebase-adminsdk-fbsvc@intan-28dc8.iam.gserviceaccount.com"
 #define FIREBASE_MSG_DEVICE_TOKEN "cJnjCBzORlawc7T2WvCq2L:APA91bEyoA65YjDAEU6Y_Mj6DQzw5KH_Svfs7ZoLv3Vdl-ZurpiN8BGi1R3qaOh1Ux_wNHacMHSGOfHuxxKQraLcWC-RowpmEvPQboZasgsWJQ_MWdS285Q"
-const char PRIVATE_KEY[] PROGMEM = "-----BEGIN PRIVATE KEY-----\nMIIEvgIBADANBgkqhkiG9w0BAQEFAASCBKgwggSkAgEAAoIBAQComXoZhw8Bfxsw\n3V4saUeF3DZ2P+tq8ZU4mU0NuYvnewG0F4F9q4Q1r0B7c8+gc+p3pek5v/oGAxzg\nrEBmaXwngb6dssH766Z191ZQKm40DzA9/eX6/iD/PsC+pQo1wr+lbNIyHfqQpj5y\nwpza806vDv9fSeILM0xQS8z3I/1Sf9M8gOlDhyV1TtKJpCsXB7HYfBiIk7Wmvhp0\n+EGEG7wJOaj7mv/tK0M2suaV+3/NnZy9hx8Sl1I+utwkdGjhIVGEQMU0DU8AwETk\ncxeJkPWN6Cbx4ji87z27GASR4iwt15aaRlYjb/aPwmQIunYubw4Rn2umxcCqGJPO\nXKSYMypzAgMBAAECggEAHSAiVS2dPINyNY9QWPi499lyeRwSta9VOWlWQ9Q1ZIA9\n65gR8R1DoiiLyafYit3rd87sCuNstEQuZWusVmTLo2GJBeIfG796Sq+3M/MYhZrI\nGTV22NS065MyJd0J9f6WL+QsLac7JWjqqdWP1k0o3xoGqLXxPEEY4lgt6NXJScpu\ncV1FakwgYVJyMf+vL0pzGNOz2YZGW0krexywIlgvbuGW+sY62E78ba7nQGdXDYJ1\nOtwUa9DV73rWFeYOaU4rSC4ENJvSmvPuvY/R7QWe+uGE1TxXCY89M8UrafhjdlGO\nX6NbICG0/AOAgx4X/KHiFQOb6pd+OgPOEPZxrbK71QKBgQDR2ITkMoLyt9MjqAcg\nbtI8CoqiHpITMfqNgTQ8J9xLYWPHE/L5+4o7DqlP1Py5mFFvNiuBa7HbDEq+1pki\njAMDwDvtCAedic6ShfuDuh0dJAL3o7AGqzxkSjkSXN3zufyFA5O5YKTosXGqf5Rd\nxzNdjeYufXIC5MDbphBpBxkCRwKBgQDNrpCVqAdWVRaS6WUHJx1hj4Q1nV3KtxKP\nyJtwPAevLQTLOnHjRIoHvty9YRinjMhVhZwZNJZxXgnrM8gpJMuH+NVctV2usD3f\nJuLE5Jfx9CTjiej45blBAMDBUS8a/BGu6uBciEFBRX5VDqtbGmPGhKhcWZU06Zmb\nwx7wHoHgdQKBgQDRGYeSPCLv6OyjYxN25fbnjTmHQh8csXiQ+GYsayvAkVLzVJWR\nM20SXBGqUvlhlr3Oq5O+aqnXM/BnKT9+hTWbzznnf1DXUjJdHtT49cN8/h1W1ezZ\nOFf9N1iXS6J+8p0FjgLtfbfVhrtUwbv9ljlAx9zOBoJND9R9CoTfowrwkQKBgQCQ\ne6DbUCafUbRCzSsH5EUyZFN2Ki5ZmVKzqDLwm2q2doRYkpywDlR77mo3qj5cbHvJ\n/8pQtm08A9gp3b0skclbocOXlVvSu8EqwbEoqH/IGj3TjOwX85+39uRwqCvT4+A0\nJJAo0Bou1LdS3rQmkhomuMdf4Bn9Cl+6WE2iVXvchQKBgH4EXXtYLzbFsUapaL7b\nnnQLpqGzEDDj4mwCFZsYbhmZqZxLbMPjeSUc+moOVoanni4AGhAQGtWtz6yyQlYb\nxJeEK6RPcZXHt8wiGi1KEBCWiwqLeYdKZ8EfDKBvUppPeJydFTZ7S8g3snDofE7B\nGy0XToC5qXxI84XabPHtmnKL\n-----END PRIVATE KEY-----\n";
+const char PRIVATE_KEY[] PROGMEM = "-----BEGIN PRIVATE KEY-----\nMIIEvQIBADANBgkqhkiG9w0BAQEFAASCBKcwggSjAgEAAoIBAQCVl49X+xeXIIC3\nignigvgWSsqiSXq/i8q//Xexc11HRbcA9R133716qgMfrtxVCrmOBcdBTofHiOiK\niGF5hiSup7SGXnuYqj7zgnZjrCAtqTHnEJ/mOcHJbbJL0RdDYUmCHwaJ198c3Hy8\nyjnOM373ylRnhkujRXbNqFz+V04GPCJbvHbE0vtr811wKmiSmjhxXmhFZS/cbX6a\ng567X3e64Kq/YmEjbQDC1tl5zkGP9DUugBlQH8lguQBk4wCFeO6wB2lPNc4AcoRl\npmCLl1hQldxvRVNM/aMHOHmmxniNZN6S8AA71S4Ohn5TonYqteP1jVpeUnokmRKu\nTVl97lS/AgMBAAECggEAHh936QKR/Ie6A7uTQ/6VkH+dEFL1mc6/lCupR51wgiKi\nuFmjhnkSgbnsiRvAGIvhU50MQ7VZmC+UjBjsb/k4N8djjc9G2jYmGQkDaAzIKgmx\nF9N8L3Mf97zUM3o2UgYsNDylJ2rF7dzkbWvXehNalPE0T+h2ILmjM8ScfUb9WjnA\n6zqleaeZIusSPcZgaErSyjxkIZHD7E6sC+cmfcK2FYqH3H/2MusrMxsYEU8WRQB6\nU9w8JN3Kmi66t0MLaH5L7p+ewo4Yjn1iNgP5i5QrFeKkzG8UvcrSIU35MELprWGq\npjSkJySjmHMLxa9hyT6dpqy5lGyIF759tn9N2DB4UQKBgQDGefM+BJz5gxIKLGQF\nxpLntKGYnoUjqkZnrFgLzhgTy47q0icbjSuPrXTxgbqd8bmUSu5Ob4jfqIH4i3v+\nBSaF6K2cMYN+Ilg9Ijiffb9OJwQZrH09bpus4zpRq61oTuqGkn3Zb66D9QO1e/bl\nHAk/R4f2BP9g5XB9wOxUQrUeWQKBgQDA8pzh/t2/wFVm4SRKL9kWZ7/3SI/7KaoA\njYsQeYZmMxXSBlYf/slERJyaJ4qeDI1lE8hrDCjReN937tyR9gR1XqqlZ3ijdo4w\ndmxipqZ2ysZgD4EfdDRgettJq9WT6hGrb798XiWkM2ok83cL0Ttl0s/7wAlk7wgy\ncSvI5JWY1wKBgGgNSv56gKk2k+CNgSqd/ipHQmi2wmn+PMbhTY9yzqCiGRz2a9Y/\n3lSGxUZPkrx3G6mo1uJ8Cq/msazRw4FaxeVyJII8WwlnjAcQx8qlrAOW5Mlo6oeo\nUykCP3LNpC2JId7HMf8qU72OWBFvGfLnDdoE8DyERjZQUvc6iytphXaRAoGAfzDv\nnkLmZvsg0RrlU0pLbuuhrh9VWppSiN7Fp2yU3lYaskKfD6RjhO891JjwVdOsec8a\ntQZk+gEWPvdky4tD0SNAlpyo+Ai1HtlSBY4Z+gEd2EEgO13dESSr3dq6hjEsyLh3\noEJnyeBivk0IUu/wmeToWepzxueTnbzgwiN9Qi0CgYEAwOsLoS/NHtmX5Pb+zv7r\nf43162Nwo+DlrM1+tc4ZKdCbnSYxUOLZZm5JGAk0Kzg9arFEm1ijZFGNdt0z+hbk\nkhBsSAv94XBkA4xxCX4DLkybTse+WNdhBzh4aGFutWbpq7u73UH9G6/qCQrT5Lzk\nlR63HDAseusj6kxFOoj3j7k=\n-----END PRIVATE KEY-----\n";
 
 void wifiTask() {
   task.setInitCoreID(1);
@@ -17,18 +17,8 @@ void wifiTask() {
       Serial.println("Gagal memulai NTP Client!");
     }
 
-    if (!firebase.begin(client, FIREBASE_DATABASE_URL, FIREBASE_API_KEY, FIREBASE_USER_EMAIL, FIREBASE_USER_PASSWORD)) {
-      if (firebase.hasError()) Serial.println("Firebase RTDB Error: " + firebase.getError());
-      while (1) { delay(1000); }
-    }
-
     if (!firestore.begin(FIREBASE_API_KEY, FIREBASE_USER_EMAIL, FIREBASE_USER_PASSWORD, FIREBASE_PROJECT_ID)) {
       Serial.println("Firebase Firestore Error: " + firestore.getLastError());
-      while (1) { delay(1000); }
-    }
-
-    if (!messaging.begin(FIREBASE_CLIENT_EMAIL, FIREBASE_PROJECT_ID, PRIVATE_KEY, 10000)) {
-      Serial.println("Firebase Mesagging Error: " + messaging.getLastError());
       while (1) { delay(1000); }
     }
 
@@ -37,14 +27,8 @@ void wifiTask() {
     disableCore1WDT();
     buzzer.toggleInit(100, 2);
 
-    JsonDocument documentData;
-    String documentDataStr;
-    String resultStr;
-
     for (;;) {
-      firebase.loop();
       firestore.loop();
-      messaging.loop();
 
       if (apiTestingSend) {
         apiRegisterAccount();
@@ -57,93 +41,35 @@ void wifiTask() {
         dateTimeNTPTimer = millis();
       }
 
-      static uint32_t firebaseRTDBTimer;
-      if (millis() - firebaseRTDBTimer >= 2000 && firebase.ready()) {  // FIREBASE_RTDB_START
-        // firebase.set("/test/float", random(100) + 3.14159, 2);
-        firebaseRTDBTimer = millis();
-      }  // FIREBASE_RTDB_END
+      if (firestore.isReady()) {
+        static uint32_t firestoreTimer;
+        if (millis() - firestoreTimer >= 5000) {
+          firestoreTimer = millis();
+          String userResStr = firestore.getDocument("users", "", true);
+          JsonDocument userDoc;
+          deserializeJson(userDoc, userResStr);
+          // serializeJsonPretty(userDoc, Serial);
 
-      if (!firestore.isReady()) {  // FIREBASE_FIRESTORE_START
-        ledRed.toggleAsync(250, [](bool state) {
-          Serial.println("Wait for Firestore Ready !!");
-        });
-      } else {
-        switch (firebaseFirestoreState) {
-          case FIRESTORE_CREATE:
-            Serial.print("| FIRESTORE_CREATE: ");
-            Serial.print(FIRESTORE_CREATE);
+          statusTimbang = false;
+          for (JsonVariant fields : userDoc["documents"].as<JsonArray>()) {
+            String idStr = fields["fields"]["id"]["stringValue"].as<String>();
+            String timbangPath = "users/" + idStr + "/arduinoConnection/timbang";
+            String timbangStr = firestore.getDocument(timbangPath, "", true);
+            JsonDocument timbangDoc;
+            deserializeJson(timbangDoc, timbangStr);
+            // serializeJsonPretty(timbangDoc, Serial);
+
+            bool statusTimbangFirestore = timbangDoc["fields"]["statusRfid"]["booleanValue"];
+            // if (statusTimbangFirestore) {
+            //   statusTimbang = true;
+            //   break;
+            // }
+            Serial.print("| statusTimbangFirestore: ");
+            Serial.print(statusTimbangFirestore);
             Serial.println();
-
-            documentData["fields"]["name"]["stringValue"] = "John Doe";
-            documentData["fields"]["age"]["integerValue"] = 30;
-            documentData["fields"]["active"]["booleanValue"] = true;
-            serializeJson(documentData, documentDataStr);
-
-            resultStr = firestore.createDocument("users/user1", documentDataStr, true);
-            Serial.print("| resultStr");
-            Serial.print(resultStr);
-            Serial.println();
-
-            firebaseFirestoreState = FIRESTORE_IDE;
-            break;
-          case FIRESTORE_READ:
-            Serial.print("| FIRESTORE_READ: ");
-            Serial.print(FIRESTORE_READ);
-            Serial.println();
-
-            resultStr = firestore.getDocument("users/user1", "", true);
-            Serial.print("| resultStr");
-            Serial.print(resultStr);
-            Serial.println();
-
-            firebaseFirestoreState = FIRESTORE_IDE;
-            break;
-          case FIRESTORE_UPDATE:
-            Serial.print("| FIRESTORE_UPDATE: ");
-            Serial.print(FIRESTORE_UPDATE);
-            Serial.println();
-
-            documentData["fields"]["name"]["stringValue"] = "John Doe " + String(random(0, 30));
-            documentData["fields"]["age"]["integerValue"] = random(0, 30);
-            serializeJson(documentData, documentDataStr);
-
-            resultStr = firestore.updateDocument("users/user1", documentDataStr, "name,age", true);
-            Serial.print("| resultStr");
-            Serial.print(resultStr);
-            Serial.println();
-
-            firebaseFirestoreState = FIRESTORE_IDE;
-            break;
-          case FIRESTORE_DELETE:
-            Serial.print("| FIRESTORE_DELETE: ");
-            Serial.print(FIRESTORE_DELETE);
-            Serial.println();
-
-            resultStr = firestore.deleteDocument("users/user1", true);
-            Serial.print("| resultStr");
-            Serial.print(resultStr);
-            Serial.println();
-
-            firebaseFirestoreState = FIRESTORE_IDE;
-            break;
+          }
         }
-      }  // FIREBASE_FIRESTORE_END
-
-      if (!messaging.isReady()) {  // FIREBASE_MESSAGING_START
-        ledRed.toggleAsync(250, [](bool state) {
-          Serial.println("Wait for Mesagging Ready !!");
-        });
-      } else {
-        if (firebaseMessagingState == MESSAGING_SEND) {
-          messaging.clearMessage();
-          messaging.setToken(FIREBASE_MSG_DEVICE_TOKEN);
-          messaging.setNotification("Pesan dari ESP32", "Hallo ESP32");
-          messaging.setAndroidPriority(true);
-          resultStr = messaging.sendMessage(true);
-          Serial.println(resultStr);
-          firebaseMessagingState = MESSAGING_IDLE;
-        }
-      }  // FIREBASE_MESSAGING_END
+      }
     }
   });
 }

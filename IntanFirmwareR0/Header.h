@@ -85,11 +85,15 @@ FirebaseRTDBState firebaseRTDBState = RTDB_IDLE;
 FirebaseFirestoreState firebaseFirestoreState = FIRESTORE_IDE;
 FirebaseMessagingState firebaseMessagingState = MESSAGING_IDLE;
 
-bool apiTestingSend = false;
-uint32_t userCount = 0;
 String userEmail = "";
 String userPassword = "";
 String uuidRFID = "";
+String userIdNow = "";
+
+uint32_t userCount = 0;
+
+bool apiTestingSend = false;
+bool statusTimbang = false;
 
 float weight = 0.0;
 float height = 0.0;
