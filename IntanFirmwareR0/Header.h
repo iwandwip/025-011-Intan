@@ -37,9 +37,9 @@ FirebaseV2RTDB firebase;
 FirebaseV2Firestore firestore;
 FirebaseV2Messaging messaging;
 WiFiClientSecure client;
-
 ////////// Sensor //////////
 SensorModule sensor;
+MovingAverageFilter loadCellFilter(10);
 
 ////////// Communication //////////
 HardSerial usbSerial;

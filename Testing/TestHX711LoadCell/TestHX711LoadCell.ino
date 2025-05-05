@@ -8,9 +8,13 @@
 Preferences preferences;
 SensorModule sensor;
 
+MovingAverageFilter loadCellFilter(10);
+
+float weight = 0.0;
+
 void setup() {
   Serial.begin(115200);
-  sensor.addModule("lCell", new HX711Sens(26, 13, HX711Sens::KG, 0.2, 5, 3000, 5.0));
+  sensor.addModule("lCell", new HX711Sens(26, 25, HX711Sens::KG, 0.5, 5, 1000, 5.0));
   sensor.init([]() {
     auto loadCell = sensor.getModule<HX711Sens>("lCell");
     preferences.begin("intan", false);
@@ -28,7 +32,14 @@ void setup() {
 void loop() {
   calibrateLoadcell();
   sensor.update([]() {
-    sensor.debug();
+    weight = sensor["lCell"];
+    loadCellFilter.addMeasurement(weight);
+    weight = abs(loadCellFilter.getFilteredValue());
+
+    Serial.print("| weight: ");
+    Serial.print(weight);
+    Serial.println();
+    // sensor.debug();
   });
 }
 

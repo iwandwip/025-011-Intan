@@ -64,9 +64,9 @@ void wifiTask() {
             //   statusTimbang = true;
             //   break;
             // }
-            Serial.print("| statusTimbangFirestore: ");
-            Serial.print(statusTimbangFirestore);
-            Serial.println();
+            // Serial.print("| statusTimbangFirestore: ");
+            // Serial.print(statusTimbangFirestore);
+            // Serial.println();
           }
         }
       }
