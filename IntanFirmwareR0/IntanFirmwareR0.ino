@@ -16,7 +16,7 @@ void setup() {
   task.initialize(wifiTask);
 
   sensor.addModule("rfid", new RFID_Mfrc522(5, 27));
-  sensor.addModule("sonar", new UltrasonicSens(32, 33));
+  sensor.addModule("sonar", new UltrasonicSens(32, 33, 200, 3.0));
   sensor.addModule("lCell", new HX711Sens(26, 25, HX711Sens::KG, 0.5, 5, 1000, 5.0));
   sensor.init([]() {
     auto loadCell = sensor.getModule<HX711Sens>("lCell");
@@ -45,9 +45,9 @@ void loop() {
     weight = weight < 1.0 ? 0.0 : weight;
     // sensor.debug();
 
-    Serial.print("| weight: ");
-    Serial.print(weight);
-    Serial.println();
+    // Serial.print("| weight: ");
+    // Serial.print(weight);
+    // Serial.println();
   });
 
   MenuCursor cursor{

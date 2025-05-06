@@ -9,7 +9,7 @@ const char PRIVATE_KEY[] PROGMEM = "-----BEGIN PRIVATE KEY-----\nMIIEvQIBADANBgk
 
 void wifiTask() {
   task.setInitCoreID(1);
-  task.createTask(10000, [](void* pvParameter) {
+  task.createTask(10000, [](void *pvParameter) {
     menu.connectToWiFi("TIMEOSPACE", "1234Saja", 30);
     client.setInsecure();
 
@@ -42,6 +42,7 @@ void wifiTask() {
       }
 
       if (firestore.isReady()) {
+        static bool isInitialized = false;
         static uint32_t firestoreTimer;
         if (millis() - firestoreTimer >= 5000) {
           firestoreTimer = millis();
@@ -52,7 +53,20 @@ void wifiTask() {
 
           statusTimbang = false;
           for (JsonVariant fields : userDoc["documents"].as<JsonArray>()) {
+            String userEmail = fields["fields"]["email"]["stringValue"].as<String>();
             String idStr = fields["fields"]["id"]["stringValue"].as<String>();
+            if (userEmail == "admin@gmail.com") continue;
+            if (!isInitialized) {
+              JsonDocument initDoc;
+              String initDocStr;
+              String updatePath = "users/" + idStr + "/arduinoConnection/timbang";
+              initDoc["statusRfid"] = true;
+              serializeJson(initDoc, initDocStr);
+              String res = firestore.updateDocument(updatePath, initDocStr, "statusRfid", true);
+              Serial.println("| initialize: " + userEmail + " | " + updatePath);
+              Serial.println(res);
+              continue;
+            }
             String timbangPath = "users/" + idStr + "/arduinoConnection/timbang";
             String timbangStr = firestore.getDocument(timbangPath, "", true);
             JsonDocument timbangDoc;
@@ -64,10 +78,13 @@ void wifiTask() {
             //   statusTimbang = true;
             //   break;
             // }
-            // Serial.print("| statusTimbangFirestore: ");
-            // Serial.print(statusTimbangFirestore);
-            // Serial.println();
+            Serial.print("| userEmail: ");
+            Serial.print(userEmail);
+            Serial.print("| statusTimbangFirestore: ");
+            Serial.print(statusTimbangFirestore);
+            Serial.println();
           }
+          isInitialized = true;
         }
       }
     }
