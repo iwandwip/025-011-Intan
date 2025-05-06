@@ -58,13 +58,22 @@ void wifiTask() {
             if (userEmail == "admin@gmail.com") continue;
             if (!isInitialized) {
               JsonDocument initDoc;
+              JsonObject fields = initDoc.createNestedObject("fields");
+              JsonObject statusRfidField = fields.createNestedObject("statusRfid");
+              statusRfidField["booleanValue"] = true;
+
               String initDocStr;
-              String updatePath = "users/" + idStr + "/arduinoConnection/timbang";
-              initDoc["statusRfid"] = true;
               serializeJson(initDoc, initDocStr);
+
+              String updatePath = "users/" + idStr + "/arduinoConnection/timbang";
+              Serial.println("JSON to send: " + initDocStr);
+
               String res = firestore.updateDocument(updatePath, initDocStr, "statusRfid", true);
-              Serial.println("| initialize: " + userEmail + " | " + updatePath);
-              Serial.println(res);
+              Serial.println("Update result: " + res);
+
+              if (res.length() == 0 || res.indexOf("error") >= 0) {
+                Serial.println("Error: " + firestore.getLastError());
+              }
               continue;
             }
             String timbangPath = "users/" + idStr + "/arduinoConnection/timbang";
