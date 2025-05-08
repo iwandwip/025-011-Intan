@@ -87,11 +87,11 @@ void wifiTask() {
             //   statusTimbang = true;
             //   break;
             // }
-            Serial.print("| userEmail: ");
-            Serial.print(userEmail);
-            Serial.print("| statusTimbangFirestore: ");
-            Serial.print(statusTimbangFirestore);
-            Serial.println();
+            // Serial.print("| userEmail: ");
+            // Serial.print(userEmail);
+            // Serial.print("| statusTimbangFirestore: ");
+            // Serial.print(statusTimbangFirestore);
+            // Serial.println();
           }
           isInitialized = true;
         }
