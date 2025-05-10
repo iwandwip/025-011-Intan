@@ -50,7 +50,7 @@ DigitalIn buttonDown(36);
 
 ////////// Output Module //////////
 SH1106Menu menu(0x3C, 21, 22);
-DigitalOut buzzer(2);
+DigitalOut buzzer(2);  // 2
 DigitalOut ledRed(4);
 DigitalOut ledGreen(16);
 DigitalOut ledYellow(17);
@@ -85,15 +85,69 @@ FirebaseRTDBState firebaseRTDBState = RTDB_IDLE;
 FirebaseFirestoreState firebaseFirestoreState = FIRESTORE_IDE;
 FirebaseMessagingState firebaseMessagingState = MESSAGING_IDLE;
 
-String userEmail = "";
-String userPassword = "";
-String uuidRFID = "";
-String userIdNow = "";
+struct UserAcc {
+  String birthdate;
+  String email;
+  String password;
+  String gender;
+  String id;
+  String namaAnak;
+  String rfid;
+  String role;
+  String username;
+};
 
-uint32_t userCount = 0;
+UserAcc userAccValid;
+UserAcc userAccShowBMI;
+UserAcc userAccAdmin;
+UserAcc userAccRegister;
 
-bool apiTestingSend = false;
-bool statusTimbang = false;
+enum MeasurementState {
+  MEASUREMENT_IDLE,
+  MEASUREMENT_VALIDATION,
+  MEASUREMENT_SUCCESS,
+  MEASUREMENT_SHOW_BMI,
+  MEASUREMENT_ADMIN,
+  MEASUREMENT_FORGOT_ACCOUNT,
+};
 
+enum AdminState {
+  ADMIN_IDLE,
+  ADMIN_REGISTER,
+  ADMIN_FORGOT_ACCOUNT,
+};
+
+enum UserState {
+  USER_IDLE,
+  USER_GET_POLA_MAKAN,
+  USER_GET_RESPON_ANAK,
+  USER_GET_WEIGHT,
+  USER_GET_HEIGHT,
+  USER_VALIDATION_DATA,
+  USER_SEND_DATA,
+};
+
+int measurementState = MEASUREMENT_IDLE;
+int adminState = ADMIN_IDLE;
+int userState = USER_IDLE;
+
+String uuidRFIDNow = "";
+uint32_t userNumber = 0;
+uint32_t firestoreGetDataTimer = 0;
+bool isStatusRFIDInitialize = false;
+bool firestoreGetDataForce = false;
+
+struct UserMeasurementData {
+  float weight;
+  float height;
+  float bmi;
+  String polaMakanAnak;
+  String responAnak;
+};
+
+UserMeasurementData userData;
+
+const float heightPole = 197.0;
 float weight = 0.0;
 float height = 0.0;
+float bmi = 0.0;

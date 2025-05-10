@@ -27,7 +27,11 @@ void usbCommunicationTask(const String& dataRecv) {
     if (dataHeader == "FIRESTORE_DELETE") firebaseFirestoreState = FIRESTORE_DELETE;
     // Firebase Mesagging
     if (dataHeader == "MESSAGING_SEND") firebaseMessagingState = MESSAGING_SEND;
-
-    if (dataHeader == "API_TEST_SEND") apiTestingSend = true;
+    if (dataHeader == "RESET_USER_COUNT") {
+      userNumber = 0;
+      preferences.begin("intan", false);
+      preferences.putULong("userNumber", userNumber);
+      preferences.end();
+    }
   }
 }
