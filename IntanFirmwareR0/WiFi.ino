@@ -11,13 +11,13 @@ void wifiTask() {
   task.setInitCoreID(1);
   task.createTask(10000, [](void *pvParameter) {
     menu.connectToWiFi("TIMEOSPACE", "1234Saja", 30);
+    menu.showCircleLoading("Connecting ..", 50);
     // menu.connectToWiFi("silenceAndSleep", "11111111", 30);
     client.setInsecure();
 
     if (!dateTime.begin()) {
       Serial.println("Gagal memulai NTP Client!");
     }
-
     if (!firestore.begin(FIREBASE_API_KEY, FIREBASE_USER_EMAIL, FIREBASE_USER_PASSWORD, FIREBASE_PROJECT_ID)) {
       Serial.println("Firebase Firestore Error: " + firestore.getLastError());
       while (1) { delay(1000); }
@@ -29,6 +29,7 @@ void wifiTask() {
     disableCore0WDT();
     disableCore1WDT();
     buzzer.toggleInit(100, 2);
+    measurementState = MEASUREMENT_IDLE;
 
     for (;;) {
       firestore.loop();

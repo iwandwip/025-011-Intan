@@ -1,7 +1,4 @@
 void lcdMenuCallback() {
-  Serial.print("| getMeasurementStr(): ");
-  Serial.print(getMeasurementStr());
-  Serial.println();
   if (measurementState == MEASUREMENT_IDLE) {
     const char* statusTimbangLines1[] = { "Silahkan Pilih", "Menu Ambil Data", "Pada Aplikasi Anda" };
     menu.renderBoxedText(statusTimbangLines1, 3);
@@ -30,13 +27,55 @@ void lcdMenuCallback() {
       }
     }
   } else if (measurementState == MEASUREMENT_SUCCESS) {
-    if (userState == USER_GET_WEIGHT) {
-      //
-    } else if (userState == USER_GET_WEIGHT) {
-      //
+    if (userState == USER_GET_POLA_MAKAN) {
+      menu.renderRadioMenu("Pola Makan", polaMakanOption, polaMakanNumOptions, polaMakanSelectedOption);
+      if (buttonDown.isLongPressed(2000)) {
+        buttonDown.resetState();
+        backToMainMenu();
+      }
+      if (buttonOk.isLongPressed(2000)) {
+        while (!buttonOk.getState()) {
+          menu.renderModal(polaMakanOption[polaMakanSelectedOption], polaMakanExt[polaMakanSelectedOption], nullptr, false, false);
+          buttonOk.update();
+        }
+        return;
+      }
+      if (buttonOk.isReleased()) {
+        userData.polaMakan = polaMakanSelectedOption;
+        userState = USER_GET_RESPON_ANAK;
+      }
+      if (buttonDown.isReleased()) {
+        polaMakanSelectedOption = (polaMakanSelectedOption + 1) % polaMakanNumOptions;
+      }
+    } else if (userState == USER_GET_RESPON_ANAK) {
+      menu.renderRadioMenu("Respon Anak", responAnakOption, responAnakNumOptions, responAnakSelectedOption);
+      if (buttonDown.isLongPressed(2000)) {
+        buttonDown.resetState();
+        userState = USER_GET_POLA_MAKAN;
+        return;
+      }
+      if (buttonOk.isLongPressed(2000)) {
+        while (!buttonOk.getState()) {
+          menu.renderModal(responAnakOption[responAnakSelectedOption], responAnakExt[responAnakSelectedOption], nullptr, false, false);
+          buttonOk.update();
+        }
+        return;
+      }
+      if (buttonOk.isReleased()) {
+        userData.responAnak = responAnakSelectedOption;
+        userState = USER_GET_WEIGHT;
+      }
+      if (buttonDown.isReleased()) {
+        responAnakSelectedOption = (responAnakSelectedOption + 1) % responAnakNumOptions;
+      }
     } else if (userState == USER_GET_WEIGHT) {
       String beratBadanStr = String(weight) + " Kg";
       menu.renderInfoScreenCenter("Berat Badan", userAccValid.namaAnak.c_str(), userAccValid.gender.c_str(), beratBadanStr.c_str());
+      if (buttonDown.isLongPressed(2000)) {
+        buttonDown.resetState();
+        userState = USER_GET_RESPON_ANAK;
+        return;
+      }
       if (buttonOk.isPressed()) {
         userData.weight = weight;
         userState = USER_GET_HEIGHT;
@@ -44,6 +83,11 @@ void lcdMenuCallback() {
     } else if (userState == USER_GET_HEIGHT) {
       String tinggiBadanStr = String(height) + " Cm";
       menu.renderInfoScreenCenter("Tinggi Badan", userAccValid.namaAnak.c_str(), userAccValid.gender.c_str(), tinggiBadanStr.c_str());
+      if (buttonDown.isLongPressed(2000)) {
+        buttonDown.resetState();
+        userState = USER_GET_WEIGHT;
+        return;
+      }
       if (buttonOk.isPressed()) {
         userData.height = height;
         userData.bmi = calculateBMI(userData.weight, userData.height);
@@ -51,9 +95,14 @@ void lcdMenuCallback() {
       }
     } else if (userState == USER_VALIDATION_DATA) {
       String beratBadanStr = "Berat : " + String(userData.weight) + " Kg";
-      String tinggiBadanStr = "Tinggi : " + String(userData.weight) + " Cm";
+      String tinggiBadanStr = "Tinggi : " + String(userData.height) + " Cm";
       String bmiStr = "BMI   : " + getKategoriBMI(userData.bmi);
       menu.renderInfoScreenCenter("Data Anak", beratBadanStr.c_str(), tinggiBadanStr.c_str(), bmiStr.c_str());
+      if (buttonDown.isLongPressed(2000)) {
+        buttonDown.resetState();
+        userState = USER_GET_HEIGHT;
+        return;
+      }
       if (buttonOk.isPressed()) {
         userState = USER_SEND_DATA;
       }
@@ -198,6 +247,7 @@ void lcdMenuCallback() {
 void backToMainMenu() {
   measurementState = MEASUREMENT_IDLE;
   adminState = ADMIN_IDLE;
+  userState = USER_IDLE;
   firestoreGetDataForce = true;
   uuidRFIDNow = "";
   UserAcc UserAccEmpty;
@@ -205,6 +255,8 @@ void backToMainMenu() {
   userAccShowBMI = UserAccEmpty;
   userAccAdmin = UserAccEmpty;
   userAccRegister = UserAccEmpty;
+  UserMeasurementData userDataEmpty;
+  userData = userDataEmpty;
   buzzer.toggleInit(100, 2);
   // delay(3000);
   for (int i = 1; i <= 100; i++) {
