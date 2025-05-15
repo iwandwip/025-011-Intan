@@ -50,7 +50,7 @@ DigitalIn buttonDown(36);
 
 ////////// Output Module //////////
 SH1106Menu menu(0x3C, 21, 22);
-DigitalOut buzzer(2);  // 2
+DigitalOut buzzer(4);  // 2
 DigitalOut ledRed(4);
 DigitalOut ledGreen(16);
 DigitalOut ledYellow(17);

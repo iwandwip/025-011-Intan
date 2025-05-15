@@ -10,9 +10,9 @@ const char PRIVATE_KEY[] PROGMEM = "-----BEGIN PRIVATE KEY-----\nMIIEvQIBADANBgk
 void wifiTask() {
   task.setInitCoreID(1);
   task.createTask(10000, [](void *pvParameter) {
-    menu.connectToWiFi("TIMEOSPACE", "1234Saja", 30);
+    // menu.connectToWiFi("TIMEOSPACE", "1234Saja", 30);
+    menu.connectToWiFi("silenceAndSleep", "11111111", 30);
     menu.showCircleLoading("Connecting ..", 50);
-    // menu.connectToWiFi("silenceAndSleep", "11111111", 30);
     client.setInsecure();
 
     if (!dateTime.begin()) {
