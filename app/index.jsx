@@ -5,7 +5,7 @@ import { useAuth } from "../contexts/AuthContext";
 import LoadingSpinner from "../components/ui/LoadingSpinner";
 import { Colors } from "../constants/Colors";
 
-function Index() {
+export default function Index() {
   const { currentUser, loading, authInitialized, isAdmin } = useAuth();
   const router = useRouter();
   const redirectedRef = useRef(false);
@@ -58,5 +58,3 @@ const styles = {
     color: Colors.gray600,
   },
 };
-
-export default Index;

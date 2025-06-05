@@ -4,7 +4,7 @@ import { StatusBar } from "expo-status-bar";
 import { AuthProvider } from "../contexts/AuthContext";
 import ErrorBoundary from "../components/ErrorBoundary";
 
-function RootLayout() {
+export default function RootLayout() {
   return (
     <ErrorBoundary>
       <AuthProvider>
@@ -19,5 +19,3 @@ function RootLayout() {
     </ErrorBoundary>
   );
 }
-
-export default RootLayout;

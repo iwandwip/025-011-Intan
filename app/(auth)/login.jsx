@@ -29,7 +29,12 @@ export default function Login() {
 
     if (result.success) {
       navigationRef.current = true;
-      router.replace("/(tabs)");
+      const isAdmin = email === "admin@gmail.com";
+      if (isAdmin) {
+        router.replace("/(admin)");
+      } else {
+        router.replace("/(tabs)");
+      }
     } else {
       Alert.alert("Login Failed", result.error);
     }

@@ -1,175 +1,136 @@
-import React, { createContext, useState, useContext, useEffect } from "react";
-import { auth } from "../../services/firebase";
-import { onAuthStateChanged } from "firebase/auth";
-import { getUserProfile } from "../../services/userService";
+import React, { useState, useRef } from "react";
+import {
+  View,
+  Text,
+  StyleSheet,
+  Alert,
+  ScrollView,
+  StatusBar,
+} from "react-native";
+import { Link, useRouter } from "expo-router";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
+import AuthForm from "../../components/auth/AuthForm";
+import IllustrationContainer from "../../components/ui/IllustrationContainer";
+import RegisterIllustration from "../../components/illustrations/RegisterIllustration";
+import { signUpWithEmail } from "../../services/authService";
+import { Colors } from "../../constants/Colors";
 
-const AuthContext = createContext({});
+export default function Register() {
+  const [loading, setLoading] = useState(false);
+  const router = useRouter();
+  const navigationRef = useRef(false);
+  const insets = useSafeAreaInsets();
 
-export const useAuth = () => {
-  const context = useContext(AuthContext);
-  if (!context) {
-    return {
-      currentUser: null,
-      userProfile: null,
-      loading: false,
-      authInitialized: true,
-      isAdmin: false,
-      refreshProfile: () => {},
-    };
-  }
-  return context;
-};
+  const handleRegister = async ({ email, password, profileData }) => {
+    if (loading || navigationRef.current) return;
 
-export const AuthProvider = ({ children }) => {
-  const [currentUser, setCurrentUser] = useState(null);
-  const [userProfile, setUserProfile] = useState(null);
-  const [loading, setLoading] = useState(true);
-  const [authInitialized, setAuthInitialized] = useState(false);
-  const [isAdmin, setIsAdmin] = useState(false);
+    setLoading(true);
+    const result = await signUpWithEmail(email, password, profileData);
 
-  const checkAdminStatus = (user, profile) => {
-    return (
-      user?.email === "admin@gmail.com" ||
-      profile?.role === "teacher" ||
-      profile?.isAdmin
-    );
-  };
+    if (result.success) {
+      const isAdmin = email === "admin@gmail.com";
 
-  const loadUserProfile = async (user) => {
-    if (!user) {
-      setUserProfile(null);
-      setIsAdmin(false);
-      return;
-    }
-
-    try {
-      const result = await getUserProfile(user.uid);
-      if (result.success) {
-        const adminStatus = checkAdminStatus(user, result.profile);
-        setIsAdmin(adminStatus);
-        setUserProfile(result.profile);
-      } else {
-        const adminStatus = checkAdminStatus(user, null);
-        setIsAdmin(adminStatus);
-
-        if (adminStatus) {
-          setUserProfile({
-            id: user.uid,
-            email: user.email,
-            name: "Admin",
-            role: "teacher",
-            isAdmin: true,
-          });
-        } else {
-          console.warn("Failed to load user profile:", result.error);
-          setUserProfile(null);
-        }
-      }
-    } catch (error) {
-      console.error("Error loading user profile:", error);
-      const adminStatus = checkAdminStatus(user, null);
-      setIsAdmin(adminStatus);
-
-      if (adminStatus) {
-        setUserProfile({
-          id: user.uid,
-          email: user.email,
-          name: "Admin",
-          role: "teacher",
-          isAdmin: true,
-        });
-      } else {
-        setUserProfile(null);
-      }
-    }
-  };
-
-  const refreshProfile = async () => {
-    if (currentUser) {
-      await loadUserProfile(currentUser);
-    }
-  };
-
-  useEffect(() => {
-    let unsubscribe = null;
-    let mounted = true;
-
-    const initializeAuth = () => {
-      if (!auth) {
-        if (mounted) {
-          setCurrentUser(null);
-          setUserProfile(null);
-          setLoading(false);
-          setAuthInitialized(true);
-          setIsAdmin(false);
-        }
-        return;
-      }
-
-      try {
-        unsubscribe = onAuthStateChanged(
-          auth,
-          async (user) => {
-            if (mounted) {
-              setCurrentUser(user);
-              await loadUserProfile(user);
-              setLoading(false);
-              setAuthInitialized(true);
-            }
+      Alert.alert(
+        "Account Created",
+        isAdmin
+          ? "Admin account has been created successfully!"
+          : "Your account has been created successfully! You can pair your RFID card from Edit Profile.",
+        [
+          {
+            text: "OK",
+            onPress: () => {
+              navigationRef.current = true;
+              if (isAdmin) {
+                router.replace("/(admin)");
+              } else {
+                router.replace("/(tabs)");
+              }
+            },
           },
-          (error) => {
-            console.error("Auth state change error:", error);
-            if (mounted) {
-              setCurrentUser(null);
-              setUserProfile(null);
-              setLoading(false);
-              setAuthInitialized(true);
-              setIsAdmin(false);
-            }
-          }
-        );
-      } catch (error) {
-        console.error("Failed to initialize auth listener:", error);
-        if (mounted) {
-          setCurrentUser(null);
-          setUserProfile(null);
-          setLoading(false);
-          setAuthInitialized(true);
-          setIsAdmin(false);
-        }
-      }
-    };
+        ]
+      );
+    } else {
+      Alert.alert("Registration Failed", result.error);
+    }
 
-    const timeoutId = setTimeout(() => {
-      if (mounted && loading && !authInitialized) {
-        console.warn("Auth initialization timeout, proceeding anyway");
-        setCurrentUser(null);
-        setUserProfile(null);
-        setLoading(false);
-        setAuthInitialized(true);
-        setIsAdmin(false);
-      }
-    }, 10000);
-
-    initializeAuth();
-
-    return () => {
-      mounted = false;
-      if (unsubscribe) {
-        unsubscribe();
-      }
-      clearTimeout(timeoutId);
-    };
-  }, []);
-
-  const value = {
-    currentUser,
-    userProfile,
-    loading,
-    authInitialized,
-    isAdmin,
-    refreshProfile,
+    setLoading(false);
   };
 
-  return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
-};
+  return (
+    <View style={[styles.container, { paddingTop: insets.top }]}>
+      <StatusBar barStyle="dark-content" backgroundColor={Colors.background} />
+      <ScrollView
+        style={styles.scrollContainer}
+        contentContainerStyle={[
+          styles.scrollContent,
+          { paddingBottom: insets.bottom + 20 },
+        ]}
+        showsVerticalScrollIndicator={false}
+        keyboardShouldPersistTaps="handled"
+      >
+        <View style={styles.illustrationContainer}>
+          <IllustrationContainer>
+            <RegisterIllustration />
+          </IllustrationContainer>
+        </View>
+
+        <View style={styles.formContainer}>
+          <AuthForm
+            type="register"
+            onSubmit={handleRegister}
+            loading={loading}
+          />
+        </View>
+
+        <View style={styles.links}>
+          <View style={styles.loginContainer}>
+            <Text style={styles.loginText}>Already have an account? </Text>
+            <Link href="/(auth)/login" style={styles.loginLink}>
+              Sign In
+            </Link>
+          </View>
+        </View>
+      </ScrollView>
+    </View>
+  );
+}
+
+const styles = StyleSheet.create({
+  container: {
+    flex: 1,
+    backgroundColor: Colors.background,
+  },
+  scrollContainer: {
+    flex: 1,
+  },
+  scrollContent: {
+    flexGrow: 1,
+    paddingHorizontal: 24,
+    paddingTop: 20,
+  },
+  illustrationContainer: {
+    marginBottom: 20,
+  },
+  formContainer: {
+    flex: 1,
+    minHeight: 400,
+  },
+  links: {
+    alignItems: "center",
+    paddingVertical: 20,
+    marginTop: 20,
+  },
+  loginContainer: {
+    flexDirection: "row",
+    alignItems: "center",
+  },
+  loginText: {
+    color: Colors.gray600,
+    fontSize: 14,
+  },
+  loginLink: {
+    color: Colors.primary,
+    fontSize: 14,
+    fontWeight: "500",
+  },
+});

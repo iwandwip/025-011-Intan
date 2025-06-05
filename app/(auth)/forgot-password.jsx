@@ -15,7 +15,7 @@ import ForgotPasswordIllustration from "../../components/illustrations/ForgotPas
 import { resetPassword } from "../../services/authService";
 import { Colors } from "../../constants/Colors";
 
-function ForgotPassword() {
+export default function ForgotPassword() {
   const [loading, setLoading] = useState(false);
   const router = useRouter();
   const insets = useSafeAreaInsets();
@@ -123,5 +123,3 @@ const styles = StyleSheet.create({
     fontWeight: "500",
   },
 });
-
-export default ForgotPassword;
