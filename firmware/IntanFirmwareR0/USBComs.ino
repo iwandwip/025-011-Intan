@@ -12,6 +12,7 @@ void usbCommunicationTask(const String& dataRecv) {
   } else {
     dataHeader.toUpperCase();
     if (dataHeader == "R") ESP.restart();
+    if (dataHeader == "HEIGHT_POLE") heightPole = dataValue.toFloat();  // HEIGHT_POLE#197.0
 
     // Firebase RTDB
     if (dataHeader == "RTDB_SET_VALUE") firebaseRTDBState = RTDB_SET_VALUE;
@@ -27,7 +28,11 @@ void usbCommunicationTask(const String& dataRecv) {
     if (dataHeader == "FIRESTORE_DELETE") firebaseFirestoreState = FIRESTORE_DELETE;
     // Firebase Mesagging
     if (dataHeader == "MESSAGING_SEND") firebaseMessagingState = MESSAGING_SEND;
-
-    if (dataHeader == "API_TEST_SEND") apiTestingSend = true;
+    if (dataHeader == "RESET_USER_COUNT") {
+      userNumber = 0;
+      preferences.begin("intan", false);
+      preferences.putULong("userNumber", userNumber);
+      preferences.end();
+    }
   }
 }

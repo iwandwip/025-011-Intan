@@ -11,12 +11,13 @@ void wifiTask() {
   task.setInitCoreID(1);
   task.createTask(10000, [](void *pvParameter) {
     menu.connectToWiFi("TIMEOSPACE", "1234Saja", 30);
+    // menu.connectToWiFi("silenceAndSleep", "11111111", 30);
+    menu.showCircleLoading("Connecting ..", 50);
     client.setInsecure();
 
     if (!dateTime.begin()) {
       Serial.println("Gagal memulai NTP Client!");
     }
-
     if (!firestore.begin(FIREBASE_API_KEY, FIREBASE_USER_EMAIL, FIREBASE_USER_PASSWORD, FIREBASE_PROJECT_ID)) {
       Serial.println("Firebase Firestore Error: " + firestore.getLastError());
       while (1) { delay(1000); }
@@ -24,16 +25,14 @@ void wifiTask() {
 
     Serial.println("Firebase Init Success");
 
+    disableLoopWDT();
+    disableCore0WDT();
     disableCore1WDT();
     buzzer.toggleInit(100, 2);
+    measurementState = MEASUREMENT_IDLE;
 
     for (;;) {
       firestore.loop();
-
-      if (apiTestingSend) {
-        apiRegisterAccount();
-        apiTestingSend = false;
-      }
 
       static uint32_t dateTimeNTPTimer;
       if (millis() - dateTimeNTPTimer >= 1000 && dateTime.update()) {
@@ -42,62 +41,89 @@ void wifiTask() {
       }
 
       if (firestore.isReady()) {
-        static bool isInitialized = false;
-        static uint32_t firestoreTimer;
-        if (millis() - firestoreTimer >= 5000) {
-          firestoreTimer = millis();
+        if (millis() - firestoreGetDataTimer >= 5000 || firestoreGetDataForce) {
+          firestoreGetDataForce = false;
+          firestoreGetDataTimer = millis();
+
           String userResStr = firestore.getDocument("users", "", true);
           JsonDocument userDoc;
           deserializeJson(userDoc, userResStr);
           // serializeJsonPretty(userDoc, Serial);
 
-          statusTimbang = false;
           for (JsonVariant fields : userDoc["documents"].as<JsonArray>()) {
-            String userEmail = fields["fields"]["email"]["stringValue"].as<String>();
-            String idStr = fields["fields"]["id"]["stringValue"].as<String>();
-            if (userEmail == "admin@gmail.com") continue;
-            if (!isInitialized) {
-              JsonDocument initDoc;
-              JsonObject fields = initDoc.createNestedObject("fields");
-              JsonObject statusRfidField = fields.createNestedObject("statusRfid");
-              statusRfidField["booleanValue"] = true;
+            UserAcc userAccFirebase;
+            userAccFirebase.birthdate = fields["fields"]["birthdate"]["stringValue"].as<String>();
+            userAccFirebase.email = fields["fields"]["email"]["stringValue"].as<String>();
+            userAccFirebase.gender = fields["fields"]["gender"]["stringValue"].as<String>();
+            userAccFirebase.id = fields["fields"]["id"]["stringValue"].as<String>();
+            userAccFirebase.namaAnak = fields["fields"]["namaAnak"]["stringValue"].as<String>();
+            userAccFirebase.rfid = fields["fields"]["rfid"]["stringValue"].as<String>();
+            userAccFirebase.role = fields["fields"]["role"]["stringValue"].as<String>();
+            userAccFirebase.username = fields["fields"]["username"]["stringValue"].as<String>();
 
-              String initDocStr;
-              serializeJson(initDoc, initDocStr);
-
-              String updatePath = "users/" + idStr + "/arduinoConnection/timbang";
-              Serial.println("JSON to send: " + initDocStr);
-
-              String res = firestore.updateDocument(updatePath, initDocStr, "statusRfid", true);
-              Serial.println("Update result: " + res);
-
-              if (res.length() == 0 || res.indexOf("error") >= 0) {
-                Serial.println("Error: " + firestore.getLastError());
+            if (userAccFirebase.email == "admin@gmail.com") {
+              if (userAccAdmin.rfid == userAccFirebase.rfid && measurementState == MEASUREMENT_IDLE) {
+                measurementState = MEASUREMENT_ADMIN;
+                UserAcc UserAccEmpty;
+                userAccAdmin = UserAccEmpty;
+                buzzer.toggleInit(100, 3);
+                break;
               }
               continue;
             }
-            String timbangPath = "users/" + idStr + "/arduinoConnection/timbang";
+            if (!isStatusRFIDInitialize) {
+              setStatusRFID(userAccFirebase.id, true);
+              continue;
+            }
+            if (measurementState == MEASUREMENT_ADMIN) {
+              if (adminState == ADMIN_FORGOT_ACCOUNT) {
+                if (userAccAdmin.rfid == userAccFirebase.rfid) {
+                  userAccAdmin = userAccFirebase;
+                } else {
+                  userAccAdmin.rfid = "NOT FOUND";
+                  userAccAdmin.email = "NOT FOUND";
+                  userAccAdmin.password = "NOT FOUND";
+                }
+                adminState = ADMIN_IDLE;
+              }
+            }
+            String timbangPath = "users/" + userAccFirebase.id + "/arduinoConnection/timbang";
             String timbangStr = firestore.getDocument(timbangPath, "", true);
             JsonDocument timbangDoc;
             deserializeJson(timbangDoc, timbangStr);
             // serializeJsonPretty(timbangDoc, Serial);
 
-            bool statusTimbangFirestore = timbangDoc["fields"]["statusRfid"]["booleanValue"];
-            // if (statusTimbangFirestore) {
-            //   statusTimbang = true;
-            //   break;
-            // }
-            Serial.print("| userEmail: ");
-            Serial.print(userEmail);
-            Serial.print("| statusTimbangFirestore: ");
-            Serial.print(statusTimbangFirestore);
-            Serial.println();
+            bool firestoreStatusRFID = timbangDoc["fields"]["statusRfid"]["booleanValue"];
+            if (userAccShowBMI.rfid == userAccFirebase.rfid && measurementState == MEASUREMENT_IDLE) {
+              measurementState = MEASUREMENT_SHOW_BMI;
+              UserAcc UserAccEmpty;
+              userAccShowBMI = UserAccEmpty;
+              buzzer.toggleInit(100, 3);
+              break;
+            }
+            if (!firestoreStatusRFID && measurementState == MEASUREMENT_IDLE) {
+              measurementState = MEASUREMENT_VALIDATION;
+              userAccValid = userAccFirebase;
+              buzzer.toggleInit(100, 3);
+              break;
+            }
           }
-          isInitialized = true;
+          isStatusRFIDInitialize = true;
         }
       }
     }
   });
+}
+
+void setStatusRFID(String idStr, bool state) {
+  JsonDocument initDoc;
+  JsonObject fields = initDoc.createNestedObject("fields");
+  JsonObject statusRfidField = fields.createNestedObject("statusRfid");
+  statusRfidField["booleanValue"] = state;
+  String initDocStr;
+  serializeJson(initDoc, initDocStr);
+  String updatePath = "users/" + idStr + "/arduinoConnection/timbang";
+  firestore.updateDocument(updatePath, initDocStr, "statusRfid", true);
 }
 
 bool apiRegisterAccount() {
@@ -106,17 +132,22 @@ bool apiRegisterAccount() {
   http.begin("https://api-tcoyjjfyla-et.a.run.app/register");
   http.addHeader("Content-Type", "application/json");
 
-  userEmail = "testing_user" + String(userCount) + "@gmail.com";
-  userPassword = "testing_password" + String(userCount);
+  userAccRegister.birthdate = "2010-01-15T00:00:00.000Z";
+  userAccRegister.email = "testing_user" + String(userNumber) + "@gmail.com";
+  userAccRegister.password = "testing_password" + String(userNumber);
+  userAccRegister.gender = "perempuan";
+  userAccRegister.namaAnak = "namaAnak" + String(userNumber);
+  userAccRegister.rfid = uuidRFIDNow;
+  userAccRegister.username = "testing_username" + String(userNumber);
 
   JsonDocument jsonDoc;
-  jsonDoc["email"] = userEmail;
-  jsonDoc["password"] = userPassword;
-  jsonDoc["username"] = "testing_username" + String(userCount);
-  jsonDoc["namaAnak"] = "namaAnak" + String(userCount);
-  jsonDoc["birthdate"] = "2010-01-15T00:00:00.000Z";
-  jsonDoc["gender"] = "perempuan";
-  jsonDoc["rfid"] = uuidRFID;
+  jsonDoc["birthdate"] = userAccRegister.birthdate;
+  jsonDoc["email"] = userAccRegister.email;
+  jsonDoc["password"] = userAccRegister.password;
+  jsonDoc["gender"] = userAccRegister.gender;
+  jsonDoc["namaAnak"] = userAccRegister.namaAnak;
+  jsonDoc["rfid"] = userAccRegister.rfid;
+  jsonDoc["username"] = userAccRegister.username;
 
   String requestBody;
   serializeJson(jsonDoc, requestBody);
