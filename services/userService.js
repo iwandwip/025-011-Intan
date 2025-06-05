@@ -10,34 +10,49 @@ export const createUserProfile = async (uid, profileData) => {
       throw new Error('Firestore is not initialized');
     }
 
-    const age = calculateAge(profileData.birthdate);
+    let userProfile;
 
-    const userProfile = {
-      id: uid,
-      email: profileData.email,
-      name: profileData.name,
-      parentName: profileData.parentName,
-      birthdate: profileData.birthdate,
-      gender: profileData.gender,
-      ageYears: age.years,
-      ageMonths: age.months,
-      rfid: '',
-      rfidPairingState: RFID_PAIRING_STATES.IDLE,
-      rfidPairingTimestamp: null,
-      pendingRfid: '',
-      weighingSession: {
-        state: WEIGHING_STATES.IDLE,
-        timestamp: null,
-        eatingPattern: '',
-        childResponse: '',
+    if (profileData.role === 'teacher' || profileData.isAdmin) {
+      userProfile = {
+        id: uid,
+        email: profileData.email,
+        name: profileData.name || 'Admin',
+        role: 'teacher',
+        isAdmin: true,
+        createdAt: new Date(),
+        updatedAt: new Date()
+      };
+    } else {
+      const age = calculateAge(profileData.birthdate);
+
+      userProfile = {
+        id: uid,
+        email: profileData.email,
+        name: profileData.name,
+        parentName: profileData.parentName,
+        birthdate: profileData.birthdate,
+        gender: profileData.gender,
+        ageYears: age.years,
+        ageMonths: age.months,
         rfid: '',
-        resultData: null,
-      },
-      latestWeighing: null,
-      role: 'student',
-      createdAt: new Date(),
-      updatedAt: new Date()
-    };
+        rfidPairingState: RFID_PAIRING_STATES.IDLE,
+        rfidPairingTimestamp: null,
+        pendingRfid: '',
+        weighingSession: {
+          state: WEIGHING_STATES.IDLE,
+          timestamp: null,
+          eatingPattern: '',
+          childResponse: '',
+          rfid: '',
+          resultData: null,
+        },
+        latestWeighing: null,
+        role: 'student',
+        isAdmin: false,
+        createdAt: new Date(),
+        updatedAt: new Date()
+      };
+    }
 
     await setDoc(doc(db, 'users', uid), userProfile);
     return { success: true, profile: userProfile };
@@ -57,6 +72,10 @@ export const getUserProfile = async (uid) => {
 
     if (docSnap.exists()) {
       const profile = docSnap.data();
+      
+      if (profile.role === 'teacher' || profile.isAdmin) {
+        return { success: true, profile };
+      }
       
       const age = calculateAge(profile.birthdate);
       if (profile.ageYears !== age.years || profile.ageMonths !== age.months) {

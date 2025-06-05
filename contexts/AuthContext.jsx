@@ -27,8 +27,12 @@ export const AuthProvider = ({ children }) => {
   const [authInitialized, setAuthInitialized] = useState(false);
   const [isAdmin, setIsAdmin] = useState(false);
 
-  const checkAdminStatus = (user) => {
-    return user?.email === "admin@gmail.com";
+  const checkAdminStatus = (user, profile) => {
+    return (
+      user?.email === "admin@gmail.com" ||
+      profile?.role === "teacher" ||
+      profile?.isAdmin
+    );
   };
 
   const loadUserProfile = async (user) => {
@@ -38,30 +42,45 @@ export const AuthProvider = ({ children }) => {
       return;
     }
 
-    const adminStatus = checkAdminStatus(user);
-    setIsAdmin(adminStatus);
-
-    if (adminStatus) {
-      setUserProfile({
-        id: user.uid,
-        email: user.email,
-        name: "Admin",
-        role: "teacher",
-      });
-      return;
-    }
-
     try {
       const result = await getUserProfile(user.uid);
       if (result.success) {
+        const adminStatus = checkAdminStatus(user, result.profile);
+        setIsAdmin(adminStatus);
         setUserProfile(result.profile);
       } else {
-        console.warn("Failed to load user profile:", result.error);
-        setUserProfile(null);
+        const adminStatus = checkAdminStatus(user, null);
+        setIsAdmin(adminStatus);
+
+        if (adminStatus) {
+          setUserProfile({
+            id: user.uid,
+            email: user.email,
+            name: "Admin",
+            role: "teacher",
+            isAdmin: true,
+          });
+        } else {
+          console.warn("Failed to load user profile:", result.error);
+          setUserProfile(null);
+        }
       }
     } catch (error) {
       console.error("Error loading user profile:", error);
-      setUserProfile(null);
+      const adminStatus = checkAdminStatus(user, null);
+      setIsAdmin(adminStatus);
+
+      if (adminStatus) {
+        setUserProfile({
+          id: user.uid,
+          email: user.email,
+          name: "Admin",
+          role: "teacher",
+          isAdmin: true,
+        });
+      } else {
+        setUserProfile(null);
+      }
     }
   };
 

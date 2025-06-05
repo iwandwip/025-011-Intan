@@ -22,6 +22,10 @@ const handleAuthError = (error) => {
   return errorMessages[error.code] || error.message;
 };
 
+const isAdminEmail = (email) => {
+  return email === 'admin@gmail.com';
+};
+
 export const signInWithEmail = async (email, password) => {
   try {
     if (!auth) {
@@ -42,10 +46,25 @@ export const signUpWithEmail = async (email, password, profileData) => {
 
     const result = await createUserWithEmailAndPassword(auth, email, password);
     
-    const profileResult = await createUserProfile(result.user.uid, {
-      email,
-      ...profileData
-    });
+    let profilePayload;
+    
+    if (isAdminEmail(email)) {
+      profilePayload = {
+        email,
+        name: 'Admin',
+        role: 'teacher',
+        isAdmin: true
+      };
+    } else {
+      profilePayload = {
+        email,
+        ...profileData,
+        role: 'student',
+        isAdmin: false
+      };
+    }
+
+    const profileResult = await createUserProfile(result.user.uid, profilePayload);
 
     if (!profileResult.success) {
       await result.user.delete();

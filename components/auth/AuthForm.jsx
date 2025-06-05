@@ -29,6 +29,7 @@ const AuthForm = ({ type = "login", onSubmit, loading = false }) => {
 
   const isRegister = type === "register";
   const isForgotPassword = type === "forgot-password";
+  const isAdminEmail = formData.email === "admin@gmail.com";
 
   const updateFormData = (field, value) => {
     setFormData((prev) => ({ ...prev, [field]: value }));
@@ -81,7 +82,11 @@ const AuthForm = ({ type = "login", onSubmit, loading = false }) => {
 
   const handleNext = () => {
     if (validateStep1()) {
-      setStep(2);
+      if (isAdminEmail) {
+        handleSubmit();
+      } else {
+        setStep(2);
+      }
     }
   };
 
@@ -91,12 +96,12 @@ const AuthForm = ({ type = "login", onSubmit, loading = false }) => {
   };
 
   const handleSubmit = () => {
-    if (isRegister && step === 1) {
+    if (isRegister && step === 1 && !isAdminEmail) {
       handleNext();
       return;
     }
 
-    if (isRegister && step === 2) {
+    if (isRegister && step === 2 && !isAdminEmail) {
       if (!validateStep2()) return;
     } else if (!isForgotPassword) {
       if (!validateStep1()) return;
@@ -108,7 +113,7 @@ const AuthForm = ({ type = "login", onSubmit, loading = false }) => {
       data.password = formData.password;
     }
 
-    if (isRegister) {
+    if (isRegister && !isAdminEmail) {
       data.profileData = {
         name: formData.name,
         parentName: formData.parentName,
@@ -122,6 +127,9 @@ const AuthForm = ({ type = "login", onSubmit, loading = false }) => {
 
   const getTitle = () => {
     if (isRegister) {
+      if (isAdminEmail && step === 1) {
+        return "Create Admin Account";
+      }
       return step === 1 ? "Create Account" : "Child Information";
     }
     switch (type) {
@@ -134,6 +142,9 @@ const AuthForm = ({ type = "login", onSubmit, loading = false }) => {
 
   const getButtonText = () => {
     if (isRegister) {
+      if (isAdminEmail && step === 1) {
+        return "Create Admin Account";
+      }
       return step === 1 ? "Next" : "Create Account";
     }
     switch (type) {
@@ -165,6 +176,14 @@ const AuthForm = ({ type = "login", onSubmit, loading = false }) => {
     <TouchableWithoutFeedback onPress={Keyboard.dismiss}>
       <View style={styles.container}>
         <Text style={styles.title}>{getTitle()}</Text>
+
+        {isRegister && isAdminEmail && step === 1 && (
+          <View style={styles.adminNotice}>
+            <Text style={styles.adminNoticeText}>
+              🔐 Admin account will be created with default settings
+            </Text>
+          </View>
+        )}
 
         <KeyboardAwareScrollView
           style={styles.scrollContainer}
@@ -216,7 +235,7 @@ const AuthForm = ({ type = "login", onSubmit, loading = false }) => {
             </>
           )}
 
-          {isRegister && step === 2 && (
+          {isRegister && step === 2 && !isAdminEmail && (
             <>
               <Input
                 label="Child Name"
@@ -273,7 +292,7 @@ const AuthForm = ({ type = "login", onSubmit, loading = false }) => {
         </KeyboardAwareScrollView>
 
         <View style={styles.buttonContainer}>
-          {isRegister && step === 2 && (
+          {isRegister && step === 2 && !isAdminEmail && (
             <Button
               title="Back"
               onPress={handleBack}
@@ -303,6 +322,20 @@ const styles = StyleSheet.create({
     color: Colors.gray900,
     textAlign: "center",
     marginBottom: 32,
+  },
+  adminNotice: {
+    backgroundColor: Colors.primary + "20",
+    borderRadius: 8,
+    padding: 12,
+    marginBottom: 16,
+    borderWidth: 1,
+    borderColor: Colors.primary + "40",
+  },
+  adminNoticeText: {
+    fontSize: 14,
+    color: Colors.primary,
+    textAlign: "center",
+    fontWeight: "500",
   },
   scrollContainer: {
     flex: 1,
