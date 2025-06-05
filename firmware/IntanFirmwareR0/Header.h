@@ -170,7 +170,7 @@ int responAnakSelectedOption = 0;
 
 ////////// Sensor Data //////////
 
-const float heightPole = 197.0;
+float heightPole = 199.0;
 float weight = 0.0;
 float height = 0.0;
 float bmi = 0.0;

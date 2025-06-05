@@ -1,3 +1,13 @@
+void lcdMenuCallbackCustom() {
+  // String beratStr = String(String(weight, 2) + " Kg");
+  // const char* lines1[] = { "Berat Badan", beratStr.c_str() };
+  // menu.renderBoxedText(lines1, 2);
+
+  String tinggiStr = String(String(height, 2) + " cm");
+  const char* lines1[] = { "Tinggi Badan", tinggiStr.c_str() };
+  menu.renderBoxedText(lines1, 2);
+}
+
 void lcdMenuCallback() {
   if (measurementState == MEASUREMENT_IDLE) {
     const char* statusTimbangLines1[] = { "Silahkan Pilih", "Menu Ambil Data", "Pada Aplikasi Anda" };

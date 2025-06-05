@@ -13,11 +13,11 @@ void setup() {
 
   menu.flipVertical(true);
   menu.initialize(true, initDisplayCallback, true);
-  task.initialize(wifiTask);
+  // task.initialize(wifiTask);
 
   sensor.addModule("rfid", new RFID_Mfrc522(5, 27));
-  sensor.addModule("sonar", new UltrasonicSens(32, 33, 200, 3.0));
-  sensor.addModule("lCell", new HX711Sens(26, 25, HX711Sens::KG, 0.5, 5, 1000, 5.0));
+  sensor.addModule("sonar", new UltrasonicSens(32, 33, 200, 1, 1, 1000, 10));
+  sensor.addModule("lCell", new HX711Sens(26, 25, HX711Sens::KG, 0.25, 5, 2000, 0.25));
   sensor.init([]() {
     auto loadCell = sensor.getModule<HX711Sens>("lCell");
     preferences.begin("intan", false);
@@ -46,12 +46,12 @@ void loop() {
     weight = weight < 1.0 ? 0.0 : weight;
     // sensor.debug();
 
-    weight = random(40, 50);
-    height = random(150, 165);
+    // weight = random(40, 50);
+    // height = random(150, 165);
 
-    // Serial.print("| weight: ");
-    // Serial.print(weight);
-    // Serial.println();
+    Serial.print("| height: ");
+    Serial.print(height);
+    Serial.println();
   });
 
   MenuCursor cursor{
@@ -61,7 +61,7 @@ void loop() {
     .back = false,
     .show = true
   };
-  menu.onListen(&cursor, lcdMenuCallback);
+  menu.onListen(&cursor, lcdMenuCallbackCustom);
   usbSerial.receive(usbCommunicationTask);
 
   DigitalIn::updateAll(&buttonOk, &buttonDown, DigitalIn::stop());

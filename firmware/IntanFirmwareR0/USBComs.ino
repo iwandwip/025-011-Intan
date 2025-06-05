@@ -12,6 +12,7 @@ void usbCommunicationTask(const String& dataRecv) {
   } else {
     dataHeader.toUpperCase();
     if (dataHeader == "R") ESP.restart();
+    if (dataHeader == "HEIGHT_POLE") heightPole = dataValue.toFloat();  // HEIGHT_POLE#197.0
 
     // Firebase RTDB
     if (dataHeader == "RTDB_SET_VALUE") firebaseRTDBState = RTDB_SET_VALUE;
