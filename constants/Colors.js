@@ -1,7 +1,7 @@
-export const Colors = {
+export const lightTheme = {
   primary: '#CDC1FF',
   secondary: '#BFECFF',
-  background: '#FFffffff',
+  background: '#ffffff',
   white: '#ffffff',
   black: '#000000',
   
@@ -27,3 +27,41 @@ export const Colors = {
     color: '#000000',
   },
 };
+
+export const darkTheme = {
+  primary: '#1e40af',
+  secondary: '#4c1d95',
+  secondary2: '#374151',
+  secondary3: '#7c2d12',
+  background: '#111827',
+  white: '#1f2937',
+  black: '#ffffff',
+  
+  gray25: '#1f2937',
+  gray50: '#374151',
+  gray100: '#4b5563',
+  gray200: '#6b7280',
+  gray300: '#9ca3af',
+  gray400: '#d1d5db',
+  gray500: '#e5e7eb',
+  gray600: '#f3f4f6',
+  gray700: '#f9fafb',
+  gray800: '#fcfcfd',
+  gray900: '#ffffff',
+  
+  success: '#059669',
+  warning: '#d97706',
+  error: '#dc2626',
+  
+  border: '#4b5563',
+  
+  shadow: {
+    color: '#000000',
+  },
+};
+
+export const getColors = (theme = 'light') => {
+  return theme === 'dark' ? darkTheme : lightTheme;
+};
+
+export const Colors = lightTheme;
