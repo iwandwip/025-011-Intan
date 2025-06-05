@@ -1,4 +1,4 @@
-import { doc, setDoc, getDoc, updateDoc, onSnapshot } from 'firebase/firestore';
+import { doc, setDoc, getDoc, updateDoc, onSnapshot, collection, getDocs, query, orderBy } from 'firebase/firestore';
 import { db } from './firebase';
 import { calculateAge } from '../utils/ageCalculator';
 import { RFID_PAIRING_STATES } from '../utils/rfidPairing';
@@ -211,6 +211,33 @@ export const updateRFID = async (uid, rfid) => {
     });
 
     return { success: true };
+  } catch (error) {
+    return { success: false, error: error.message };
+  }
+};
+
+export const getAllUsers = async () => {
+  try {
+    if (!db) {
+      throw new Error('Firestore is not initialized');
+    }
+
+    const usersRef = collection(db, 'users');
+    const q = query(usersRef, orderBy('createdAt', 'desc'));
+    const querySnapshot = await getDocs(q);
+
+    const users = [];
+    querySnapshot.forEach((doc) => {
+      const userData = doc.data();
+      if (userData.role === 'student') {
+        users.push({
+          id: doc.id,
+          ...userData
+        });
+      }
+    });
+
+    return { success: true, data: users };
   } catch (error) {
     return { success: false, error: error.message };
   }

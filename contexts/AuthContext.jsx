@@ -13,6 +13,7 @@ export const useAuth = () => {
       userProfile: null,
       loading: false,
       authInitialized: true,
+      isAdmin: false,
       refreshProfile: () => {},
     };
   }
@@ -24,10 +25,29 @@ export const AuthProvider = ({ children }) => {
   const [userProfile, setUserProfile] = useState(null);
   const [loading, setLoading] = useState(true);
   const [authInitialized, setAuthInitialized] = useState(false);
+  const [isAdmin, setIsAdmin] = useState(false);
+
+  const checkAdminStatus = (user) => {
+    return user?.email === "admin@gmail.com";
+  };
 
   const loadUserProfile = async (user) => {
     if (!user) {
       setUserProfile(null);
+      setIsAdmin(false);
+      return;
+    }
+
+    const adminStatus = checkAdminStatus(user);
+    setIsAdmin(adminStatus);
+
+    if (adminStatus) {
+      setUserProfile({
+        id: user.uid,
+        email: user.email,
+        name: "Admin",
+        role: "teacher",
+      });
       return;
     }
 
@@ -62,6 +82,7 @@ export const AuthProvider = ({ children }) => {
           setUserProfile(null);
           setLoading(false);
           setAuthInitialized(true);
+          setIsAdmin(false);
         }
         return;
       }
@@ -84,6 +105,7 @@ export const AuthProvider = ({ children }) => {
               setUserProfile(null);
               setLoading(false);
               setAuthInitialized(true);
+              setIsAdmin(false);
             }
           }
         );
@@ -94,6 +116,7 @@ export const AuthProvider = ({ children }) => {
           setUserProfile(null);
           setLoading(false);
           setAuthInitialized(true);
+          setIsAdmin(false);
         }
       }
     };
@@ -105,6 +128,7 @@ export const AuthProvider = ({ children }) => {
         setUserProfile(null);
         setLoading(false);
         setAuthInitialized(true);
+        setIsAdmin(false);
       }
     }, 10000);
 
@@ -124,6 +148,7 @@ export const AuthProvider = ({ children }) => {
     userProfile,
     loading,
     authInitialized,
+    isAdmin,
     refreshProfile,
   };
 

@@ -6,7 +6,7 @@ import LoadingSpinner from "../components/ui/LoadingSpinner";
 import { Colors } from "../constants/Colors";
 
 function Index() {
-  const { currentUser, loading, authInitialized } = useAuth();
+  const { currentUser, loading, authInitialized, isAdmin } = useAuth();
   const router = useRouter();
   const redirectedRef = useRef(false);
 
@@ -16,7 +16,11 @@ function Index() {
 
       const redirect = () => {
         if (currentUser) {
-          router.replace("/(tabs)");
+          if (isAdmin) {
+            router.replace("/(admin)");
+          } else {
+            router.replace("/(tabs)");
+          }
         } else {
           router.replace("/(auth)/login");
         }
@@ -25,7 +29,7 @@ function Index() {
       const timeoutId = setTimeout(redirect, 100);
       return () => clearTimeout(timeoutId);
     }
-  }, [authInitialized, loading, currentUser, router]);
+  }, [authInitialized, loading, currentUser, isAdmin, router]);
 
   if (!authInitialized || loading) {
     return (
