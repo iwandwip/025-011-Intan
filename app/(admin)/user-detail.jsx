@@ -7,13 +7,19 @@ import {
   StatusBar,
   RefreshControl,
   TouchableOpacity,
+  Alert,
 } from "react-native";
 import { useRouter, useLocalSearchParams } from "expo-router";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import LoadingSpinner from "../../components/ui/LoadingSpinner";
 import DataTable from "../../components/ui/DataTable";
 import Button from "../../components/ui/Button";
-import { getUserWithMeasurements } from "../../services/adminService";
+import EditUserModal from "../../components/ui/EditUserModal";
+import {
+  getUserWithMeasurements,
+  updateUserProfile,
+  deleteUserAccount,
+} from "../../services/adminService";
 import { formatAge } from "../../utils/ageCalculator";
 import { Colors } from "../../constants/Colors";
 
@@ -27,6 +33,8 @@ export default function UserDetail() {
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [sortOrder, setSortOrder] = useState("desc");
+  const [editModalVisible, setEditModalVisible] = useState(false);
+  const [deleting, setDeleting] = useState(false);
 
   const loadUserDetails = async () => {
     try {
@@ -66,6 +74,59 @@ export default function UserDetail() {
     });
 
     setMeasurements(sortedMeasurements);
+  };
+
+  const handleEditUser = () => {
+    setEditModalVisible(true);
+  };
+
+  const handleSaveEdit = async (updateData) => {
+    try {
+      const result = await updateUserProfile(userId, updateData);
+      if (result.success) {
+        Alert.alert("Berhasil", "Profil siswa berhasil diperbarui!");
+        setEditModalVisible(false);
+        await loadUserDetails();
+      } else {
+        Alert.alert("Gagal", result.error || "Gagal memperbarui profil");
+      }
+    } catch (error) {
+      Alert.alert("Kesalahan", "Terjadi kesalahan saat memperbarui profil");
+    }
+  };
+
+  const handleDeleteUser = () => {
+    Alert.alert(
+      "Hapus Akun Siswa",
+      `Apakah Anda yakin ingin menghapus akun ${userDetails?.name}?\n\nTindakan ini akan:\n• Menghapus semua data pengukuran\n• Menghapus profil siswa\n• Tidak dapat dibatalkan`,
+      [
+        { text: "Batal", style: "cancel" },
+        {
+          text: "Hapus",
+          style: "destructive",
+          onPress: async () => {
+            setDeleting(true);
+            try {
+              const result = await deleteUserAccount(userId);
+              if (result.success) {
+                Alert.alert("Berhasil", "Akun siswa berhasil dihapus!", [
+                  {
+                    text: "OK",
+                    onPress: () => router.replace("/(admin)/all-users"),
+                  },
+                ]);
+              } else {
+                Alert.alert("Gagal", result.error || "Gagal menghapus akun");
+              }
+            } catch (error) {
+              Alert.alert("Kesalahan", "Terjadi kesalahan saat menghapus akun");
+            } finally {
+              setDeleting(false);
+            }
+          },
+        },
+      ]
+    );
   };
 
   const handleBackToAllUsers = () => {
@@ -186,6 +247,21 @@ export default function UserDetail() {
                 {userDetails.rfid || "Belum dipasang"}
               </Text>
             </View>
+
+            <View style={styles.profileActions}>
+              <Button
+                title="✏️ Edit Profil"
+                onPress={handleEditUser}
+                style={styles.editButton}
+              />
+              <Button
+                title={deleting ? "🗑️ Menghapus..." : "🗑️ Hapus Akun"}
+                onPress={handleDeleteUser}
+                variant="outline"
+                style={styles.deleteButton}
+                disabled={deleting}
+              />
+            </View>
           </View>
         )}
 
@@ -235,6 +311,13 @@ export default function UserDetail() {
           />
         </View>
       </ScrollView>
+
+      <EditUserModal
+        visible={editModalVisible}
+        user={userDetails}
+        onClose={() => setEditModalVisible(false)}
+        onSave={handleSaveEdit}
+      />
     </View>
   );
 }
@@ -312,6 +395,21 @@ const styles = StyleSheet.create({
   notSet: {
     color: Colors.gray400,
     fontStyle: "italic",
+  },
+  profileActions: {
+    flexDirection: "row",
+    gap: 12,
+    marginTop: 16,
+    paddingTop: 16,
+    borderTopWidth: 1,
+    borderTopColor: Colors.gray100,
+  },
+  editButton: {
+    flex: 1,
+  },
+  deleteButton: {
+    flex: 1,
+    borderColor: Colors.error,
   },
   sortContainer: {
     flexDirection: "row",

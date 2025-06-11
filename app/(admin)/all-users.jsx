@@ -7,11 +7,17 @@ import {
   StatusBar,
   RefreshControl,
   TouchableOpacity,
+  Alert,
 } from "react-native";
 import { useRouter } from "expo-router";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import LoadingSpinner from "../../components/ui/LoadingSpinner";
-import { getAllUsers } from "../../services/adminService";
+import Button from "../../components/ui/Button";
+import {
+  getAllUsers,
+  getAllUsersWithMeasurements,
+} from "../../services/adminService";
+import { generateAllUsersPDF } from "../../services/pdfService";
 import { formatAge } from "../../utils/ageCalculator";
 import { Colors } from "../../constants/Colors";
 
@@ -22,6 +28,7 @@ export default function AllUsers() {
   const [users, setUsers] = useState([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
+  const [exportingPDF, setExportingPDF] = useState(false);
 
   const loadUsers = async () => {
     try {
@@ -51,6 +58,44 @@ export default function AllUsers() {
     });
   };
 
+  const handleExportPDF = async () => {
+    if (users.length === 0) {
+      Alert.alert("Tidak Ada Data", "Tidak ada data siswa untuk diekspor");
+      return;
+    }
+
+    Alert.alert(
+      "Export PDF",
+      "Apakah Anda yakin ingin mengexport semua data siswa ke PDF? Proses ini mungkin memakan waktu beberapa saat.",
+      [
+        { text: "Batal", style: "cancel" },
+        {
+          text: "Export",
+          onPress: async () => {
+            setExportingPDF(true);
+            try {
+              const result = await getAllUsersWithMeasurements();
+              if (result.success) {
+                const pdfResult = await generateAllUsersPDF(result.data);
+                if (pdfResult.success) {
+                  Alert.alert("Berhasil", "PDF berhasil dibuat dan dibagikan!");
+                } else {
+                  Alert.alert("Gagal", pdfResult.error || "Gagal membuat PDF");
+                }
+              } else {
+                Alert.alert("Gagal", "Gagal mengambil data untuk PDF");
+              }
+            } catch (error) {
+              Alert.alert("Kesalahan", "Terjadi kesalahan saat membuat PDF");
+            } finally {
+              setExportingPDF(false);
+            }
+          },
+        },
+      ]
+    );
+  };
+
   useEffect(() => {
     loadUsers();
   }, []);
@@ -74,6 +119,15 @@ export default function AllUsers() {
       <View style={styles.header}>
         <Text style={styles.title}>Semua Pengguna</Text>
         <Text style={styles.subtitle}>Manajemen Siswa</Text>
+      </View>
+
+      <View style={styles.actionsContainer}>
+        <Button
+          title={exportingPDF ? "📄 Membuat PDF..." : "📄 Export PDF"}
+          onPress={handleExportPDF}
+          style={styles.exportButton}
+          disabled={exportingPDF || users.length === 0}
+        />
       </View>
 
       <ScrollView
@@ -179,6 +233,16 @@ const styles = StyleSheet.create({
     fontSize: 14,
     color: Colors.gray600,
     textAlign: "center",
+  },
+  actionsContainer: {
+    paddingHorizontal: 24,
+    paddingVertical: 16,
+    backgroundColor: Colors.white,
+    borderBottomWidth: 1,
+    borderBottomColor: Colors.gray200,
+  },
+  exportButton: {
+    marginBottom: 0,
   },
   scrollContainer: {
     flex: 1,
