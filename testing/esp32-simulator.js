@@ -1,6 +1,6 @@
 const { initializeApp } = require('firebase/app');
 const { getFirestore, doc, onSnapshot, updateDoc, setDoc, getDoc } = require('firebase/firestore');
-const { getAuth, signInAnonymously } = require('firebase/auth');
+const { getAuth, signInWithEmailAndPassword } = require('firebase/auth');
 
 const firebaseConfig = {
   apiKey: "AIzaSyDxodg_DD4n-DTdKqrMEJJX3bQHJyG3sKU",
@@ -83,7 +83,7 @@ class ESP32Simulator {
   async initialize() {
     try {
       console.log('🔐 Authenticating...');
-      await signInAnonymously(auth);
+      await signInWithEmailAndPassword(auth, 'admin@gmail.com', 'admin123');
       this.isAuthenticated = true;
       console.log('✅ Authentication successful');
       
