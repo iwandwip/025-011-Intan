@@ -17,18 +17,19 @@ import Input from "../../components/ui/Input";
 import DatePicker from "../../components/ui/DatePicker";
 import Button from "../../components/ui/Button";
 import LoadingSpinner from "../../components/ui/LoadingSpinner";
+import { updateUserProfile } from "../../services/userService";
 import {
-  updateUserProfile,
-  startRfidPairing,
-  resetRfidPairing,
-  completeRfidPairing,
-  subscribeToUserProfile,
-} from "../../services/userService";
+  subscribeToSystemStatus,
+  startRfidSession,
+  endGlobalSession,
+  initializeSystemStatus,
+} from "../../services/globalSessionService";
 import {
-  RFID_PAIRING_STATES,
-  isRfidPairingExpired,
-  getRfidPairingStatus,
-} from "../../utils/rfidPairing";
+  GLOBAL_SESSION_TYPES,
+  getSessionStatusMessage,
+  isSessionAvailable,
+  isMySession,
+} from "../../utils/globalStates";
 import { Colors } from "../../constants/Colors";
 
 export default function EditProfile() {
@@ -37,7 +38,7 @@ export default function EditProfile() {
   const insets = useSafeAreaInsets();
 
   const [loading, setLoading] = useState(false);
-  const [rfidPairing, setRfidPairing] = useState(false);
+  const [systemStatus, setSystemStatus] = useState(null);
   const [formData, setFormData] = useState({
     name: userProfile?.name || "",
     parentName: userProfile?.parentName || "",
@@ -47,22 +48,24 @@ export default function EditProfile() {
   const [errors, setErrors] = useState({});
 
   useEffect(() => {
+    initializeSystemStatus();
+  }, []);
+
+  useEffect(() => {
     if (!userProfile?.id) return;
 
-    const unsubscribe = subscribeToUserProfile(userProfile.id, (doc) => {
+    const unsubscribe = subscribeToSystemStatus((doc) => {
       if (doc.exists()) {
         const data = doc.data();
+        setSystemStatus(data);
 
-        if (data.rfidPairingState === RFID_PAIRING_STATES.WAITING) {
-          if (isRfidPairingExpired(data.rfidPairingTimestamp)) {
-            handleRfidTimeout();
-          } else {
-            setRfidPairing(true);
-          }
-        }
-
-        if (data.pendingRfid && data.pendingRfid.trim() !== "") {
-          handleRfidSuccess(data.pendingRfid);
+        if (
+          data.sessionType === GLOBAL_SESSION_TYPES.RFID &&
+          data.currentUserId === userProfile.id &&
+          data.rfid &&
+          data.rfid.trim() !== ""
+        ) {
+          handleRfidSuccess(data.rfid);
         }
       }
     });
@@ -127,61 +130,65 @@ export default function EditProfile() {
   };
 
   const handleRfidPairing = async () => {
-    try {
-      setRfidPairing(true);
-      const result = await startRfidPairing(userProfile.id);
+    if (!isSessionAvailable(systemStatus)) {
+      Alert.alert(
+        "Alat Sedang Digunakan",
+        getSessionStatusMessage(systemStatus)
+      );
+      return;
+    }
 
-      if (!result.success) {
+    try {
+      const result = await startRfidSession(userProfile.id, userProfile.name);
+
+      if (result.success) {
+        Alert.alert(
+          "Siap untuk Pairing",
+          "Silakan tap kartu RFID Anda pada perangkat untuk melakukan pairing."
+        );
+      } else {
         Alert.alert("Gagal Pairing", result.error);
-        setRfidPairing(false);
       }
     } catch (error) {
       Alert.alert("Gagal Pairing", "Terjadi kesalahan. Silakan coba lagi.");
-      setRfidPairing(false);
     }
   };
 
   const handleRfidSuccess = async (rfidData) => {
     try {
-      const result = await completeRfidPairing(userProfile.id, rfidData);
+      setLoading(true);
+
+      const result = await updateUserProfile(userProfile.id, {
+        rfid: rfidData,
+      });
 
       if (result.success) {
         await refreshProfile();
-        setRfidPairing(false);
+        await endGlobalSession();
+
         Alert.alert(
           "RFID Berhasil Dipasang",
           "Kartu RFID Anda berhasil dipasang!",
           [{ text: "OK" }]
         );
+      } else {
+        Alert.alert("Gagal", "Gagal menyimpan data RFID");
       }
     } catch (error) {
       console.error("RFID completion error:", error);
-      setRfidPairing(false);
-    }
-  };
-
-  const handleRfidTimeout = async () => {
-    try {
-      await resetRfidPairing(userProfile.id);
-      setRfidPairing(false);
-      Alert.alert(
-        "Pairing Timeout",
-        "Pairing RFID habis waktu. Silakan coba lagi.",
-        [{ text: "OK" }]
-      );
-    } catch (error) {
-      console.error("RFID timeout error:", error);
-      setRfidPairing(false);
+      Alert.alert("Kesalahan", "Terjadi kesalahan saat menyimpan RFID");
+    } finally {
+      setLoading(false);
     }
   };
 
   const handleCancelRfidPairing = async () => {
     try {
-      await resetRfidPairing(userProfile.id);
-      setRfidPairing(false);
+      await endGlobalSession();
+      Alert.alert("Dibatalkan", "Pairing RFID telah dibatalkan");
     } catch (error) {
       console.error("Cancel RFID error:", error);
-      setRfidPairing(false);
+      Alert.alert("Kesalahan", "Gagal membatalkan pairing RFID");
     }
   };
 
@@ -194,6 +201,17 @@ export default function EditProfile() {
     minDate.setFullYear(today.getFullYear() - 18);
 
     return { maxDate, minDate };
+  };
+
+  const isRfidPairing = () => {
+    return (
+      systemStatus?.sessionType === GLOBAL_SESSION_TYPES.RFID &&
+      isMySession(systemStatus, userProfile?.id)
+    );
+  };
+
+  const canStartRfidPairing = () => {
+    return isSessionAvailable(systemStatus) && !loading;
   };
 
   const { maxDate, minDate } = getDateLimits();
@@ -281,7 +299,13 @@ export default function EditProfile() {
                 )}
               </View>
 
-              {rfidPairing ? (
+              <View style={styles.rfidStatus}>
+                <Text style={styles.rfidStatusText}>
+                  {getSessionStatusMessage(systemStatus)}
+                </Text>
+              </View>
+
+              {isRfidPairing() ? (
                 <View style={styles.rfidPairingContainer}>
                   <LoadingSpinner
                     size="small"
@@ -304,6 +328,7 @@ export default function EditProfile() {
                   onPress={handleRfidPairing}
                   variant="outline"
                   style={styles.rfidButton}
+                  disabled={!canStartRfidPairing()}
                 />
               )}
             </View>
@@ -315,14 +340,14 @@ export default function EditProfile() {
               onPress={() => router.back()}
               variant="outline"
               style={styles.cancelButton}
-              disabled={loading || rfidPairing}
+              disabled={loading || isRfidPairing()}
             />
 
             <Button
               title={loading ? "Menyimpan..." : "Simpan Perubahan"}
               onPress={handleSave}
               style={styles.saveButton}
-              disabled={loading || rfidPairing}
+              disabled={loading || isRfidPairing()}
             />
           </View>
         </KeyboardAwareScrollView>
@@ -410,6 +435,17 @@ const styles = StyleSheet.create({
     fontSize: 12,
     color: Colors.success,
     fontWeight: "500",
+  },
+  rfidStatus: {
+    backgroundColor: Colors.gray50,
+    padding: 8,
+    borderRadius: 6,
+    marginBottom: 12,
+  },
+  rfidStatusText: {
+    fontSize: 12,
+    color: Colors.gray600,
+    textAlign: "center",
   },
   rfidPairingContainer: {
     alignItems: "center",

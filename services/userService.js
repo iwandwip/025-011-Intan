@@ -1,7 +1,6 @@
 import { doc, setDoc, getDoc, updateDoc, onSnapshot, collection, getDocs, query, orderBy } from 'firebase/firestore';
 import { db } from './firebase';
 import { calculateAge } from '../utils/ageCalculator';
-import { RFID_PAIRING_STATES } from '../utils/rfidPairing';
 import { WEIGHING_STATES } from '../utils/weighingStates';
 
 export const createUserProfile = async (uid, profileData) => {
@@ -35,17 +34,6 @@ export const createUserProfile = async (uid, profileData) => {
         ageYears: age.years,
         ageMonths: age.months,
         rfid: '',
-        rfidPairingState: RFID_PAIRING_STATES.IDLE,
-        rfidPairingTimestamp: null,
-        pendingRfid: '',
-        weighingSession: {
-          state: WEIGHING_STATES.IDLE,
-          timestamp: null,
-          eatingPattern: '',
-          childResponse: '',
-          rfid: '',
-          resultData: null,
-        },
         latestWeighing: null,
         role: 'student',
         isAdmin: false,
@@ -89,29 +77,6 @@ export const getUserProfile = async (uid) => {
         profile.ageMonths = age.months;
       }
       
-      if (!profile.weighingSession) {
-        await updateDoc(docRef, {
-          weighingSession: {
-            state: WEIGHING_STATES.IDLE,
-            timestamp: null,
-            eatingPattern: '',
-            childResponse: '',
-            rfid: '',
-            resultData: null,
-          },
-          updatedAt: new Date()
-        });
-        
-        profile.weighingSession = {
-          state: WEIGHING_STATES.IDLE,
-          timestamp: null,
-          eatingPattern: '',
-          childResponse: '',
-          rfid: '',
-          resultData: null,
-        };
-      }
-      
       return { success: true, profile };
     } else {
       return { success: false, error: 'User profile not found' };
@@ -146,67 +111,6 @@ export const updateUserProfile = async (uid, updates) => {
   }
 };
 
-export const startRfidPairing = async (uid) => {
-  try {
-    if (!db) {
-      throw new Error('Firestore is not initialized');
-    }
-
-    const userRef = doc(db, 'users', uid);
-    await updateDoc(userRef, {
-      rfidPairingState: RFID_PAIRING_STATES.WAITING,
-      rfidPairingTimestamp: new Date(),
-      pendingRfid: '',
-      updatedAt: new Date()
-    });
-
-    return { success: true };
-  } catch (error) {
-    return { success: false, error: error.message };
-  }
-};
-
-export const resetRfidPairing = async (uid) => {
-  try {
-    if (!db) {
-      throw new Error('Firestore is not initialized');
-    }
-
-    const userRef = doc(db, 'users', uid);
-    await updateDoc(userRef, {
-      rfidPairingState: RFID_PAIRING_STATES.IDLE,
-      rfidPairingTimestamp: null,
-      pendingRfid: '',
-      updatedAt: new Date()
-    });
-
-    return { success: true };
-  } catch (error) {
-    return { success: false, error: error.message };
-  }
-};
-
-export const completeRfidPairing = async (uid, rfidData) => {
-  try {
-    if (!db) {
-      throw new Error('Firestore is not initialized');
-    }
-
-    const userRef = doc(db, 'users', uid);
-    await updateDoc(userRef, {
-      rfid: rfidData,
-      rfidPairingState: RFID_PAIRING_STATES.IDLE,
-      rfidPairingTimestamp: null,
-      pendingRfid: '',
-      updatedAt: new Date()
-    });
-
-    return { success: true };
-  } catch (error) {
-    return { success: false, error: error.message };
-  }
-};
-
 export const subscribeToUserProfile = (uid, callback) => {
   if (!db) {
     console.error('Firestore is not initialized');
@@ -215,24 +119,6 @@ export const subscribeToUserProfile = (uid, callback) => {
 
   const userRef = doc(db, 'users', uid);
   return onSnapshot(userRef, callback);
-};
-
-export const updateRFID = async (uid, rfid) => {
-  try {
-    if (!db) {
-      throw new Error('Firestore is not initialized');
-    }
-
-    const userRef = doc(db, 'users', uid);
-    await updateDoc(userRef, {
-      rfid: rfid,
-      updatedAt: new Date()
-    });
-
-    return { success: true };
-  } catch (error) {
-    return { success: false, error: error.message };
-  }
 };
 
 export const getAllUsers = async () => {

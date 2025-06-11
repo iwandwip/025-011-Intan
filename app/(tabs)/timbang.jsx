@@ -13,43 +13,50 @@ import LoadingSpinner from "../../components/ui/LoadingSpinner";
 import DataSelectionModal from "../../components/ui/DataSelectionModal";
 import WeighingResultModal from "../../components/ui/WeighingResultModal";
 import {
+  subscribeToSystemStatus,
   startWeighingSession,
-  resetWeighingSession,
-  getLatestWeighing,
-  subscribeToWeighingSession,
-} from "../../services/weighingService";
-import { WEIGHING_STATES } from "../../utils/weighingStates";
+  endGlobalSession,
+  initializeSystemStatus,
+} from "../../services/globalSessionService";
+import { addMeasurement } from "../../services/dataService";
+import { updateUserProfile } from "../../services/userService";
+import {
+  GLOBAL_SESSION_TYPES,
+  getSessionStatusMessage,
+  isSessionAvailable,
+  isMySession,
+} from "../../utils/globalStates";
 import { Colors } from "../../constants/Colors";
 
 export default function TimbangScreen() {
   const { userProfile } = useAuth();
 
-  const [weighingState, setWeighingState] = useState(WEIGHING_STATES.IDLE);
+  const [systemStatus, setSystemStatus] = useState(null);
   const [selectionModalVisible, setSelectionModalVisible] = useState(false);
   const [resultModalVisible, setResultModalVisible] = useState(false);
-  const [latestData, setLatestData] = useState(null);
-  const [currentSession, setCurrentSession] = useState(null);
+  const [resultData, setResultData] = useState(null);
   const [loading, setLoading] = useState(false);
+
+  useEffect(() => {
+    initializeSystemStatus();
+  }, []);
 
   useEffect(() => {
     if (!userProfile?.id) return;
 
-    const unsubscribe = subscribeToWeighingSession(userProfile.id, (doc) => {
+    const unsubscribe = subscribeToSystemStatus((doc) => {
       if (doc.exists()) {
         const data = doc.data();
+        setSystemStatus(data);
 
-        if (data.weighingSession) {
-          const session = data.weighingSession;
-          setWeighingState(session.state || WEIGHING_STATES.IDLE);
-          setCurrentSession(session);
-
-          if (
-            session.state === WEIGHING_STATES.COMPLETED &&
-            session.resultData
-          ) {
-            setResultModalVisible(true);
-            resetWeighingSession(userProfile.id);
-          }
+        if (
+          data.sessionType === GLOBAL_SESSION_TYPES.WEIGHING &&
+          data.currentUserId === userProfile.id &&
+          data.measurementComplete &&
+          data.weight > 0 &&
+          data.height > 0
+        ) {
+          handleWeighingCompleted(data);
         }
       }
     });
@@ -57,18 +64,66 @@ export default function TimbangScreen() {
     return unsubscribe;
   }, [userProfile?.id]);
 
+  const handleWeighingCompleted = async (data) => {
+    try {
+      setLoading(true);
+
+      const measurementData = {
+        weight: data.weight,
+        height: data.height,
+        nutritionStatus: data.nutritionStatus,
+        eatingPattern: data.eatingPattern,
+        childResponse: data.childResponse,
+      };
+
+      const addResult = await addMeasurement(userProfile.id, measurementData);
+
+      if (addResult.success) {
+        await updateUserProfile(userProfile.id, {
+          latestWeighing: {
+            ...measurementData,
+            dateTime: new Date(),
+          },
+        });
+
+        setResultData({
+          ...measurementData,
+          dateTime: new Date(),
+        });
+        setResultModalVisible(true);
+      }
+
+      await endGlobalSession();
+    } catch (error) {
+      console.error("Error completing weighing:", error);
+      Alert.alert("Kesalahan", "Gagal menyimpan data pengukuran");
+    } finally {
+      setLoading(false);
+    }
+  };
+
   const handleStartWeighing = () => {
+    if (!isSessionAvailable(systemStatus)) {
+      Alert.alert(
+        "Alat Sedang Digunakan",
+        getSessionStatusMessage(systemStatus)
+      );
+      return;
+    }
     setSelectionModalVisible(true);
   };
 
   const handleDataSelection = async (selectionData) => {
     try {
       setLoading(true);
-      const result = await startWeighingSession(userProfile.id, selectionData);
+      const result = await startWeighingSession(
+        userProfile.id,
+        userProfile.name,
+        selectionData
+      );
 
       if (result.success) {
         setSelectionModalVisible(false);
-        setWeighingState(WEIGHING_STATES.WAITING);
         Alert.alert(
           "Siap untuk Timbang",
           "Silakan tap kartu RFID Anda pada perangkat untuk memulai pengukuran."
@@ -85,8 +140,7 @@ export default function TimbangScreen() {
 
   const handleCancelWeighing = async () => {
     try {
-      await resetWeighingSession(userProfile.id);
-      setWeighingState(WEIGHING_STATES.IDLE);
+      await endGlobalSession();
       Alert.alert("Dibatalkan", "Sesi penimbangan telah dibatalkan");
     } catch (error) {
       Alert.alert("Kesalahan", "Gagal membatalkan sesi penimbangan");
@@ -94,50 +148,33 @@ export default function TimbangScreen() {
   };
 
   const handleViewHistory = async () => {
-    try {
-      setLoading(true);
-      const result = await getLatestWeighing(userProfile.id);
-
-      if (result.success && result.data) {
-        setLatestData(result.data);
-        setResultModalVisible(true);
-      } else {
-        Alert.alert(
-          "Tidak Ada Data",
-          "Tidak ada riwayat penimbangan ditemukan"
-        );
-      }
-    } catch (error) {
-      Alert.alert("Kesalahan", "Gagal memuat riwayat");
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const getStatusMessage = () => {
-    switch (weighingState) {
-      case WEIGHING_STATES.WAITING:
-        return "Menunggu tap kartu RFID...";
-      case WEIGHING_STATES.MEASURING:
-        return "Pengukuran sedang berlangsung...";
-      case WEIGHING_STATES.COMPLETED:
-        return "Pengukuran selesai!";
-      default:
-        return "Siap untuk mulai menimbang";
+    if (userProfile?.latestWeighing) {
+      setResultData(userProfile.latestWeighing);
+      setResultModalVisible(true);
+    } else {
+      Alert.alert("Tidak Ada Data", "Tidak ada riwayat penimbangan ditemukan");
     }
   };
 
   const getStatusColor = () => {
-    switch (weighingState) {
-      case WEIGHING_STATES.WAITING:
-        return Colors.warning;
-      case WEIGHING_STATES.MEASURING:
-        return Colors.primary;
-      case WEIGHING_STATES.COMPLETED:
-        return Colors.success;
-      default:
-        return Colors.gray600;
+    if (!systemStatus?.isInUse) return Colors.gray600;
+
+    if (systemStatus.timeout) return Colors.error;
+
+    if (isMySession(systemStatus, userProfile?.id)) {
+      if (systemStatus.measurementComplete) return Colors.success;
+      return Colors.primary;
     }
+
+    return Colors.warning;
+  };
+
+  const canStartSession = () => {
+    return isSessionAvailable(systemStatus) && !loading;
+  };
+
+  const isMyActiveSession = () => {
+    return systemStatus?.isInUse && isMySession(systemStatus, userProfile?.id);
   };
 
   if (loading) {
@@ -165,7 +202,9 @@ export default function TimbangScreen() {
                 { backgroundColor: getStatusColor() },
               ]}
             >
-              <Text style={styles.statusText}>{getStatusMessage()}</Text>
+              <Text style={styles.statusText}>
+                {getSessionStatusMessage(systemStatus)}
+              </Text>
             </View>
           </View>
 
@@ -191,22 +230,22 @@ export default function TimbangScreen() {
             </View>
           </View>
 
-          {currentSession && weighingState === WEIGHING_STATES.WAITING && (
+          {isMyActiveSession() && (
             <View style={styles.sessionInfo}>
               <Text style={styles.sessionTitle}>Sesi Saat Ini</Text>
               <View style={styles.sessionDetails}>
                 <Text style={styles.sessionItem}>
-                  Pola Makan: {currentSession.eatingPattern}
+                  Pola Makan: {systemStatus.eatingPattern}
                 </Text>
                 <Text style={styles.sessionItem}>
-                  Respon Anak: {currentSession.childResponse}
+                  Respon Anak: {systemStatus.childResponse}
                 </Text>
               </View>
             </View>
           )}
 
           <View style={styles.actionsContainer}>
-            {weighingState === WEIGHING_STATES.IDLE ? (
+            {canStartSession() ? (
               <>
                 <Button
                   title="🎯 Ambil Data"
@@ -221,13 +260,25 @@ export default function TimbangScreen() {
                   style={styles.secondaryButton}
                 />
               </>
-            ) : (
+            ) : isMyActiveSession() ? (
               <Button
                 title="❌ Batal Timbang"
                 onPress={handleCancelWeighing}
                 variant="outline"
                 style={styles.cancelButton}
               />
+            ) : (
+              <View style={styles.waitingContainer}>
+                <Text style={styles.waitingText}>
+                  Alat sedang digunakan. Silakan tunggu sebentar.
+                </Text>
+                <Button
+                  title="📊 Riwayat"
+                  onPress={handleViewHistory}
+                  variant="outline"
+                  style={styles.secondaryButton}
+                />
+              </View>
             )}
           </View>
         </View>
@@ -241,10 +292,10 @@ export default function TimbangScreen() {
 
       <WeighingResultModal
         visible={resultModalVisible}
-        data={latestData}
+        data={resultData}
         onClose={() => {
           setResultModalVisible(false);
-          setLatestData(null);
+          setResultData(null);
         }}
       />
     </SafeAreaView>
@@ -291,6 +342,7 @@ const styles = StyleSheet.create({
     color: Colors.white,
     fontSize: 14,
     fontWeight: "600",
+    textAlign: "center",
   },
   deviceInfo: {
     backgroundColor: Colors.white,
@@ -362,5 +414,17 @@ const styles = StyleSheet.create({
   },
   cancelButton: {
     borderColor: Colors.error,
+  },
+  waitingContainer: {
+    gap: 16,
+    alignItems: "center",
+  },
+  waitingText: {
+    fontSize: 16,
+    color: Colors.gray600,
+    textAlign: "center",
+    backgroundColor: Colors.gray50,
+    padding: 16,
+    borderRadius: 8,
   },
 });
