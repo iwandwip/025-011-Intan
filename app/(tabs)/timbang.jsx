@@ -70,14 +70,14 @@ export default function TimbangScreen() {
         setSelectionModalVisible(false);
         setWeighingState(WEIGHING_STATES.WAITING);
         Alert.alert(
-          "Ready for Weighing",
-          "Please tap your RFID card on the device to start measurement."
+          "Siap untuk Timbang",
+          "Silakan tap kartu RFID Anda pada perangkat untuk memulai pengukuran."
         );
       } else {
-        Alert.alert("Error", result.error);
+        Alert.alert("Kesalahan", result.error);
       }
     } catch (error) {
-      Alert.alert("Error", "Failed to start weighing session");
+      Alert.alert("Kesalahan", "Gagal memulai sesi penimbangan");
     } finally {
       setLoading(false);
     }
@@ -87,9 +87,9 @@ export default function TimbangScreen() {
     try {
       await resetWeighingSession(userProfile.id);
       setWeighingState(WEIGHING_STATES.IDLE);
-      Alert.alert("Cancelled", "Weighing session has been cancelled");
+      Alert.alert("Dibatalkan", "Sesi penimbangan telah dibatalkan");
     } catch (error) {
-      Alert.alert("Error", "Failed to cancel weighing session");
+      Alert.alert("Kesalahan", "Gagal membatalkan sesi penimbangan");
     }
   };
 
@@ -102,10 +102,13 @@ export default function TimbangScreen() {
         setLatestData(result.data);
         setResultModalVisible(true);
       } else {
-        Alert.alert("No Data", "No weighing history found");
+        Alert.alert(
+          "Tidak Ada Data",
+          "Tidak ada riwayat penimbangan ditemukan"
+        );
       }
     } catch (error) {
-      Alert.alert("Error", "Failed to load history");
+      Alert.alert("Kesalahan", "Gagal memuat riwayat");
     } finally {
       setLoading(false);
     }
@@ -114,13 +117,13 @@ export default function TimbangScreen() {
   const getStatusMessage = () => {
     switch (weighingState) {
       case WEIGHING_STATES.WAITING:
-        return "Waiting for RFID card tap...";
+        return "Menunggu tap kartu RFID...";
       case WEIGHING_STATES.MEASURING:
-        return "Measuring in progress...";
+        return "Pengukuran sedang berlangsung...";
       case WEIGHING_STATES.COMPLETED:
-        return "Measurement completed!";
+        return "Pengukuran selesai!";
       default:
-        return "Ready to start weighing";
+        return "Siap untuk mulai menimbang";
     }
   };
 
@@ -140,7 +143,7 @@ export default function TimbangScreen() {
   if (loading) {
     return (
       <SafeAreaView style={styles.container}>
-        <LoadingSpinner text="Loading..." />
+        <LoadingSpinner text="Memuat..." />
       </SafeAreaView>
     );
   }
@@ -153,7 +156,7 @@ export default function TimbangScreen() {
       >
         <View style={styles.content}>
           <Text style={styles.title}>Timbang & Ukur</Text>
-          <Text style={styles.subtitle}>Weight & Height Measurement</Text>
+          <Text style={styles.subtitle}>Pengukuran Berat & Tinggi Badan</Text>
 
           <View style={styles.statusContainer}>
             <View
@@ -167,30 +170,30 @@ export default function TimbangScreen() {
           </View>
 
           <View style={styles.deviceInfo}>
-            <Text style={styles.deviceTitle}>📏 Measurement Device</Text>
+            <Text style={styles.deviceTitle}>📏 Alat Pengukuran</Text>
             <Text style={styles.deviceDescription}>
-              Automated weight and height measurement using IoT sensors
+              Pengukuran berat dan tinggi badan otomatis menggunakan sensor IoT
             </Text>
 
             <View style={styles.deviceSpecs}>
               <View style={styles.specItem}>
                 <Text style={styles.specIcon}>⚖️</Text>
-                <Text style={styles.specText}>Weight: Load Cell Sensor</Text>
+                <Text style={styles.specText}>Berat: Sensor Load Cell</Text>
               </View>
               <View style={styles.specItem}>
                 <Text style={styles.specIcon}>📐</Text>
-                <Text style={styles.specText}>Height: Ultrasonic Sensor</Text>
+                <Text style={styles.specText}>Tinggi: Sensor Ultrasonik</Text>
               </View>
               <View style={styles.specItem}>
                 <Text style={styles.specIcon}>📡</Text>
-                <Text style={styles.specText}>RFID: Automatic Detection</Text>
+                <Text style={styles.specText}>RFID: Deteksi Otomatis</Text>
               </View>
             </View>
           </View>
 
           {currentSession && weighingState === WEIGHING_STATES.WAITING && (
             <View style={styles.sessionInfo}>
-              <Text style={styles.sessionTitle}>Current Session</Text>
+              <Text style={styles.sessionTitle}>Sesi Saat Ini</Text>
               <View style={styles.sessionDetails}>
                 <Text style={styles.sessionItem}>
                   Pola Makan: {currentSession.eatingPattern}
@@ -212,7 +215,7 @@ export default function TimbangScreen() {
                 />
 
                 <Button
-                  title="📊 History"
+                  title="📊 Riwayat"
                   onPress={handleViewHistory}
                   variant="outline"
                   style={styles.secondaryButton}
@@ -220,7 +223,7 @@ export default function TimbangScreen() {
               </>
             ) : (
               <Button
-                title="❌ Cancel Weighing"
+                title="❌ Batal Timbang"
                 onPress={handleCancelWeighing}
                 variant="outline"
                 style={styles.cancelButton}

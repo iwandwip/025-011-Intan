@@ -86,7 +86,7 @@ export default function UserDetail() {
     if (!timestamp) return "N/A";
 
     const date = timestamp.toDate ? timestamp.toDate() : new Date(timestamp);
-    return date.toLocaleDateString("en-US", {
+    return date.toLocaleDateString("id-ID", {
       year: "numeric",
       month: "short",
       day: "numeric",
@@ -96,9 +96,9 @@ export default function UserDetail() {
   };
 
   const formatDate = (dateString) => {
-    if (!dateString) return "Not set";
+    if (!dateString) return "Belum diatur";
     const date = new Date(dateString);
-    return date.toLocaleDateString();
+    return date.toLocaleDateString("id-ID");
   };
 
   const tableData = measurements.map((item) => ({
@@ -116,7 +116,7 @@ export default function UserDetail() {
           barStyle="dark-content"
           backgroundColor={Colors.background}
         />
-        <LoadingSpinner text="Loading user details..." />
+        <LoadingSpinner text="Memuat detail pengguna..." />
       </View>
     );
   }
@@ -126,8 +126,8 @@ export default function UserDetail() {
       <StatusBar barStyle="dark-content" backgroundColor={Colors.background} />
 
       <View style={styles.header}>
-        <Text style={styles.title}>{userName || "User Details"}</Text>
-        <Text style={styles.subtitle}>Measurement History</Text>
+        <Text style={styles.title}>{userName || "Detail Pengguna"}</Text>
+        <Text style={styles.subtitle}>Riwayat Pengukuran</Text>
       </View>
 
       <ScrollView
@@ -143,56 +143,60 @@ export default function UserDetail() {
       >
         {userDetails && (
           <View style={styles.profileCard}>
-            <Text style={styles.cardTitle}>Student Profile</Text>
+            <Text style={styles.cardTitle}>Profil Siswa</Text>
 
             <View style={styles.profileRow}>
-              <Text style={styles.label}>Name:</Text>
+              <Text style={styles.label}>Nama:</Text>
               <Text style={styles.value}>{userDetails.name}</Text>
             </View>
 
             <View style={styles.profileRow}>
-              <Text style={styles.label}>Age:</Text>
+              <Text style={styles.label}>Umur:</Text>
               <Text style={styles.value}>
                 {formatAge(userDetails.birthdate)}
               </Text>
             </View>
 
             <View style={styles.profileRow}>
-              <Text style={styles.label}>Gender:</Text>
+              <Text style={styles.label}>Jenis Kelamin:</Text>
               <Text style={styles.value}>
-                {userDetails.gender || "Not set"}
+                {userDetails.gender === "male"
+                  ? "Laki-laki"
+                  : userDetails.gender === "female"
+                  ? "Perempuan"
+                  : "Belum diatur"}
               </Text>
             </View>
 
             <View style={styles.profileRow}>
-              <Text style={styles.label}>Birth Date:</Text>
+              <Text style={styles.label}>Tanggal Lahir:</Text>
               <Text style={styles.value}>
                 {formatDate(userDetails.birthdate)}
               </Text>
             </View>
 
             <View style={styles.profileRow}>
-              <Text style={styles.label}>Parent:</Text>
+              <Text style={styles.label}>Orang Tua:</Text>
               <Text style={styles.value}>{userDetails.parentName}</Text>
             </View>
 
             <View style={styles.profileRow}>
               <Text style={styles.label}>RFID:</Text>
               <Text style={[styles.value, !userDetails.rfid && styles.notSet]}>
-                {userDetails.rfid || "Not assigned yet"}
+                {userDetails.rfid || "Belum dipasang"}
               </Text>
             </View>
           </View>
         )}
 
         <View style={styles.sortContainer}>
-          <Text style={styles.sortLabel}>Sort by Date:</Text>
+          <Text style={styles.sortLabel}>Urutkan berdasarkan Tanggal:</Text>
           <TouchableOpacity
             style={styles.sortButton}
             onPress={handleSortToggle}
           >
             <Text style={styles.sortButtonText}>
-              {sortOrder === "desc" ? "Newest First ↓" : "Oldest First ↑"}
+              {sortOrder === "desc" ? "Terbaru Dulu ↓" : "Terlama Dulu ↑"}
             </Text>
           </TouchableOpacity>
         </View>
@@ -200,7 +204,7 @@ export default function UserDetail() {
         <View style={styles.tableContainer}>
           {tableData.length > 0 ? (
             <DataTable
-              headers={["Date & Time", "Weight", "Height", "Status", "Actions"]}
+              headers={["Tanggal & Waktu", "Berat", "Tinggi", "Status", "Aksi"]}
               data={tableData}
               onEdit={() => {}}
               onDelete={() => {}}
@@ -208,9 +212,9 @@ export default function UserDetail() {
             />
           ) : (
             <View style={styles.emptyContainer}>
-              <Text style={styles.emptyText}>No measurement data found</Text>
+              <Text style={styles.emptyText}>Tidak ada data pengukuran</Text>
               <Text style={styles.emptySubtext}>
-                This student hasn't taken any measurements yet
+                Siswa ini belum melakukan pengukuran apapun
               </Text>
             </View>
           )}
@@ -218,7 +222,7 @@ export default function UserDetail() {
 
         <View style={styles.buttonContainer}>
           <Button
-            title="Back to All Users"
+            title="Kembali ke Semua Pengguna"
             onPress={handleBackToAllUsers}
             variant="outline"
             style={styles.backButton}

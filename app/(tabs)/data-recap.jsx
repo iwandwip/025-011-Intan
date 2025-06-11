@@ -64,29 +64,26 @@ export default function DataRecap() {
     if (!userProfile?.id) return;
 
     Alert.alert(
-      "Generate Random Data",
-      "This will add 5 random measurement records. Continue?",
+      "Buat Data Acak",
+      "Ini akan menambahkan 5 data pengukuran acak. Lanjutkan?",
       [
-        { text: "Cancel", style: "cancel" },
+        { text: "Batal", style: "cancel" },
         {
-          text: "Generate",
+          text: "Buat",
           onPress: async () => {
             setGenerating(true);
             try {
               const result = await generateRandomData(userProfile.id);
               if (result.success) {
-                Alert.alert(
-                  "Success",
-                  "5 random measurement records have been generated!"
-                );
+                Alert.alert("Berhasil", "5 data pengukuran acak telah dibuat!");
                 await loadMeasurements();
               } else {
-                Alert.alert("Error", result.error);
+                Alert.alert("Kesalahan", result.error);
               }
             } catch (error) {
               Alert.alert(
-                "Error",
-                "Failed to generate data. Please try again."
+                "Kesalahan",
+                "Gagal membuat data. Silakan coba lagi."
               );
             } finally {
               setGenerating(false);
@@ -122,12 +119,12 @@ export default function DataRecap() {
 
   const handleDelete = (measurement) => {
     Alert.alert(
-      "Delete Measurement",
-      "Are you sure you want to delete this measurement record?",
+      "Hapus Pengukuran",
+      "Apakah Anda yakin ingin menghapus data pengukuran ini?",
       [
-        { text: "Cancel", style: "cancel" },
+        { text: "Batal", style: "cancel" },
         {
-          text: "Delete",
+          text: "Hapus",
           style: "destructive",
           onPress: async () => {
             try {
@@ -136,13 +133,13 @@ export default function DataRecap() {
                 measurement.id
               );
               if (result.success) {
-                Alert.alert("Success", "Measurement deleted successfully!");
+                Alert.alert("Berhasil", "Pengukuran berhasil dihapus!");
                 await loadMeasurements();
               } else {
-                Alert.alert("Error", result.error);
+                Alert.alert("Kesalahan", result.error);
               }
             } catch (error) {
-              Alert.alert("Error", "Failed to delete measurement.");
+              Alert.alert("Kesalahan", "Gagal menghapus pengukuran.");
             }
           },
         },
@@ -159,15 +156,15 @@ export default function DataRecap() {
       );
 
       if (result.success) {
-        Alert.alert("Success", "Measurement updated successfully!");
+        Alert.alert("Berhasil", "Pengukuran berhasil diperbarui!");
         setEditModalVisible(false);
         setSelectedMeasurement(null);
         await loadMeasurements();
       } else {
-        Alert.alert("Error", result.error);
+        Alert.alert("Kesalahan", result.error);
       }
     } catch (error) {
-      Alert.alert("Error", "Failed to update measurement.");
+      Alert.alert("Kesalahan", "Gagal memperbarui pengukuran.");
     }
   };
 
@@ -183,7 +180,7 @@ export default function DataRecap() {
     if (!timestamp) return "N/A";
 
     const date = timestamp.toDate ? timestamp.toDate() : new Date(timestamp);
-    return date.toLocaleDateString("en-US", {
+    return date.toLocaleDateString("id-ID", {
       year: "numeric",
       month: "short",
       day: "numeric",
@@ -207,7 +204,7 @@ export default function DataRecap() {
           barStyle="dark-content"
           backgroundColor={Colors.background}
         />
-        <LoadingSpinner text="Loading measurements..." />
+        <LoadingSpinner text="Memuat pengukuran..." />
       </View>
     );
   }
@@ -217,8 +214,8 @@ export default function DataRecap() {
       <StatusBar barStyle="dark-content" backgroundColor={Colors.background} />
 
       <View style={styles.header}>
-        <Text style={styles.title}>Data Recap</Text>
-        <Text style={styles.subtitle}>Measurement History</Text>
+        <Text style={styles.title}>Rekap Data</Text>
+        <Text style={styles.subtitle}>Riwayat Pengukuran</Text>
       </View>
 
       <ScrollView
@@ -234,20 +231,20 @@ export default function DataRecap() {
       >
         <View style={styles.actionsContainer}>
           <Button
-            title={generating ? "Generating..." : "Generate Random Data"}
+            title={generating ? "Membuat..." : "Buat Data Acak"}
             onPress={handleGenerateData}
             style={styles.generateButton}
             disabled={generating}
           />
 
           <View style={styles.sortContainer}>
-            <Text style={styles.sortLabel}>Sort by Date:</Text>
+            <Text style={styles.sortLabel}>Urutkan berdasarkan Tanggal:</Text>
             <TouchableOpacity
               style={styles.sortButton}
               onPress={handleSortToggle}
             >
               <Text style={styles.sortButtonText}>
-                {sortOrder === "desc" ? "Newest First ↓" : "Oldest First ↑"}
+                {sortOrder === "desc" ? "Terbaru Dulu ↓" : "Terlama Dulu ↑"}
               </Text>
             </TouchableOpacity>
           </View>
@@ -256,7 +253,7 @@ export default function DataRecap() {
         <View style={styles.tableContainer}>
           {tableData.length > 0 ? (
             <DataTable
-              headers={["Date & Time", "Weight", "Height", "Status", "Actions"]}
+              headers={["Tanggal & Waktu", "Berat", "Tinggi", "Status", "Aksi"]}
               data={tableData}
               onEdit={handleEdit}
               onDelete={handleDelete}
@@ -264,10 +261,10 @@ export default function DataRecap() {
             />
           ) : (
             <View style={styles.emptyContainer}>
-              <Text style={styles.emptyText}>No measurement data found</Text>
+              <Text style={styles.emptyText}>Tidak ada data pengukuran</Text>
               <Text style={styles.emptySubtext}>
-                Generate some random data or take measurements to see records
-                here
+                Buat data acak atau lakukan pengukuran untuk melihat rekaman di
+                sini
               </Text>
             </View>
           )}

@@ -36,7 +36,7 @@ export default function Login() {
         router.replace("/(tabs)");
       }
     } else {
-      Alert.alert("Login Failed", result.error);
+      Alert.alert("Login Gagal", result.error);
     }
 
     setLoading(false);
@@ -67,14 +67,14 @@ export default function Login() {
         <View style={styles.links}>
           <View style={styles.forgotPasswordContainer}>
             <Link href="/(auth)/forgot-password" style={styles.forgotPassword}>
-              Forgot Password?
+              Lupa Password?
             </Link>
           </View>
 
           <View style={styles.registerContainer}>
-            <Text style={styles.registerText}>Don't have an account? </Text>
+            <Text style={styles.registerText}>Belum punya akun? </Text>
             <Link href="/(auth)/register" style={styles.registerLink}>
-              Sign Up
+              Daftar
             </Link>
           </View>
         </View>

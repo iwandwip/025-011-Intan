@@ -57,11 +57,11 @@ const DataSelectionModal = ({ visible, onClose, onSubmit }) => {
     const newErrors = {};
 
     if (!selectedEating) {
-      newErrors.eating = "Please select eating pattern";
+      newErrors.eating = "Silakan pilih pola makan";
     }
 
     if (!selectedResponse) {
-      newErrors.response = "Please select child response";
+      newErrors.response = "Silakan pilih respon anak";
     }
 
     setErrors(newErrors);
@@ -146,20 +146,19 @@ const DataSelectionModal = ({ visible, onClose, onSubmit }) => {
           <TouchableOpacity onPress={handleClose} style={styles.closeButton}>
             <Text style={styles.closeButtonText}>✕</Text>
           </TouchableOpacity>
-          <Text style={styles.title}>Data Selection</Text>
+          <Text style={styles.title}>Pilih Data</Text>
           <View style={styles.spacer} />
         </View>
 
         <ScrollView style={styles.content} showsVerticalScrollIndicator={false}>
           <Text style={styles.subtitle}>
-            Select eating pattern and child response for accurate analysis
+            Pilih pola makan dan respon anak untuk analisis yang akurat
           </Text>
 
           <View style={styles.section}>
             <Text style={styles.sectionTitle}>🍽️ Pola Makan</Text>
             <Text style={styles.sectionDescription}>
-              Choose the eating pattern that best describes the child's daily
-              consumption
+              Pilih pola makan yang paling menggambarkan konsumsi harian anak
             </Text>
 
             {eatingPatterns.map((option) =>
@@ -179,7 +178,7 @@ const DataSelectionModal = ({ visible, onClose, onSubmit }) => {
           <View style={styles.section}>
             <Text style={styles.sectionTitle}>🏃‍♂️ Respon Anak</Text>
             <Text style={styles.sectionDescription}>
-              Choose the response level that best describes the child's activity
+              Pilih tingkat respon yang paling menggambarkan aktivitas anak
             </Text>
 
             {childResponses.map((option) =>
@@ -199,13 +198,13 @@ const DataSelectionModal = ({ visible, onClose, onSubmit }) => {
 
         <View style={styles.footer}>
           <Button
-            title="Cancel"
+            title="Batal"
             onPress={handleClose}
             variant="outline"
             style={styles.cancelButton}
           />
           <Button
-            title="Start Weighing"
+            title="Mulai Timbang"
             onPress={handleSubmit}
             style={styles.submitButton}
           />

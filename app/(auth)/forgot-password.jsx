@@ -28,8 +28,8 @@ export default function ForgotPassword() {
 
     if (result.success) {
       Alert.alert(
-        "Email Sent",
-        "Password reset email has been sent to your email address.",
+        "Email Terkirim",
+        "Email reset password telah dikirim ke alamat email Anda.",
         [
           {
             text: "OK",
@@ -38,7 +38,7 @@ export default function ForgotPassword() {
         ]
       );
     } else {
-      Alert.alert("Reset Failed", result.error);
+      Alert.alert("Reset Gagal", result.error);
     }
 
     setLoading(false);
@@ -63,7 +63,7 @@ export default function ForgotPassword() {
         </View>
 
         <Text style={styles.description}>
-          Enter your email address and we'll send you a link to reset your
+          Masukkan alamat email Anda dan kami akan mengirimkan link untuk reset
           password.
         </Text>
 
@@ -77,7 +77,7 @@ export default function ForgotPassword() {
 
         <View style={styles.links}>
           <Link href="/(auth)/login" style={styles.link}>
-            Back to Login
+            Kembali ke Login
           </Link>
         </View>
       </ScrollView>

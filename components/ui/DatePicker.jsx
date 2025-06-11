@@ -15,7 +15,7 @@ const DatePicker = ({
   value,
   onChange,
   error,
-  placeholder = "Select date",
+  placeholder = "Pilih tanggal",
   maximumDate,
   minimumDate,
   style,
@@ -40,7 +40,7 @@ const DatePicker = ({
   const formatDisplayDate = (dateString) => {
     if (!dateString) return placeholder;
     const date = new Date(dateString);
-    return date.toLocaleDateString("en-US", {
+    return date.toLocaleDateString("id-ID", {
       year: "numeric",
       month: "long",
       day: "numeric",

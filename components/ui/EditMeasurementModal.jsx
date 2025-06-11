@@ -47,7 +47,7 @@ const EditMeasurementModal = ({ visible, measurement, onClose, onSave }) => {
       isNaN(formData.weight) ||
       parseFloat(formData.weight) <= 0
     ) {
-      newErrors.weight = "Please enter a valid weight";
+      newErrors.weight = "Silakan masukkan berat badan yang valid";
     }
 
     if (
@@ -55,11 +55,11 @@ const EditMeasurementModal = ({ visible, measurement, onClose, onSave }) => {
       isNaN(formData.height) ||
       parseFloat(formData.height) <= 0
     ) {
-      newErrors.height = "Please enter a valid height";
+      newErrors.height = "Silakan masukkan tinggi badan yang valid";
     }
 
     if (!formData.nutritionStatus) {
-      newErrors.nutritionStatus = "Please select nutrition status";
+      newErrors.nutritionStatus = "Silakan pilih status gizi";
     }
 
     setErrors(newErrors);
@@ -79,7 +79,7 @@ const EditMeasurementModal = ({ visible, measurement, onClose, onSave }) => {
 
       await onSave(updateData);
     } catch (error) {
-      Alert.alert("Error", "Failed to update measurement");
+      Alert.alert("Kesalahan", "Gagal memperbarui pengukuran");
     } finally {
       setSaving(false);
     }
@@ -113,14 +113,14 @@ const EditMeasurementModal = ({ visible, measurement, onClose, onSave }) => {
           <TouchableOpacity onPress={handleClose} style={styles.closeButton}>
             <Text style={styles.closeButtonText}>✕</Text>
           </TouchableOpacity>
-          <Text style={styles.title}>Edit Measurement</Text>
+          <Text style={styles.title}>Ubah Pengukuran</Text>
           <View style={styles.spacer} />
         </View>
 
         <View style={styles.content}>
           <Input
-            label="Weight (kg)"
-            placeholder="Enter weight"
+            label="Berat Badan (kg)"
+            placeholder="Masukkan berat badan"
             value={formData.weight}
             onChangeText={(value) => updateFormData("weight", value)}
             keyboardType="numeric"
@@ -128,8 +128,8 @@ const EditMeasurementModal = ({ visible, measurement, onClose, onSave }) => {
           />
 
           <Input
-            label="Height (cm)"
-            placeholder="Enter height"
+            label="Tinggi Badan (cm)"
+            placeholder="Masukkan tinggi badan"
             value={formData.height}
             onChangeText={(value) => updateFormData("height", value)}
             keyboardType="numeric"
@@ -137,7 +137,7 @@ const EditMeasurementModal = ({ visible, measurement, onClose, onSave }) => {
           />
 
           <View style={styles.nutritionContainer}>
-            <Text style={styles.nutritionLabel}>Nutrition Status</Text>
+            <Text style={styles.nutritionLabel}>Status Gizi</Text>
             <View style={styles.nutritionOptions}>
               {nutritionOptions.map((option) => (
                 <TouchableOpacity
@@ -169,13 +169,13 @@ const EditMeasurementModal = ({ visible, measurement, onClose, onSave }) => {
 
         <View style={styles.footer}>
           <Button
-            title="Cancel"
+            title="Batal"
             onPress={handleClose}
             variant="outline"
             style={styles.cancelButton}
           />
           <Button
-            title={saving ? "Saving..." : "Save Changes"}
+            title={saving ? "Menyimpan..." : "Simpan Perubahan"}
             onPress={handleSave}
             disabled={saving}
             style={styles.saveButton}

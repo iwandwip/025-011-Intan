@@ -29,14 +29,14 @@ function AdminHome() {
       navigationRef.current = true;
       router.replace("/(auth)/login");
     } else {
-      Alert.alert("Logout Failed", "Failed to logout. Please try again.");
+      Alert.alert("Logout Gagal", "Gagal logout. Silakan coba lagi.");
     }
 
     setLoggingOut(false);
   };
 
   const getWelcomeMessage = () => {
-    return "Welcome Admin!";
+    return "Selamat Datang Admin!";
   };
 
   return (
@@ -50,16 +50,16 @@ function AdminHome() {
 
           <View style={styles.profileContainer}>
             <View style={styles.profileCard}>
-              <Text style={styles.cardTitle}>Admin Profile</Text>
+              <Text style={styles.cardTitle}>Profil Admin</Text>
 
               <View style={styles.profileRow}>
-                <Text style={styles.label}>Name:</Text>
+                <Text style={styles.label}>Nama:</Text>
                 <Text style={styles.value}>Admin</Text>
               </View>
 
               <View style={styles.profileRow}>
-                <Text style={styles.label}>Role:</Text>
-                <Text style={styles.value}>Teacher</Text>
+                <Text style={styles.label}>Peran:</Text>
+                <Text style={styles.value}>Guru</Text>
               </View>
 
               <View style={styles.profileRow}>
@@ -68,20 +68,20 @@ function AdminHome() {
               </View>
 
               <View style={styles.profileRow}>
-                <Text style={styles.label}>Access Level:</Text>
+                <Text style={styles.label}>Tingkat Akses:</Text>
                 <Text style={styles.value}>Administrator</Text>
               </View>
             </View>
 
             <View style={styles.statsCard}>
-              <Text style={styles.cardTitle}>System Overview</Text>
+              <Text style={styles.cardTitle}>Ringkasan Sistem</Text>
 
               <View style={styles.statItem}>
                 <Text style={styles.statIcon}>👥</Text>
                 <View style={styles.statContent}>
-                  <Text style={styles.statLabel}>User Management</Text>
+                  <Text style={styles.statLabel}>Manajemen Pengguna</Text>
                   <Text style={styles.statDescription}>
-                    View and manage all student data
+                    Lihat dan kelola semua data siswa
                   </Text>
                 </View>
               </View>
@@ -89,9 +89,9 @@ function AdminHome() {
               <View style={styles.statItem}>
                 <Text style={styles.statIcon}>📊</Text>
                 <View style={styles.statContent}>
-                  <Text style={styles.statLabel}>Data Analytics</Text>
+                  <Text style={styles.statLabel}>Analisis Data</Text>
                   <Text style={styles.statDescription}>
-                    Monitor nutrition status trends
+                    Pantau tren status gizi
                   </Text>
                 </View>
               </View>
@@ -99,9 +99,9 @@ function AdminHome() {
               <View style={styles.statItem}>
                 <Text style={styles.statIcon}>⚖️</Text>
                 <View style={styles.statContent}>
-                  <Text style={styles.statLabel}>IoT Integration</Text>
+                  <Text style={styles.statLabel}>Integrasi IoT</Text>
                   <Text style={styles.statDescription}>
-                    Connected weighing system
+                    Sistem timbangan terhubung
                   </Text>
                 </View>
               </View>
@@ -110,7 +110,7 @@ function AdminHome() {
 
           <View style={styles.actionsContainer}>
             <Button
-              title={loggingOut ? "Logging out..." : "Logout"}
+              title={loggingOut ? "Keluar..." : "Keluar"}
               onPress={handleLogout}
               variant="outline"
               style={styles.logoutButton}

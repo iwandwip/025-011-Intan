@@ -41,7 +41,7 @@ const WeighingResultModal = ({ visible, data, onClose }) => {
     if (!timestamp) return "N/A";
 
     const date = timestamp.toDate ? timestamp.toDate() : new Date(timestamp);
-    return date.toLocaleDateString("en-US", {
+    return date.toLocaleDateString("id-ID", {
       year: "numeric",
       month: "long",
       day: "numeric",
@@ -64,7 +64,7 @@ const WeighingResultModal = ({ visible, data, onClose }) => {
       <View style={styles.overlay}>
         <View style={styles.container}>
           <View style={styles.header}>
-            <Text style={styles.title}>📊 Measurement Results</Text>
+            <Text style={styles.title}>📊 Hasil Pengukuran</Text>
             <TouchableOpacity onPress={onClose} style={styles.closeButton}>
               <Text style={styles.closeButtonText}>✕</Text>
             </TouchableOpacity>
@@ -91,7 +91,7 @@ const WeighingResultModal = ({ visible, data, onClose }) => {
                   {getStatusIcon(data.nutritionStatus)}
                 </Text>
                 <Text style={styles.statusText}>
-                  {data.nutritionStatus || "Unknown"}
+                  {data.nutritionStatus || "Tidak Diketahui"}
                 </Text>
               </View>
             </View>
@@ -99,7 +99,7 @@ const WeighingResultModal = ({ visible, data, onClose }) => {
             <View style={styles.measurementsGrid}>
               <View style={styles.measurementCard}>
                 <Text style={styles.measurementIcon}>⚖️</Text>
-                <Text style={styles.measurementLabel}>Weight</Text>
+                <Text style={styles.measurementLabel}>Berat Badan</Text>
                 <Text style={styles.measurementValue}>
                   {data.weight ? `${data.weight} kg` : "N/A"}
                 </Text>
@@ -107,7 +107,7 @@ const WeighingResultModal = ({ visible, data, onClose }) => {
 
               <View style={styles.measurementCard}>
                 <Text style={styles.measurementIcon}>📏</Text>
-                <Text style={styles.measurementLabel}>Height</Text>
+                <Text style={styles.measurementLabel}>Tinggi Badan</Text>
                 <Text style={styles.measurementValue}>
                   {data.height ? `${data.height} cm` : "N/A"}
                 </Text>
@@ -115,7 +115,7 @@ const WeighingResultModal = ({ visible, data, onClose }) => {
             </View>
 
             <View style={styles.additionalInfo}>
-              <Text style={styles.sectionTitle}>Additional Information</Text>
+              <Text style={styles.sectionTitle}>Informasi Tambahan</Text>
 
               <View style={styles.infoCard}>
                 <View style={styles.infoRow}>
@@ -123,7 +123,7 @@ const WeighingResultModal = ({ visible, data, onClose }) => {
                   <View style={styles.infoContent}>
                     <Text style={styles.infoLabel}>Pola Makan</Text>
                     <Text style={styles.infoValue}>
-                      {data.eatingPattern || "Not specified"}
+                      {data.eatingPattern || "Tidak ditentukan"}
                     </Text>
                   </View>
                 </View>
@@ -135,7 +135,7 @@ const WeighingResultModal = ({ visible, data, onClose }) => {
                   <View style={styles.infoContent}>
                     <Text style={styles.infoLabel}>Respon Anak</Text>
                     <Text style={styles.infoValue}>
-                      {data.childResponse || "Not specified"}
+                      {data.childResponse || "Tidak ditentukan"}
                     </Text>
                   </View>
                 </View>
@@ -144,9 +144,7 @@ const WeighingResultModal = ({ visible, data, onClose }) => {
 
             {data.nutritionStatus && (
               <View style={styles.recommendationContainer}>
-                <Text style={styles.recommendationTitle}>
-                  💡 Recommendation
-                </Text>
+                <Text style={styles.recommendationTitle}>💡 Rekomendasi</Text>
                 <Text style={styles.recommendationText}>
                   {getRecommendation(data.nutritionStatus)}
                 </Text>
@@ -156,7 +154,7 @@ const WeighingResultModal = ({ visible, data, onClose }) => {
 
           <View style={styles.footer}>
             <Button
-              title="Close"
+              title="Tutup"
               onPress={onClose}
               style={styles.closeButtonAction}
             />

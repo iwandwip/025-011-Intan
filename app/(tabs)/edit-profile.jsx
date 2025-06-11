@@ -81,19 +81,19 @@ export default function EditProfile() {
     const newErrors = {};
 
     if (!formData.name.trim()) {
-      newErrors.name = "Child name is required";
+      newErrors.name = "Nama anak wajib diisi";
     }
 
     if (!formData.parentName.trim()) {
-      newErrors.parentName = "Parent name is required";
+      newErrors.parentName = "Nama orang tua wajib diisi";
     }
 
     if (!formData.birthdate) {
-      newErrors.birthdate = "Birth date is required";
+      newErrors.birthdate = "Tanggal lahir wajib diisi";
     }
 
     if (!formData.gender) {
-      newErrors.gender = "Gender is required";
+      newErrors.gender = "Jenis kelamin wajib dipilih";
     }
 
     setErrors(newErrors);
@@ -110,21 +110,17 @@ export default function EditProfile() {
 
       if (result.success) {
         await refreshProfile();
-        Alert.alert(
-          "Profile Updated",
-          "Your profile has been updated successfully!",
-          [
-            {
-              text: "OK",
-              onPress: () => router.back(),
-            },
-          ]
-        );
+        Alert.alert("Profil Diperbarui", "Profil Anda berhasil diperbarui!", [
+          {
+            text: "OK",
+            onPress: () => router.back(),
+          },
+        ]);
       } else {
-        Alert.alert("Update Failed", result.error);
+        Alert.alert("Gagal Memperbarui", result.error);
       }
     } catch (error) {
-      Alert.alert("Update Failed", "Something went wrong. Please try again.");
+      Alert.alert("Gagal Memperbarui", "Terjadi kesalahan. Silakan coba lagi.");
     }
 
     setLoading(false);
@@ -136,11 +132,11 @@ export default function EditProfile() {
       const result = await startRfidPairing(userProfile.id);
 
       if (!result.success) {
-        Alert.alert("Pairing Failed", result.error);
+        Alert.alert("Gagal Pairing", result.error);
         setRfidPairing(false);
       }
     } catch (error) {
-      Alert.alert("Pairing Failed", "Something went wrong. Please try again.");
+      Alert.alert("Gagal Pairing", "Terjadi kesalahan. Silakan coba lagi.");
       setRfidPairing(false);
     }
   };
@@ -153,8 +149,8 @@ export default function EditProfile() {
         await refreshProfile();
         setRfidPairing(false);
         Alert.alert(
-          "RFID Paired",
-          "Your RFID card has been successfully paired!",
+          "RFID Berhasil Dipasang",
+          "Kartu RFID Anda berhasil dipasang!",
           [{ text: "OK" }]
         );
       }
@@ -170,7 +166,7 @@ export default function EditProfile() {
       setRfidPairing(false);
       Alert.alert(
         "Pairing Timeout",
-        "RFID pairing timed out. Please try again.",
+        "Pairing RFID habis waktu. Silakan coba lagi.",
         [{ text: "OK" }]
       );
     } catch (error) {
@@ -207,7 +203,7 @@ export default function EditProfile() {
       <StatusBar barStyle="dark-content" backgroundColor={Colors.background} />
 
       <View style={styles.header}>
-        <Text style={styles.title}>Edit Profile</Text>
+        <Text style={styles.title}>Ubah Profil</Text>
       </View>
 
       <TouchableWithoutFeedback onPress={Keyboard.dismiss}>
@@ -226,8 +222,8 @@ export default function EditProfile() {
         >
           <View style={styles.formContainer}>
             <Input
-              label="Child Name"
-              placeholder="Enter child's name"
+              label="Nama Anak"
+              placeholder="Masukkan nama anak"
               value={formData.name}
               onChangeText={(value) => updateFormData("name", value)}
               autoCapitalize="words"
@@ -235,8 +231,8 @@ export default function EditProfile() {
             />
 
             <Input
-              label="Parent Name"
-              placeholder="Enter parent's name"
+              label="Nama Orang Tua"
+              placeholder="Masukkan nama orang tua"
               value={formData.parentName}
               onChangeText={(value) => updateFormData("parentName", value)}
               autoCapitalize="words"
@@ -244,8 +240,8 @@ export default function EditProfile() {
             />
 
             <DatePicker
-              label="Birth Date"
-              placeholder="Select birth date"
+              label="Tanggal Lahir"
+              placeholder="Pilih tanggal lahir"
               value={formData.birthdate}
               onChange={(value) => updateFormData("birthdate", value)}
               maximumDate={maxDate}
@@ -254,16 +250,16 @@ export default function EditProfile() {
             />
 
             <View style={styles.genderContainer}>
-              <Text style={styles.genderLabel}>Gender</Text>
+              <Text style={styles.genderLabel}>Jenis Kelamin</Text>
               <View style={styles.genderButtons}>
                 <Button
-                  title="Male"
+                  title="Laki-laki"
                   onPress={() => updateFormData("gender", "male")}
                   variant={formData.gender === "male" ? "primary" : "outline"}
                   style={styles.genderButton}
                 />
                 <Button
-                  title="Female"
+                  title="Perempuan"
                   onPress={() => updateFormData("gender", "female")}
                   variant={formData.gender === "female" ? "primary" : "outline"}
                   style={styles.genderButton}
@@ -275,13 +271,13 @@ export default function EditProfile() {
             </View>
 
             <View style={styles.rfidContainer}>
-              <Text style={styles.rfidLabel}>RFID Card</Text>
+              <Text style={styles.rfidLabel}>Kartu RFID</Text>
               <View style={styles.rfidInfo}>
                 <Text style={styles.rfidValue}>
-                  {userProfile?.rfid || "Not paired"}
+                  {userProfile?.rfid || "Belum dipasang"}
                 </Text>
                 {userProfile?.rfid && (
-                  <Text style={styles.rfidConnected}>✓ Connected</Text>
+                  <Text style={styles.rfidConnected}>✓ Terhubung</Text>
                 )}
               </View>
 
@@ -289,10 +285,10 @@ export default function EditProfile() {
                 <View style={styles.rfidPairingContainer}>
                   <LoadingSpinner
                     size="small"
-                    text="Tap your RFID card on the device..."
+                    text="Tap kartu RFID Anda pada perangkat..."
                   />
                   <Button
-                    title="Cancel"
+                    title="Batal"
                     onPress={handleCancelRfidPairing}
                     variant="outline"
                     style={styles.cancelRfidButton}
@@ -300,7 +296,11 @@ export default function EditProfile() {
                 </View>
               ) : (
                 <Button
-                  title={userProfile?.rfid ? "Re-pair RFID" : "Pair RFID Card"}
+                  title={
+                    userProfile?.rfid
+                      ? "Pasang Ulang RFID"
+                      : "Pasang Kartu RFID"
+                  }
                   onPress={handleRfidPairing}
                   variant="outline"
                   style={styles.rfidButton}
@@ -311,7 +311,7 @@ export default function EditProfile() {
 
           <View style={styles.buttonContainer}>
             <Button
-              title="Cancel"
+              title="Batal"
               onPress={() => router.back()}
               variant="outline"
               style={styles.cancelButton}
@@ -319,7 +319,7 @@ export default function EditProfile() {
             />
 
             <Button
-              title={loading ? "Saving..." : "Save Changes"}
+              title={loading ? "Menyimpan..." : "Simpan Perubahan"}
               onPress={handleSave}
               style={styles.saveButton}
               disabled={loading || rfidPairing}

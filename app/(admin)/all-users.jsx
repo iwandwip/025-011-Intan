@@ -62,7 +62,7 @@ export default function AllUsers() {
           barStyle="dark-content"
           backgroundColor={Colors.background}
         />
-        <LoadingSpinner text="Loading users..." />
+        <LoadingSpinner text="Memuat pengguna..." />
       </View>
     );
   }
@@ -72,8 +72,8 @@ export default function AllUsers() {
       <StatusBar barStyle="dark-content" backgroundColor={Colors.background} />
 
       <View style={styles.header}>
-        <Text style={styles.title}>All Users</Text>
-        <Text style={styles.subtitle}>Student Management</Text>
+        <Text style={styles.title}>Semua Pengguna</Text>
+        <Text style={styles.subtitle}>Manajemen Siswa</Text>
       </View>
 
       <ScrollView
@@ -115,13 +115,17 @@ export default function AllUsers() {
 
                 <View style={styles.userDetails}>
                   <View style={styles.detailRow}>
-                    <Text style={styles.detailLabel}>Parent:</Text>
+                    <Text style={styles.detailLabel}>Orang Tua:</Text>
                     <Text style={styles.detailValue}>{user.parentName}</Text>
                   </View>
                   <View style={styles.detailRow}>
-                    <Text style={styles.detailLabel}>Gender:</Text>
+                    <Text style={styles.detailLabel}>Jenis Kelamin:</Text>
                     <Text style={styles.detailValue}>
-                      {user.gender || "Not set"}
+                      {user.gender === "male"
+                        ? "Laki-laki"
+                        : user.gender === "female"
+                        ? "Perempuan"
+                        : "Belum diatur"}
                     </Text>
                   </View>
                   <View style={styles.detailRow}>
@@ -132,7 +136,7 @@ export default function AllUsers() {
                         !user.rfid && styles.notAssigned,
                       ]}
                     >
-                      {user.rfid || "Not assigned"}
+                      {user.rfid || "Belum dipasang"}
                     </Text>
                   </View>
                 </View>
@@ -141,9 +145,9 @@ export default function AllUsers() {
           </View>
         ) : (
           <View style={styles.emptyContainer}>
-            <Text style={styles.emptyText}>No users found</Text>
+            <Text style={styles.emptyText}>Tidak ada pengguna ditemukan</Text>
             <Text style={styles.emptySubtext}>
-              No student accounts have been created yet
+              Belum ada akun siswa yang dibuat
             </Text>
           </View>
         )}

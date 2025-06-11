@@ -1,8 +1,8 @@
 {
   "expo": {
-    "scheme": "belajarapp",
-    "name": "belajarapp",
-    "slug": "belajarapp",
+    "scheme": "intan-app",
+    "name": "intan-app",
+    "slug": "intan-app",
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/icon.png",

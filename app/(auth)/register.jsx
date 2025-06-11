@@ -31,10 +31,10 @@ export default function Register() {
       const isAdmin = email === "admin@gmail.com";
 
       Alert.alert(
-        "Account Created",
+        "Akun Berhasil Dibuat",
         isAdmin
-          ? "Admin account has been created successfully!"
-          : "Your account has been created successfully! You can pair your RFID card from Edit Profile.",
+          ? "Akun admin berhasil dibuat!"
+          : "Akun Anda berhasil dibuat! Anda dapat memasang kartu RFID dari Ubah Profil.",
         [
           {
             text: "OK",
@@ -50,7 +50,7 @@ export default function Register() {
         ]
       );
     } else {
-      Alert.alert("Registration Failed", result.error);
+      Alert.alert("Registrasi Gagal", result.error);
     }
 
     setLoading(false);
@@ -84,9 +84,9 @@ export default function Register() {
 
         <View style={styles.links}>
           <View style={styles.loginContainer}>
-            <Text style={styles.loginText}>Already have an account? </Text>
+            <Text style={styles.loginText}>Sudah punya akun? </Text>
             <Link href="/(auth)/login" style={styles.loginLink}>
-              Sign In
+              Masuk
             </Link>
           </View>
         </View>

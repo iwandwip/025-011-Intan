@@ -42,15 +42,15 @@ const AuthForm = ({ type = "login", onSubmit, loading = false }) => {
     const newErrors = {};
 
     if (!validateEmail(formData.email)) {
-      newErrors.email = "Please enter a valid email address";
+      newErrors.email = "Silakan masukkan alamat email yang valid";
     }
 
     if (!validatePassword(formData.password)) {
-      newErrors.password = "Password must be at least 6 characters";
+      newErrors.password = "Password harus minimal 6 karakter";
     }
 
     if (isRegister && formData.password !== formData.confirmPassword) {
-      newErrors.confirmPassword = "Passwords do not match";
+      newErrors.confirmPassword = "Password tidak cocok";
     }
 
     setErrors(newErrors);
@@ -61,19 +61,19 @@ const AuthForm = ({ type = "login", onSubmit, loading = false }) => {
     const newErrors = {};
 
     if (!formData.name.trim()) {
-      newErrors.name = "Child name is required";
+      newErrors.name = "Nama anak wajib diisi";
     }
 
     if (!formData.parentName.trim()) {
-      newErrors.parentName = "Parent name is required";
+      newErrors.parentName = "Nama orang tua wajib diisi";
     }
 
     if (!formData.birthdate) {
-      newErrors.birthdate = "Birth date is required";
+      newErrors.birthdate = "Tanggal lahir wajib diisi";
     }
 
     if (!formData.gender) {
-      newErrors.gender = "Gender is required";
+      newErrors.gender = "Jenis kelamin wajib dipilih";
     }
 
     setErrors(newErrors);
@@ -128,30 +128,30 @@ const AuthForm = ({ type = "login", onSubmit, loading = false }) => {
   const getTitle = () => {
     if (isRegister) {
       if (isAdminEmail && step === 1) {
-        return "Create Admin Account";
+        return "Buat Akun Admin";
       }
-      return step === 1 ? "Create Account" : "Child Information";
+      return step === 1 ? "Buat Akun" : "Informasi Anak";
     }
     switch (type) {
       case "forgot-password":
         return "Reset Password";
       default:
-        return "Welcome Back";
+        return "Selamat Datang Kembali";
     }
   };
 
   const getButtonText = () => {
     if (isRegister) {
       if (isAdminEmail && step === 1) {
-        return "Create Admin Account";
+        return "Buat Akun Admin";
       }
-      return step === 1 ? "Next" : "Create Account";
+      return step === 1 ? "Selanjutnya" : "Buat Akun";
     }
     switch (type) {
       case "forgot-password":
-        return "Send Reset Email";
+        return "Kirim Email Reset";
       default:
-        return "Sign In";
+        return "Masuk";
     }
   };
 
@@ -167,7 +167,7 @@ const AuthForm = ({ type = "login", onSubmit, loading = false }) => {
   };
 
   if (loading) {
-    return <LoadingSpinner text="Please wait..." />;
+    return <LoadingSpinner text="Silakan tunggu..." />;
   }
 
   const { maxDate, minDate } = getDateLimits();
@@ -180,7 +180,7 @@ const AuthForm = ({ type = "login", onSubmit, loading = false }) => {
         {isRegister && isAdminEmail && step === 1 && (
           <View style={styles.adminNotice}>
             <Text style={styles.adminNoticeText}>
-              🔐 Admin account will be created with default settings
+              🔐 Akun admin akan dibuat dengan pengaturan default
             </Text>
           </View>
         )}
@@ -199,7 +199,7 @@ const AuthForm = ({ type = "login", onSubmit, loading = false }) => {
             <>
               <Input
                 label="Email"
-                placeholder="Enter your email"
+                placeholder="Masukkan email Anda"
                 value={formData.email}
                 onChangeText={(value) => updateFormData("email", value)}
                 keyboardType="email-address"
@@ -211,7 +211,7 @@ const AuthForm = ({ type = "login", onSubmit, loading = false }) => {
                 <>
                   <Input
                     label="Password"
-                    placeholder="Enter your password"
+                    placeholder="Masukkan password Anda"
                     value={formData.password}
                     onChangeText={(value) => updateFormData("password", value)}
                     secureTextEntry
@@ -220,8 +220,8 @@ const AuthForm = ({ type = "login", onSubmit, loading = false }) => {
 
                   {isRegister && (
                     <Input
-                      label="Confirm Password"
-                      placeholder="Confirm your password"
+                      label="Konfirmasi Password"
+                      placeholder="Konfirmasi password Anda"
                       value={formData.confirmPassword}
                       onChangeText={(value) =>
                         updateFormData("confirmPassword", value)
@@ -238,8 +238,8 @@ const AuthForm = ({ type = "login", onSubmit, loading = false }) => {
           {isRegister && step === 2 && !isAdminEmail && (
             <>
               <Input
-                label="Child Name"
-                placeholder="Enter child's name"
+                label="Nama Anak"
+                placeholder="Masukkan nama anak"
                 value={formData.name}
                 onChangeText={(value) => updateFormData("name", value)}
                 autoCapitalize="words"
@@ -247,8 +247,8 @@ const AuthForm = ({ type = "login", onSubmit, loading = false }) => {
               />
 
               <Input
-                label="Parent Name"
-                placeholder="Enter parent's name"
+                label="Nama Orang Tua"
+                placeholder="Masukkan nama orang tua"
                 value={formData.parentName}
                 onChangeText={(value) => updateFormData("parentName", value)}
                 autoCapitalize="words"
@@ -256,8 +256,8 @@ const AuthForm = ({ type = "login", onSubmit, loading = false }) => {
               />
 
               <DatePicker
-                label="Birth Date"
-                placeholder="Select birth date"
+                label="Tanggal Lahir"
+                placeholder="Pilih tanggal lahir"
                 value={formData.birthdate}
                 onChange={(value) => updateFormData("birthdate", value)}
                 maximumDate={maxDate}
@@ -266,16 +266,16 @@ const AuthForm = ({ type = "login", onSubmit, loading = false }) => {
               />
 
               <View style={styles.genderContainer}>
-                <Text style={styles.genderLabel}>Gender</Text>
+                <Text style={styles.genderLabel}>Jenis Kelamin</Text>
                 <View style={styles.genderButtons}>
                   <Button
-                    title="Male"
+                    title="Laki-laki"
                     onPress={() => updateFormData("gender", "male")}
                     variant={formData.gender === "male" ? "primary" : "outline"}
                     style={styles.genderButton}
                   />
                   <Button
-                    title="Female"
+                    title="Perempuan"
                     onPress={() => updateFormData("gender", "female")}
                     variant={
                       formData.gender === "female" ? "primary" : "outline"
@@ -294,7 +294,7 @@ const AuthForm = ({ type = "login", onSubmit, loading = false }) => {
         <View style={styles.buttonContainer}>
           {isRegister && step === 2 && !isAdminEmail && (
             <Button
-              title="Back"
+              title="Kembali"
               onPress={handleBack}
               variant="outline"
               style={styles.backButton}
