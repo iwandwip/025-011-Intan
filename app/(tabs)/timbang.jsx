@@ -7,6 +7,7 @@ import {
   Alert,
   ScrollView,
 } from "react-native";
+import { useRouter } from "expo-router";
 import { useAuth } from "../../contexts/AuthContext";
 import Button from "../../components/ui/Button";
 import LoadingSpinner from "../../components/ui/LoadingSpinner";
@@ -30,6 +31,7 @@ import { Colors } from "../../constants/Colors";
 
 export default function TimbangScreen() {
   const { userProfile } = useAuth();
+  const router = useRouter();
 
   const [systemStatus, setSystemStatus] = useState(null);
   const [selectionModalVisible, setSelectionModalVisible] = useState(false);
@@ -102,7 +104,26 @@ export default function TimbangScreen() {
     }
   };
 
+  const hasRFID = () => {
+    return userProfile?.rfid && userProfile.rfid.trim() !== "";
+  };
+
   const handleStartWeighing = () => {
+    if (!hasRFID()) {
+      Alert.alert(
+        "RFID Belum Dipasang",
+        "Anda harus memasang kartu RFID terlebih dahulu sebelum dapat melakukan penimbangan.",
+        [
+          { text: "Batal", style: "cancel" },
+          {
+            text: "Pasang RFID",
+            onPress: () => router.push("/(tabs)/edit-profile"),
+          },
+        ]
+      );
+      return;
+    }
+
     if (!isSessionAvailable(systemStatus)) {
       Alert.alert(
         "Alat Sedang Digunakan",
@@ -119,6 +140,7 @@ export default function TimbangScreen() {
       const result = await startWeighingSession(
         userProfile.id,
         userProfile.name,
+        userProfile.rfid,
         selectionData
       );
 
@@ -170,7 +192,7 @@ export default function TimbangScreen() {
   };
 
   const canStartSession = () => {
-    return isSessionAvailable(systemStatus) && !loading;
+    return hasRFID() && isSessionAvailable(systemStatus) && !loading;
   };
 
   const isMyActiveSession = () => {
@@ -194,6 +216,24 @@ export default function TimbangScreen() {
         <View style={styles.content}>
           <Text style={styles.title}>Timbang & Ukur</Text>
           <Text style={styles.subtitle}>Pengukuran Berat & Tinggi Badan</Text>
+
+          {!hasRFID() && (
+            <View style={styles.warningContainer}>
+              <Text style={styles.warningIcon}>⚠️</Text>
+              <View style={styles.warningContent}>
+                <Text style={styles.warningTitle}>RFID Belum Dipasang</Text>
+                <Text style={styles.warningText}>
+                  Anda harus memasang kartu RFID terlebih dahulu untuk dapat
+                  melakukan penimbangan.
+                </Text>
+                <Button
+                  title="Pasang RFID Sekarang"
+                  onPress={() => router.push("/(tabs)/edit-profile")}
+                  style={styles.warningButton}
+                />
+              </View>
+            </View>
+          )}
 
           <View style={styles.statusContainer}>
             <View
@@ -228,6 +268,13 @@ export default function TimbangScreen() {
                 <Text style={styles.specText}>RFID: Deteksi Otomatis</Text>
               </View>
             </View>
+
+            {hasRFID() && (
+              <View style={styles.rfidInfo}>
+                <Text style={styles.rfidLabel}>Kartu RFID Terpasang:</Text>
+                <Text style={styles.rfidValue}>{userProfile.rfid}</Text>
+              </View>
+            )}
           </View>
 
           {isMyActiveSession() && (
@@ -239,6 +286,9 @@ export default function TimbangScreen() {
                 </Text>
                 <Text style={styles.sessionItem}>
                   Respon Anak: {systemStatus.childResponse}
+                </Text>
+                <Text style={styles.sessionItem}>
+                  RFID: {systemStatus.userRfid}
                 </Text>
               </View>
             </View>
@@ -270,7 +320,9 @@ export default function TimbangScreen() {
             ) : (
               <View style={styles.waitingContainer}>
                 <Text style={styles.waitingText}>
-                  Alat sedang digunakan. Silakan tunggu sebentar.
+                  {!hasRFID()
+                    ? "Pasang RFID terlebih dahulu untuk menggunakan fitur ini."
+                    : "Alat sedang digunakan. Silakan tunggu sebentar."}
                 </Text>
                 <Button
                   title="📊 Riwayat"
@@ -327,6 +379,38 @@ const styles = StyleSheet.create({
     textAlign: "center",
     marginBottom: 32,
   },
+  warningContainer: {
+    backgroundColor: Colors.warning + "20",
+    borderRadius: 12,
+    padding: 16,
+    marginBottom: 24,
+    borderWidth: 1,
+    borderColor: Colors.warning,
+    flexDirection: "row",
+    alignItems: "flex-start",
+  },
+  warningIcon: {
+    fontSize: 24,
+    marginRight: 12,
+  },
+  warningContent: {
+    flex: 1,
+  },
+  warningTitle: {
+    fontSize: 16,
+    fontWeight: "600",
+    color: Colors.warning,
+    marginBottom: 8,
+  },
+  warningText: {
+    fontSize: 14,
+    color: Colors.gray700,
+    marginBottom: 12,
+    lineHeight: 20,
+  },
+  warningButton: {
+    marginTop: 8,
+  },
   statusContainer: {
     alignItems: "center",
     marginBottom: 32,
@@ -369,6 +453,7 @@ const styles = StyleSheet.create({
   },
   deviceSpecs: {
     gap: 8,
+    marginBottom: 16,
   },
   specItem: {
     flexDirection: "row",
@@ -382,6 +467,24 @@ const styles = StyleSheet.create({
   specText: {
     fontSize: 14,
     color: Colors.gray700,
+  },
+  rfidInfo: {
+    backgroundColor: Colors.primary + "10",
+    padding: 12,
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: Colors.primary + "30",
+  },
+  rfidLabel: {
+    fontSize: 14,
+    fontWeight: "500",
+    color: Colors.primary,
+    marginBottom: 4,
+  },
+  rfidValue: {
+    fontSize: 16,
+    fontWeight: "600",
+    color: Colors.primary,
   },
   sessionInfo: {
     backgroundColor: Colors.primary,

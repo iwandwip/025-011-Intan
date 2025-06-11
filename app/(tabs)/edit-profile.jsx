@@ -17,7 +17,7 @@ import Input from "../../components/ui/Input";
 import DatePicker from "../../components/ui/DatePicker";
 import Button from "../../components/ui/Button";
 import LoadingSpinner from "../../components/ui/LoadingSpinner";
-import { updateUserProfile } from "../../services/userService";
+import { updateUserProfile, removeUserRFID } from "../../services/userService";
 import {
   subscribeToSystemStatus,
   startRfidSession,
@@ -154,6 +154,46 @@ export default function EditProfile() {
     }
   };
 
+  const handleRemoveRfid = async () => {
+    Alert.alert(
+      "Hapus RFID",
+      "Apakah Anda yakin ingin menghapus kartu RFID? Anda tidak akan bisa melakukan penimbangan sampai memasang RFID baru.",
+      [
+        { text: "Batal", style: "cancel" },
+        {
+          text: "Hapus",
+          style: "destructive",
+          onPress: async () => {
+            try {
+              setLoading(true);
+              const result = await removeUserRFID(userProfile.id);
+
+              if (result.success) {
+                await refreshProfile();
+                Alert.alert(
+                  "RFID Dihapus",
+                  "Kartu RFID berhasil dihapus dari akun Anda."
+                );
+              } else {
+                Alert.alert(
+                  "Gagal",
+                  "Gagal menghapus RFID. Silakan coba lagi."
+                );
+              }
+            } catch (error) {
+              Alert.alert(
+                "Kesalahan",
+                "Terjadi kesalahan saat menghapus RFID."
+              );
+            } finally {
+              setLoading(false);
+            }
+          },
+        },
+      ]
+    );
+  };
+
   const handleRfidSuccess = async (rfidData) => {
     try {
       setLoading(true);
@@ -212,6 +252,10 @@ export default function EditProfile() {
 
   const canStartRfidPairing = () => {
     return isSessionAvailable(systemStatus) && !loading;
+  };
+
+  const hasRfid = () => {
+    return userProfile?.rfid && userProfile.rfid.trim() !== "";
   };
 
   const { maxDate, minDate } = getDateLimits();
@@ -292,9 +336,9 @@ export default function EditProfile() {
               <Text style={styles.rfidLabel}>Kartu RFID</Text>
               <View style={styles.rfidInfo}>
                 <Text style={styles.rfidValue}>
-                  {userProfile?.rfid || "Belum dipasang"}
+                  {hasRfid() ? userProfile.rfid : "Belum dipasang"}
                 </Text>
-                {userProfile?.rfid && (
+                {hasRfid() && (
                   <Text style={styles.rfidConnected}>✓ Terhubung</Text>
                 )}
               </View>
@@ -319,17 +363,27 @@ export default function EditProfile() {
                   />
                 </View>
               ) : (
-                <Button
-                  title={
-                    userProfile?.rfid
-                      ? "Pasang Ulang RFID"
-                      : "Pasang Kartu RFID"
-                  }
-                  onPress={handleRfidPairing}
-                  variant="outline"
-                  style={styles.rfidButton}
-                  disabled={!canStartRfidPairing()}
-                />
+                <View style={styles.rfidActions}>
+                  <Button
+                    title={
+                      hasRfid() ? "Pasang Ulang RFID" : "Pasang Kartu RFID"
+                    }
+                    onPress={handleRfidPairing}
+                    variant="outline"
+                    style={styles.rfidButton}
+                    disabled={!canStartRfidPairing()}
+                  />
+
+                  {hasRfid() && (
+                    <Button
+                      title="Hapus RFID"
+                      onPress={handleRemoveRfid}
+                      variant="outline"
+                      style={[styles.rfidButton, styles.removeRfidButton]}
+                      disabled={loading}
+                    />
+                  )}
+                </View>
               )}
             </View>
           </View>
@@ -451,8 +505,14 @@ const styles = StyleSheet.create({
     alignItems: "center",
     paddingVertical: 8,
   },
+  rfidActions: {
+    gap: 8,
+  },
   rfidButton: {
     marginTop: 8,
+  },
+  removeRfidButton: {
+    borderColor: Colors.error,
   },
   cancelRfidButton: {
     marginTop: 12,

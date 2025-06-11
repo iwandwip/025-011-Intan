@@ -60,6 +60,16 @@ const getRandomDelay = () => {
   return Math.floor(Math.random() * (5000 - 2000) + 2000);
 };
 
+const simulateRfidTap = (expectedRfid) => {
+  const shouldMatch = Math.random() > 0.2;
+  
+  if (shouldMatch && expectedRfid) {
+    return expectedRfid;
+  } else {
+    return generateRandomRFID();
+  }
+};
+
 class ESP32Simulator {
   constructor() {
     this.systemStatusRef = doc(db, 'systemStatus', 'hardware');
@@ -81,7 +91,8 @@ class ESP32Simulator {
       this.startListening();
       
       console.log('🤖 ESP32 Simulator Started');
-      console.log('📡 Listening for global session changes...\n');
+      console.log('📡 Listening for global session changes...');
+      console.log('💡 Note: 80% chance RFID will match, 20% chance mismatch for testing\n');
     } catch (error) {
       console.error('❌ Failed to initialize:', error.message);
       process.exit(1);
@@ -101,6 +112,7 @@ class ESP32Simulator {
         lastActivity: null,
         eatingPattern: '',
         childResponse: '',
+        userRfid: '',
         weight: 0,
         height: 0,
         nutritionStatus: '',
@@ -183,6 +195,7 @@ class ESP32Simulator {
     console.log(`👤 User: ${sessionData.currentUserName} (${sessionData.currentUserId})`);
     console.log(`🍽️  Eating Pattern: ${sessionData.eatingPattern}`);
     console.log(`🏃 Child Response: ${sessionData.childResponse}`);
+    console.log(`🔑 Expected RFID: ${sessionData.userRfid}`);
     
     this.currentSession = sessionData;
     this.isProcessing = true;
@@ -190,11 +203,41 @@ class ESP32Simulator {
     this.startTimeoutTimer('weighing', 10);
     
     const delay = getRandomDelay();
-    console.log(`⏳ Simulating measurement... (${delay}ms)`);
+    console.log(`⏳ Waiting for RFID tap... (${delay}ms)`);
     
     this.processingTimer = setTimeout(async () => {
-      await this.completeWeighing();
+      await this.simulateRfidTapAndWeighing();
     }, delay);
+  }
+
+  async simulateRfidTapAndWeighing() {
+    if (!this.currentSession) return;
+
+    const tappedRfid = simulateRfidTap(this.currentSession.userRfid);
+    console.log(`📱 RFID Tapped: ${tappedRfid}`);
+    
+    if (tappedRfid !== this.currentSession.userRfid) {
+      console.log(`❌ RFID Mismatch! Expected: ${this.currentSession.userRfid}, Got: ${tappedRfid}`);
+      console.log(`🚨 Access denied - wrong RFID card`);
+      
+      try {
+        await this.resetSessionWithError();
+      } catch (error) {
+        console.error('❌ Failed to reset session:', error.message);
+      }
+      
+      this.isProcessing = false;
+      return;
+    }
+
+    console.log(`✅ RFID Match! Starting measurement...`);
+    
+    const measurementDelay = getRandomDelay();
+    console.log(`⏳ Simulating measurement... (${measurementDelay}ms)`);
+    
+    setTimeout(async () => {
+      await this.completeWeighing();
+    }, measurementDelay);
   }
 
   async completeWeighing() {
@@ -225,6 +268,28 @@ class ESP32Simulator {
     this.isProcessing = false;
   }
 
+  async resetSessionWithError() {
+    await updateDoc(this.systemStatusRef, {
+      isInUse: false,
+      timeout: false,
+      sessionType: '',
+      currentUserId: '',
+      currentUserName: '',
+      startTime: null,
+      lastActivity: null,
+      eatingPattern: '',
+      childResponse: '',
+      userRfid: '',
+      weight: 0,
+      height: 0,
+      nutritionStatus: '',
+      measurementComplete: false,
+      rfid: '',
+    });
+    
+    console.log('🔄 Session reset due to RFID mismatch\n');
+  }
+
   startTimeoutTimer(sessionType, timeoutMinutes) {
     const timeoutMs = timeoutMinutes * 60 * 1000;
     
@@ -248,6 +313,7 @@ class ESP32Simulator {
         lastActivity: null,
         eatingPattern: '',
         childResponse: '',
+        userRfid: '',
         weight: 0,
         height: 0,
         nutritionStatus: '',

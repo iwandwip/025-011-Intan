@@ -1,7 +1,6 @@
 import { doc, setDoc, getDoc, updateDoc, onSnapshot, collection, getDocs, query, orderBy } from 'firebase/firestore';
 import { db } from './firebase';
 import { calculateAge } from '../utils/ageCalculator';
-import { WEIGHING_STATES } from '../utils/weighingStates';
 
 export const createUserProfile = async (uid, profileData) => {
   try {
@@ -104,6 +103,24 @@ export const updateUserProfile = async (uid, updates) => {
 
     const userRef = doc(db, 'users', uid);
     await updateDoc(userRef, updateData);
+
+    return { success: true };
+  } catch (error) {
+    return { success: false, error: error.message };
+  }
+};
+
+export const removeUserRFID = async (uid) => {
+  try {
+    if (!db) {
+      throw new Error('Firestore is not initialized');
+    }
+
+    const userRef = doc(db, 'users', uid);
+    await updateDoc(userRef, {
+      rfid: '',
+      updatedAt: new Date()
+    });
 
     return { success: true };
   } catch (error) {
