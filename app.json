@@ -1,7 +1,7 @@
 {
   "expo": {
     "scheme": "intan-app",
-    "name": "intan-app",
+    "name": "Intan App",
     "slug": "intan-app",
     "version": "1.0.0",
     "orientation": "portrait",
@@ -17,6 +17,8 @@
       "supportsTablet": true
     },
     "android": {
+      "package": "com.intan.intanapp",
+      "versionCode": 1,
       "adaptiveIcon": {
         "foregroundImage": "./assets/adaptive-icon.png",
         "backgroundColor": "#ffffff"
@@ -25,6 +27,11 @@
     },
     "web": {
       "favicon": "./assets/favicon.png"
+    },
+    "extra": {
+      "eas": {
+        "projectId": "67e40b3b-c1c7-4d48-9e6b-f7b88d04d4c0"
+      }
     }
   }
 }
