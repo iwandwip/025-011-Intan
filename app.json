@@ -27,6 +27,11 @@
     },
     "web": {
       "favicon": "./assets/icon-nutrition.png"
+    },
+    "extra": {
+      "eas": {
+        "projectId": "fe031588-78a3-42e0-9384-99b7ca8d834d"
+      }
     }
   }
 }
