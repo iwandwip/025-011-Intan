@@ -8,7 +8,10 @@
     "ios": "expo start --ios",
     "web": "expo start --web",
     "clear": "expo start --clear",
-    "test:esp32": "node .\\testing\\esp32-simulator.js"
+    "test": "node .\\testing\\esp32-simulator.js",
+    "cleanup": "node .\\firebase-cleanup\\cleanup.js",
+    "clean": "rimraf node_modules package-lock.json",
+    "reinstall": "npm run clean && npm install"
   },
   "dependencies": {
     "@react-native-async-storage/async-storage": "2.1.2",
@@ -23,6 +26,8 @@
     "expo-sharing": "^13.1.5",
     "expo-status-bar": "~2.2.3",
     "firebase": "^10.14.0",
+    "firebase-admin": "^13.4.0",
+    "inquirer": "^12.6.3",
     "react": "19.0.0",
     "react-dom": "19.0.0",
     "react-native": "0.79.3",

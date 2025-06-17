@@ -1,4 +1,4 @@
-import { doc, setDoc, getDoc, updateDoc, onSnapshot, collection, getDocs, query, orderBy } from 'firebase/firestore';
+import { doc, setDoc, getDoc, updateDoc, onSnapshot, collection, getDocs, query, orderBy, where } from 'firebase/firestore';
 import { db } from './firebase';
 import { calculateAge } from '../utils/ageCalculator';
 
@@ -33,6 +33,7 @@ export const createUserProfile = async (uid, profileData) => {
         ageYears: age.years,
         ageMonths: age.months,
         rfid: '',
+        rfidNumber: '',
         latestWeighing: null,
         role: 'student',
         isAdmin: false,
@@ -110,6 +111,32 @@ export const updateUserProfile = async (uid, updates) => {
   }
 };
 
+export const checkRfidNumberExists = async (rfidNumber, excludeUserId = null) => {
+  try {
+    if (!db) {
+      throw new Error('Firestore is not initialized');
+    }
+
+    const usersRef = collection(db, 'users');
+    const q = query(usersRef, where('rfidNumber', '==', rfidNumber));
+    const querySnapshot = await getDocs(q);
+
+    const existingUsers = [];
+    querySnapshot.forEach((doc) => {
+      if (!excludeUserId || doc.id !== excludeUserId) {
+        existingUsers.push({
+          id: doc.id,
+          ...doc.data()
+        });
+      }
+    });
+
+    return { success: true, exists: existingUsers.length > 0, users: existingUsers };
+  } catch (error) {
+    return { success: false, error: error.message, exists: false };
+  }
+};
+
 export const removeUserRFID = async (uid) => {
   try {
     if (!db) {
@@ -119,6 +146,7 @@ export const removeUserRFID = async (uid) => {
     const userRef = doc(db, 'users', uid);
     await updateDoc(userRef, {
       rfid: '',
+      rfidNumber: '',
       updatedAt: new Date()
     });
 

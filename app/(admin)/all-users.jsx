@@ -190,7 +190,9 @@ export default function AllUsers() {
                         !user.rfid && styles.notAssigned,
                       ]}
                     >
-                      {user.rfid || "Belum dipasang"}
+                      {user.rfid 
+                        ? `${user.rfid}${user.rfidNumber ? ` (No. ${user.rfidNumber})` : ''}` 
+                        : "Belum dipasang"}
                     </Text>
                   </View>
                 </View>

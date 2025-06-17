@@ -15,11 +15,25 @@ import LoadingSpinner from "../../components/ui/LoadingSpinner";
 import DataTable from "../../components/ui/DataTable";
 import Button from "../../components/ui/Button";
 import EditUserModal from "../../components/ui/EditUserModal";
+import RFIDNumberModal from "../../components/ui/RFIDNumberModal";
 import {
   getUserWithMeasurements,
   updateUserProfile,
   deleteUserAccount,
 } from "../../services/adminService";
+import { removeUserRFID } from "../../services/userService";
+import {
+  subscribeToSystemStatus,
+  startRfidSession,
+  endGlobalSession,
+  initializeSystemStatus,
+} from "../../services/globalSessionService";
+import {
+  GLOBAL_SESSION_TYPES,
+  getSessionStatusMessage,
+  isSessionAvailable,
+  isMySession,
+} from "../../utils/globalStates";
 import { formatAge } from "../../utils/ageCalculator";
 import { Colors } from "../../constants/Colors";
 
@@ -35,6 +49,10 @@ export default function UserDetail() {
   const [sortOrder, setSortOrder] = useState("desc");
   const [editModalVisible, setEditModalVisible] = useState(false);
   const [deleting, setDeleting] = useState(false);
+  const [systemStatus, setSystemStatus] = useState(null);
+  const [rfidLoading, setRfidLoading] = useState(false);
+  const [rfidNumberModalVisible, setRfidNumberModalVisible] = useState(false);
+  const [pendingRfidData, setPendingRfidData] = useState(null);
 
   const loadUserDetails = async () => {
     try {
@@ -137,10 +155,170 @@ export default function UserDetail() {
     router.push("/(admin)");
   };
 
+  const handleRfidPairing = async () => {
+    if (!isSessionAvailable(systemStatus)) {
+      Alert.alert(
+        "Alat Sedang Digunakan",
+        getSessionStatusMessage(systemStatus)
+      );
+      return;
+    }
+
+    try {
+      setRfidLoading(true);
+      const result = await startRfidSession(userId, userDetails.name);
+
+      if (result.success) {
+        Alert.alert(
+          "Siap untuk Pairing",
+          `Silakan tap kartu RFID untuk ${userDetails.name} pada perangkat untuk melakukan pairing.`
+        );
+      } else {
+        Alert.alert("Gagal Pairing", result.error);
+      }
+    } catch (error) {
+      Alert.alert("Gagal Pairing", "Terjadi kesalahan. Silakan coba lagi.");
+    } finally {
+      setRfidLoading(false);
+    }
+  };
+
+  const handleRemoveRfid = async () => {
+    Alert.alert(
+      "Hapus RFID",
+      `Apakah Anda yakin ingin menghapus kartu RFID milik ${userDetails.name}?`,
+      [
+        { text: "Batal", style: "cancel" },
+        {
+          text: "Hapus",
+          style: "destructive",
+          onPress: async () => {
+            try {
+              setRfidLoading(true);
+              const result = await removeUserRFID(userId);
+
+              if (result.success) {
+                await loadUserDetails();
+                Alert.alert(
+                  "RFID Dihapus",
+                  `Kartu RFID milik ${userDetails.name} berhasil dihapus.`
+                );
+              } else {
+                Alert.alert(
+                  "Gagal",
+                  "Gagal menghapus RFID. Silakan coba lagi."
+                );
+              }
+            } catch (error) {
+              Alert.alert(
+                "Kesalahan",
+                "Terjadi kesalahan saat menghapus RFID."
+              );
+            } finally {
+              setRfidLoading(false);
+            }
+          },
+        },
+      ]
+    );
+  };
+
+  const handleRfidSuccess = async (rfidData) => {
+    setPendingRfidData(rfidData);
+    setRfidNumberModalVisible(true);
+  };
+
+  const handleRfidNumberConfirm = async (rfidCode, rfidNumber) => {
+    try {
+      const result = await updateUserProfile(userId, {
+        rfid: rfidCode,
+        rfidNumber: rfidNumber,
+      });
+
+      if (result.success) {
+        await loadUserDetails();
+        await endGlobalSession();
+        setRfidNumberModalVisible(false);
+        setPendingRfidData(null);
+
+        Alert.alert(
+          "RFID Berhasil Dipasang",
+          `Kartu RFID nomor ${rfidNumber} untuk ${userDetails.name} berhasil dipasang!`,
+          [{ text: "OK" }]
+        );
+      } else {
+        Alert.alert("Gagal", "Gagal menyimpan data RFID");
+      }
+    } catch (error) {
+      console.error("RFID completion error:", error);
+      Alert.alert("Kesalahan", "Terjadi kesalahan saat menyimpan RFID");
+    }
+  };
+
+  const handleRfidNumberCancel = async () => {
+    try {
+      await endGlobalSession();
+      setRfidNumberModalVisible(false);
+      setPendingRfidData(null);
+      Alert.alert("Dibatalkan", "Pairing RFID telah dibatalkan");
+    } catch (error) {
+      console.error("Cancel RFID error:", error);
+      Alert.alert("Kesalahan", "Gagal membatalkan pairing RFID");
+    }
+  };
+
+  const handleCancelRfidPairing = async () => {
+    try {
+      await endGlobalSession();
+      Alert.alert("Dibatalkan", "Pairing RFID telah dibatalkan");
+    } catch (error) {
+      console.error("Cancel RFID error:", error);
+      Alert.alert("Kesalahan", "Gagal membatalkan pairing RFID");
+    }
+  };
+
+  const isRfidPairing = () => {
+    return (
+      systemStatus?.sessionType === GLOBAL_SESSION_TYPES.RFID &&
+      isMySession(systemStatus, userId)
+    );
+  };
+
+  const canStartRfidPairing = () => {
+    return isSessionAvailable(systemStatus) && !rfidLoading && !loading;
+  };
+
+  const hasRfid = () => {
+    return userDetails?.rfid && userDetails.rfid.trim() !== "";
+  };
+
   useEffect(() => {
     if (userId) {
       loadUserDetails();
     }
+    initializeSystemStatus();
+  }, [userId]);
+
+  useEffect(() => {
+    if (!userId) return;
+
+    const unsubscribe = subscribeToSystemStatus((doc) => {
+      if (doc.exists()) {
+        const data = doc.data();
+        setSystemStatus(data);
+
+        if (
+          data.sessionType === GLOBAL_SESSION_TYPES.RFID &&
+          data.currentUserId === userId &&
+          data.rfid &&
+          data.rfid.trim() !== ""
+        ) {
+          handleRfidSuccess(data.rfid);
+        }
+      }
+    });
+
+    return unsubscribe;
   }, [userId]);
 
   const formatDateTime = (timestamp) => {
@@ -244,8 +422,56 @@ export default function UserDetail() {
             <View style={styles.profileRow}>
               <Text style={styles.label}>RFID:</Text>
               <Text style={[styles.value, !userDetails.rfid && styles.notSet]}>
-                {userDetails.rfid || "Belum dipasang"}
+                {userDetails.rfid 
+                  ? `${userDetails.rfid}${userDetails.rfidNumber ? ` (No. ${userDetails.rfidNumber})` : ''}` 
+                  : "Belum dipasang"}
               </Text>
+            </View>
+
+            <View style={styles.rfidSection}>
+              <Text style={styles.rfidSectionTitle}>Kelola RFID</Text>
+              <View style={styles.rfidStatus}>
+                <Text style={styles.rfidStatusText}>
+                  {getSessionStatusMessage(systemStatus)}
+                </Text>
+              </View>
+
+              {isRfidPairing() ? (
+                <View style={styles.rfidPairingContainer}>
+                  <LoadingSpinner
+                    size="small"
+                    text={`Tap kartu RFID untuk ${userDetails.name}...`}
+                  />
+                  <Button
+                    title="Batal"
+                    onPress={handleCancelRfidPairing}
+                    variant="outline"
+                    style={styles.cancelRfidButton}
+                  />
+                </View>
+              ) : (
+                <View style={styles.rfidActions}>
+                  <Button
+                    title={
+                      hasRfid() ? "🔄 Pasang Ulang RFID" : "📱 Pasang RFID"
+                    }
+                    onPress={handleRfidPairing}
+                    variant="outline"
+                    style={styles.rfidButton}
+                    disabled={!canStartRfidPairing()}
+                  />
+
+                  {hasRfid() && (
+                    <Button
+                      title="🗑️ Hapus RFID"
+                      onPress={handleRemoveRfid}
+                      variant="outline"
+                      style={[styles.rfidButton, styles.removeRfidButton]}
+                      disabled={rfidLoading || loading}
+                    />
+                  )}
+                </View>
+              )}
             </View>
 
             <View style={styles.profileActions}>
@@ -317,6 +543,15 @@ export default function UserDetail() {
         user={userDetails}
         onClose={() => setEditModalVisible(false)}
         onSave={handleSaveEdit}
+      />
+
+      <RFIDNumberModal
+        visible={rfidNumberModalVisible}
+        rfidCode={pendingRfidData}
+        userName={userDetails?.name}
+        userId={userId}
+        onConfirm={handleRfidNumberConfirm}
+        onCancel={handleRfidNumberCancel}
       />
     </View>
   );
@@ -472,5 +707,47 @@ const styles = StyleSheet.create({
   },
   homeButton: {
     marginBottom: 8,
+  },
+  rfidSection: {
+    marginTop: 16,
+    paddingTop: 16,
+    borderTopWidth: 1,
+    borderTopColor: Colors.gray200,
+  },
+  rfidSectionTitle: {
+    fontSize: 16,
+    fontWeight: "600",
+    color: Colors.gray900,
+    marginBottom: 12,
+    textAlign: "center",
+  },
+  rfidStatus: {
+    backgroundColor: Colors.gray50,
+    padding: 8,
+    borderRadius: 6,
+    marginBottom: 12,
+  },
+  rfidStatusText: {
+    fontSize: 12,
+    color: Colors.gray600,
+    textAlign: "center",
+  },
+  rfidPairingContainer: {
+    alignItems: "center",
+    paddingVertical: 8,
+  },
+  rfidActions: {
+    flexDirection: "row",
+    gap: 8,
+  },
+  rfidButton: {
+    flex: 1,
+  },
+  removeRfidButton: {
+    borderColor: Colors.error,
+  },
+  cancelRfidButton: {
+    marginTop: 12,
+    minWidth: 100,
   },
 });

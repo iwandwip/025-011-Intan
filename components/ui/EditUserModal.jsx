@@ -22,6 +22,7 @@ const EditUserModal = ({ visible, user, onClose, onSave }) => {
     birthdate: "",
     gender: "",
     rfid: "",
+    rfidNumber: "",
   });
   const [errors, setErrors] = useState({});
   const [saving, setSaving] = useState(false);
@@ -34,6 +35,7 @@ const EditUserModal = ({ visible, user, onClose, onSave }) => {
         birthdate: user.birthdate || "",
         gender: user.gender || "",
         rfid: user.rfid || "",
+        rfidNumber: user.rfidNumber || "",
       });
       setErrors({});
     }
@@ -82,6 +84,7 @@ const EditUserModal = ({ visible, user, onClose, onSave }) => {
       birthdate: "",
       gender: "",
       rfid: "",
+      rfidNumber: "",
     });
     setErrors({});
     onClose();
@@ -182,6 +185,14 @@ const EditUserModal = ({ visible, user, onClose, onSave }) => {
             value={formData.rfid}
             onChangeText={(value) => updateFormData("rfid", value)}
             autoCapitalize="characters"
+          />
+
+          <Input
+            label="Nomor Urut RFID (Opsional)"
+            placeholder="Masukkan nomor urut RFID"
+            value={formData.rfidNumber}
+            onChangeText={(value) => updateFormData("rfidNumber", value)}
+            keyboardType="numeric"
           />
         </ScrollView>
 
