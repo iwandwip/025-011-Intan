@@ -60,14 +60,24 @@ File `eas.json` standar untuk project ini:
 eas build --platform android --profile preview
 ```
 
-### 2. Build APK Development 
+### 2. Build APK Preview dengan Clear Cache
+```bash
+eas build --platform android --profile preview --clear-cache
+```
+
+### 3. Build APK Development 
 ```bash
 eas build --platform android --profile development
 ```
 
-### 3. Build APK Production
+### 4. Build APK Production
 ```bash
 eas build --platform android --profile production
+```
+
+### 5. Build APK Production dengan Clear Cache
+```bash
+eas build --platform android --profile production --clear-cache
 ```
 
 ## Build APK Lokal (Tanpa EAS Cloud)
@@ -111,6 +121,31 @@ eas build --platform android --profile preview --local
 npm run clear
 # Atau
 npx expo start -c
+# Atau gunakan --clear-cache flag
+eas build --platform android --profile preview --clear-cache
+```
+
+### Build Stuck atau Gagal
+```bash
+# Cancel ongoing build
+eas build:cancel
+
+# List semua builds
+eas build:list --platform android
+
+# Inspect specific build
+eas build:inspect [build-id]
+```
+
+### Clear EAS Build Cache
+```bash
+# Clear cache untuk semua builds
+eas build --platform android --profile preview --clear-cache
+
+# Atau hapus cache manual
+rm -rf node_modules
+rm package-lock.json
+npm install
 ```
 
 ### Error: "SDK version mismatch"
@@ -219,9 +254,14 @@ Tambahkan ke `package.json`:
 {
   "scripts": {
     "build:android:preview": "eas build --platform android --profile preview",
+    "build:android:preview:clear": "eas build --platform android --profile preview --clear-cache",
     "build:android:prod": "eas build --platform android --profile production",
+    "build:android:prod:clear": "eas build --platform android --profile production --clear-cache",
     "build:android:local": "eas build --platform android --profile preview --local",
-    "build:list": "eas build:list --platform android"
+    "build:android:local:clear": "eas build --platform android --profile preview --local --clear-cache",
+    "build:list": "eas build:list --platform android",
+    "build:cancel": "eas build:cancel",
+    "build:inspect": "eas build:inspect"
   }
 }
 ```
