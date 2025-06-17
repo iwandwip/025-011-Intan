@@ -14,11 +14,17 @@ const WeighingResultModal = ({ visible, data, onClose }) => {
   const getStatusColor = (status) => {
     switch (status?.toLowerCase()) {
       case "sehat":
+      case "gizi baik":
         return Colors.success;
       case "tidak sehat":
+      case "gizi kurang":
         return Colors.warning;
       case "obesitas":
         return Colors.error;
+      case "gizi buruk":
+        return '#B91C1C';
+      case "overweight":
+        return '#F59E0B';
       default:
         return Colors.gray700;
     }
@@ -27,11 +33,17 @@ const WeighingResultModal = ({ visible, data, onClose }) => {
   const getStatusIcon = (status) => {
     switch (status?.toLowerCase()) {
       case "sehat":
+      case "gizi baik":
         return "✅";
       case "tidak sehat":
+      case "gizi kurang":
         return "⚠️";
       case "obesitas":
         return "❌";
+      case "gizi buruk":
+        return "🔴";
+      case "overweight":
+        return "🟡";
       default:
         return "❓";
     }
@@ -168,11 +180,17 @@ const WeighingResultModal = ({ visible, data, onClose }) => {
 const getRecommendation = (status) => {
   switch (status?.toLowerCase()) {
     case "sehat":
+    case "gizi baik":
       return "Pertahankan pola makan dan aktivitas yang sehat. Lanjutkan dengan gizi seimbang dan olahraga teratur.";
     case "tidak sehat":
+    case "gizi kurang":
       return "Perlu perhatian khusus pada pola makan dan aktivitas. Konsultasikan dengan ahli gizi untuk program yang tepat.";
     case "obesitas":
       return "Diperlukan intervensi segera dengan program diet dan aktivitas fisik yang disesuaikan. Konsultasi dengan dokter direkomendasikan.";
+    case "gizi buruk":
+      return "Memerlukan penanganan medis segera. Konsultasi dengan dokter dan ahli gizi untuk program rehabilitasi gizi yang intensif.";
+    case "overweight":
+      return "Perlu pengaturan pola makan dan peningkatan aktivitas fisik. Konsultasi dengan ahli gizi untuk program penurunan berat badan yang sehat.";
     default:
       return "Lakukan pemeriksaan rutin dan konsultasi dengan tenaga kesehatan untuk evaluasi lebih lanjut.";
   }

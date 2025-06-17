@@ -18,6 +18,7 @@ import {
   getAllUsersWithMeasurements,
 } from "../../services/adminService";
 import { generateAllUsersPDF } from "../../services/pdfService";
+import { endGlobalSession } from "../../services/globalSessionService";
 import { formatAge } from "../../utils/ageCalculator";
 import { Colors } from "../../constants/Colors";
 
@@ -29,6 +30,7 @@ export default function AllUsers() {
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [exportingPDF, setExportingPDF] = useState(false);
+  const [resettingSession, setResettingSession] = useState(false);
 
   const loadUsers = async () => {
     try {
@@ -96,6 +98,35 @@ export default function AllUsers() {
     );
   };
 
+  const handleResetSession = async () => {
+    Alert.alert(
+      "Reset Session",
+      "Apakah Anda yakin ingin mereset semua global session? Ini akan menghentikan semua sesi yang sedang berlangsung (pairing, weighing, dll).",
+      [
+        { text: "Batal", style: "cancel" },
+        {
+          text: "Reset",
+          style: "destructive",
+          onPress: async () => {
+            setResettingSession(true);
+            try {
+              const result = await endGlobalSession();
+              if (result.success) {
+                Alert.alert("Berhasil", "Semua global session berhasil direset!");
+              } else {
+                Alert.alert("Gagal", result.error || "Gagal mereset session");
+              }
+            } catch (error) {
+              Alert.alert("Kesalahan", "Terjadi kesalahan saat mereset session");
+            } finally {
+              setResettingSession(false);
+            }
+          },
+        },
+      ]
+    );
+  };
+
   useEffect(() => {
     loadUsers();
   }, []);
@@ -127,6 +158,13 @@ export default function AllUsers() {
           onPress={handleExportPDF}
           style={styles.exportButton}
           disabled={exportingPDF || users.length === 0}
+        />
+        <Button
+          title={resettingSession ? "🔄 Mereset..." : "🔄 Reset Session"}
+          onPress={handleResetSession}
+          style={styles.resetButton}
+          variant="outline"
+          disabled={resettingSession}
         />
       </View>
 
@@ -244,6 +282,9 @@ const styles = StyleSheet.create({
     borderBottomColor: Colors.gray200,
   },
   exportButton: {
+    marginBottom: 12,
+  },
+  resetButton: {
     marginBottom: 0,
   },
   scrollContainer: {

@@ -6,6 +6,7 @@ import {
   SafeAreaView,
   Alert,
   ScrollView,
+  RefreshControl,
 } from "react-native";
 import { useRouter } from "expo-router";
 import { useAuth } from "../../contexts/AuthContext";
@@ -38,6 +39,7 @@ export default function TimbangScreen() {
   const [resultModalVisible, setResultModalVisible] = useState(false);
   const [resultData, setResultData] = useState(null);
   const [loading, setLoading] = useState(false);
+  const [refreshing, setRefreshing] = useState(false);
 
   useEffect(() => {
     initializeSystemStatus();
@@ -199,6 +201,13 @@ export default function TimbangScreen() {
     return systemStatus?.isInUse && isMySession(systemStatus, userProfile?.id);
   };
 
+  const handleRefresh = async () => {
+    setRefreshing(true);
+    setTimeout(() => {
+      setRefreshing(false);
+    }, 1000);
+  };
+
   if (loading) {
     return (
       <SafeAreaView style={styles.container}>
@@ -212,6 +221,9 @@ export default function TimbangScreen() {
       <ScrollView
         style={styles.scrollView}
         showsVerticalScrollIndicator={false}
+        refreshControl={
+          <RefreshControl refreshing={refreshing} onRefresh={handleRefresh} />
+        }
       >
         <View style={styles.content}>
           <Text style={styles.title}>Timbang & Ukur</Text>
@@ -304,7 +316,7 @@ export default function TimbangScreen() {
                 />
 
                 <Button
-                  title="📊 Riwayat"
+                  title="📊 Hasil Pengukuran Terakhir"
                   onPress={handleViewHistory}
                   variant="outline"
                   style={styles.secondaryButton}
@@ -325,7 +337,7 @@ export default function TimbangScreen() {
                     : "Alat sedang digunakan. Silakan tunggu sebentar."}
                 </Text>
                 <Button
-                  title="📊 Riwayat"
+                  title="📊 Hasil Pengukuran Terakhir"
                   onPress={handleViewHistory}
                   variant="outline"
                   style={styles.secondaryButton}

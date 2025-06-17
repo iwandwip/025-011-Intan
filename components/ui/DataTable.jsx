@@ -11,12 +11,21 @@ import { Colors } from "../../constants/Colors";
 const DataTable = ({ headers, data, onEdit, onDelete, keyExtractor }) => {
   const getStatusColor = (status) => {
     switch (status?.toLowerCase()) {
-      case "sehat":
-        return Colors.success;
-      case "tidak sehat":
-        return Colors.warning;
+      case "gizi buruk":
+        return "#B91C1C"; // Dark red
+      case "gizi kurang":
+        return "#EA580C"; // Orange
+      case "gizi baik":
+        return "#16A34A"; // Green
+      case "overweight":
+        return "#F59E0B"; // Light orange/amber
       case "obesitas":
-        return Colors.error;
+        return "#DC2626"; // Red
+      // Legacy support for old status values
+      case "sehat":
+        return "#16A34A"; // Green
+      case "tidak sehat":
+        return "#EA580C"; // Orange
       default:
         return Colors.gray700;
     }

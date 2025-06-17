@@ -8,6 +8,7 @@ import {
   StatusBar,
   TouchableWithoutFeedback,
   Keyboard,
+  RefreshControl,
 } from "react-native";
 import { useRouter } from "expo-router";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
@@ -26,6 +27,7 @@ export default function EditProfile() {
   const insets = useSafeAreaInsets();
 
   const [loading, setLoading] = useState(false);
+  const [refreshing, setRefreshing] = useState(false);
   const [formData, setFormData] = useState({
     name: userProfile?.name || "",
     parentName: userProfile?.parentName || "",
@@ -90,6 +92,13 @@ export default function EditProfile() {
     setLoading(false);
   };
 
+  const handleRefresh = async () => {
+    setRefreshing(true);
+    setTimeout(() => {
+      setRefreshing(false);
+    }, 1000);
+  };
+
 
   const getDateLimits = () => {
     const today = new Date();
@@ -129,6 +138,9 @@ export default function EditProfile() {
           enableAutomaticScroll={true}
           extraScrollHeight={20}
           bounces={false}
+          refreshControl={
+            <RefreshControl refreshing={refreshing} onRefresh={handleRefresh} />
+          }
         >
           <View style={styles.formContainer}>
             <Input

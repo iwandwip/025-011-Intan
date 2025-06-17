@@ -6,6 +6,7 @@ import {
   Alert,
   ScrollView,
   StatusBar,
+  RefreshControl,
 } from "react-native";
 import { Link, useRouter } from "expo-router";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
@@ -17,6 +18,7 @@ import { Colors } from "../../constants/Colors";
 
 export default function ForgotPassword() {
   const [loading, setLoading] = useState(false);
+  const [refreshing, setRefreshing] = useState(false);
   const router = useRouter();
   const insets = useSafeAreaInsets();
 
@@ -44,6 +46,13 @@ export default function ForgotPassword() {
     setLoading(false);
   };
 
+  const handleRefresh = async () => {
+    setRefreshing(true);
+    setTimeout(() => {
+      setRefreshing(false);
+    }, 1000);
+  };
+
   return (
     <View style={[styles.container, { paddingTop: insets.top }]}>
       <StatusBar barStyle="dark-content" backgroundColor={Colors.background} />
@@ -55,6 +64,9 @@ export default function ForgotPassword() {
         ]}
         showsVerticalScrollIndicator={false}
         keyboardShouldPersistTaps="handled"
+        refreshControl={
+          <RefreshControl refreshing={refreshing} onRefresh={handleRefresh} />
+        }
       >
         <View style={styles.illustrationContainer}>
           <IllustrationContainer>

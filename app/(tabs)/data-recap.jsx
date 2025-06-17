@@ -16,6 +16,7 @@ import Button from "../../components/ui/Button";
 import DataTable from "../../components/ui/DataTable";
 import LoadingSpinner from "../../components/ui/LoadingSpinner";
 import EditMeasurementModal from "../../components/ui/EditMeasurementModal";
+import NutritionStatusHelpModal from "../../components/ui/NutritionStatusHelpModal";
 import {
   getUserMeasurements,
   generateRandomData,
@@ -36,6 +37,7 @@ export default function DataRecap() {
   const [sortOrder, setSortOrder] = useState("desc");
   const [editModalVisible, setEditModalVisible] = useState(false);
   const [selectedMeasurement, setSelectedMeasurement] = useState(null);
+  const [helpModalVisible, setHelpModalVisible] = useState(false);
 
   const loadMeasurements = async () => {
     if (!userProfile?.id) return;
@@ -199,97 +201,147 @@ export default function DataRecap() {
 
   if (loading) {
     return (
-      <View style={[styles.container, { paddingTop: insets.top }]}>
-        <StatusBar
-          barStyle="dark-content"
-          backgroundColor={Colors.background}
+      <>
+        <View style={[styles.container, { paddingTop: insets.top }]}>
+          <StatusBar
+            barStyle="dark-content"
+            backgroundColor={Colors.background}
+          />
+          
+          <View style={styles.header}>
+            <View style={styles.headerContent}>
+              <View style={styles.titleContainer}>
+                <Text style={styles.title}>Rekap Data</Text>
+                <Text style={styles.subtitle}>Riwayat Pengukuran</Text>
+              </View>
+              <TouchableOpacity
+                style={styles.helpButton}
+                onPress={() => {
+                  console.log('Help button pressed, setting modal visible');
+                  setHelpModalVisible(true);
+                }}
+              >
+                <Text style={styles.helpButtonText}>?</Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+          
+          <View style={styles.loadingContainer}>
+            <LoadingSpinner text="Memuat pengukuran..." />
+          </View>
+        </View>
+        
+        {/* Modal bantuan di luar container utama untuk memastikan berada di atas tab bar */}
+        <NutritionStatusHelpModal
+          visible={helpModalVisible}
+          onClose={() => setHelpModalVisible(false)}
         />
-        <LoadingSpinner text="Memuat pengukuran..." />
-      </View>
+      </>
     );
   }
 
   return (
-    <View style={[styles.container, { paddingTop: insets.top }]}>
-      <StatusBar barStyle="dark-content" backgroundColor={Colors.background} />
+    <>
+      <View style={[styles.container, { paddingTop: insets.top }]}>
+        <StatusBar barStyle="dark-content" backgroundColor={Colors.background} />
 
-      <View style={styles.header}>
-        <Text style={styles.title}>Rekap Data</Text>
-        <Text style={styles.subtitle}>Riwayat Pengukuran</Text>
-      </View>
-
-      <ScrollView
-        style={styles.scrollContainer}
-        contentContainerStyle={[
-          styles.scrollContent,
-          { paddingBottom: insets.bottom + 20 },
-        ]}
-        showsVerticalScrollIndicator={false}
-        refreshControl={
-          <RefreshControl refreshing={refreshing} onRefresh={handleRefresh} />
-        }
-      >
-        <View style={styles.actionsContainer}>
-          <Button
-            title={generating ? "Membuat..." : "Buat Data Acak"}
-            onPress={handleGenerateData}
-            style={styles.generateButton}
-            disabled={generating}
-          />
-
-          <View style={styles.sortContainer}>
-            <Text style={styles.sortLabel}>Urutkan berdasarkan Tanggal:</Text>
+        <View style={styles.header}>
+          <View style={styles.headerContent}>
+            <View style={styles.titleContainer}>
+              <Text style={styles.title}>Rekap Data</Text>
+              <Text style={styles.subtitle}>Riwayat Pengukuran</Text>
+            </View>
             <TouchableOpacity
-              style={styles.sortButton}
-              onPress={handleSortToggle}
+              style={styles.helpButton}
+              onPress={() => {
+                console.log('Help button pressed (main view), setting modal visible');
+                setHelpModalVisible(true);
+              }}
             >
-              <Text style={styles.sortButtonText}>
-                {sortOrder === "desc" ? "Terbaru Dulu ↓" : "Terlama Dulu ↑"}
-              </Text>
+              <Text style={styles.helpButtonText}>?</Text>
             </TouchableOpacity>
           </View>
         </View>
 
-        <View style={styles.tableContainer}>
-          {tableData.length > 0 ? (
-            <DataTable
-              headers={["Tanggal & Waktu", "Berat", "Tinggi", "Status", "Aksi"]}
-              data={tableData}
-              onEdit={handleEdit}
-              onDelete={handleDelete}
-              keyExtractor={(item, index) => `measurement-${index}`}
+        <ScrollView
+          style={styles.scrollContainer}
+          contentContainerStyle={[
+            styles.scrollContent,
+            { paddingBottom: insets.bottom + 20 },
+          ]}
+          showsVerticalScrollIndicator={false}
+          refreshControl={
+            <RefreshControl refreshing={refreshing} onRefresh={handleRefresh} />
+          }
+        >
+          <View style={styles.actionsContainer}>
+            <Button
+              title={generating ? "Membuat..." : "Buat Data Acak"}
+              onPress={handleGenerateData}
+              style={styles.generateButton}
+              disabled={generating}
             />
-          ) : (
-            <View style={styles.emptyContainer}>
-              <Text style={styles.emptyText}>Tidak ada data pengukuran</Text>
-              <Text style={styles.emptySubtext}>
-                Buat data acak atau lakukan pengukuran untuk melihat rekaman di
-                sini
-              </Text>
+
+            <View style={styles.sortContainer}>
+              <Text style={styles.sortLabel}>Urutkan berdasarkan Tanggal:</Text>
+              <TouchableOpacity
+                style={styles.sortButton}
+                onPress={handleSortToggle}
+              >
+                <Text style={styles.sortButtonText}>
+                  {sortOrder === "desc" ? "Terbaru Dulu ↓" : "Terlama Dulu ↑"}
+                </Text>
+              </TouchableOpacity>
             </View>
-          )}
-        </View>
+          </View>
 
-        <View style={styles.backButtonContainer}>
-          <Button
-            title="Kembali ke Halaman Utama"
-            onPress={handleBackToHome}
-            variant="outline"
-            style={styles.backButton}
-          />
-        </View>
-      </ScrollView>
+          <View style={styles.tableContainer}>
+            {tableData.length > 0 ? (
+              <DataTable
+                headers={["Tanggal & Waktu", "Berat", "Tinggi", "Status", "Aksi"]}
+                data={tableData}
+                onEdit={handleEdit}
+                onDelete={handleDelete}
+                keyExtractor={(item, index) => `measurement-${index}`}
+              />
+            ) : (
+              <View style={styles.emptyContainer}>
+                <Text style={styles.emptyText}>Tidak ada data pengukuran</Text>
+                <Text style={styles.emptySubtext}>
+                  Buat data acak atau lakukan pengukuran untuk melihat rekaman di
+                  sini
+                </Text>
+              </View>
+            )}
+          </View>
 
-      <EditMeasurementModal
-        visible={editModalVisible}
-        measurement={selectedMeasurement}
-        onClose={() => {
-          setEditModalVisible(false);
-          setSelectedMeasurement(null);
-        }}
-        onSave={handleUpdateMeasurement}
+          <View style={styles.backButtonContainer}>
+            <Button
+              title="Kembali ke Halaman Utama"
+              onPress={handleBackToHome}
+              variant="outline"
+              style={styles.backButton}
+            />
+          </View>
+        </ScrollView>
+
+        <EditMeasurementModal
+          visible={editModalVisible}
+          measurement={selectedMeasurement}
+          onClose={() => {
+            setEditModalVisible(false);
+            setSelectedMeasurement(null);
+          }}
+          onSave={handleUpdateMeasurement}
+        />
+      </View>
+
+      {/* Modal bantuan di luar container utama untuk memastikan berada di atas tab bar */}
+      <NutritionStatusHelpModal
+        visible={helpModalVisible}
+        onClose={() => setHelpModalVisible(false)}
       />
-    </View>
+    </>
   );
 }
 
@@ -305,17 +357,45 @@ const styles = StyleSheet.create({
     borderBottomColor: Colors.gray200,
     backgroundColor: Colors.white,
   },
+  headerContent: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+  },
+  titleContainer: {
+    flex: 1,
+    alignItems: "center",
+  },
   title: {
     fontSize: 24,
     fontWeight: "bold",
     color: Colors.gray900,
-    textAlign: "center",
     marginBottom: 4,
   },
   subtitle: {
     fontSize: 14,
     color: Colors.gray600,
-    textAlign: "center",
+  },
+  helpButton: {
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    backgroundColor: Colors.primary,
+    justifyContent: "center",
+    alignItems: "center",
+    elevation: 2,
+    shadowColor: "#000",
+    shadowOffset: {
+      width: 0,
+      height: 2,
+    },
+    shadowOpacity: 0.1,
+    shadowRadius: 2,
+  },
+  helpButtonText: {
+    color: Colors.white,
+    fontSize: 18,
+    fontWeight: "bold",
   },
   scrollContainer: {
     flex: 1,
@@ -387,5 +467,10 @@ const styles = StyleSheet.create({
   },
   backButton: {
     marginBottom: 8,
+  },
+  loadingContainer: {
+    flex: 1,
+    justifyContent: "center",
+    alignItems: "center",
   },
 });

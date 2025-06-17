@@ -6,17 +6,21 @@ import {
   SafeAreaView,
   Alert,
   ScrollView,
+  RefreshControl,
 } from "react-native";
 import { useRouter } from "expo-router";
 import { useAuth } from "../../contexts/AuthContext";
 import Button from "../../components/ui/Button";
 import { signOutUser } from "../../services/authService";
+import { endGlobalSession } from "../../services/globalSessionService";
 import { Colors } from "../../constants/Colors";
 
 function AdminHome() {
   const { currentUser, userProfile } = useAuth();
   const router = useRouter();
   const [loggingOut, setLoggingOut] = useState(false);
+  const [refreshing, setRefreshing] = useState(false);
+  const [resettingSession, setResettingSession] = useState(false);
   const navigationRef = useRef(false);
 
   const handleLogout = async () => {
@@ -39,11 +43,51 @@ function AdminHome() {
     return "Selamat Datang Admin!";
   };
 
+  const handleRefresh = async () => {
+    setRefreshing(true);
+    // Simulate a refresh delay
+    setTimeout(() => {
+      setRefreshing(false);
+    }, 1000);
+  };
+
+  const handleResetSession = async () => {
+    Alert.alert(
+      "Reset Session",
+      "Apakah Anda yakin ingin mereset semua global session? Ini akan menghentikan semua sesi yang sedang berlangsung (pairing, weighing, dll).",
+      [
+        { text: "Batal", style: "cancel" },
+        {
+          text: "Reset",
+          style: "destructive",
+          onPress: async () => {
+            setResettingSession(true);
+            try {
+              const result = await endGlobalSession();
+              if (result.success) {
+                Alert.alert("Berhasil", "Semua global session berhasil direset!");
+              } else {
+                Alert.alert("Gagal", result.error || "Gagal mereset session");
+              }
+            } catch (error) {
+              Alert.alert("Kesalahan", "Terjadi kesalahan saat mereset session");
+            } finally {
+              setResettingSession(false);
+            }
+          },
+        },
+      ]
+    );
+  };
+
   return (
     <SafeAreaView style={styles.container}>
       <ScrollView
         style={styles.scrollView}
         showsVerticalScrollIndicator={false}
+        refreshControl={
+          <RefreshControl refreshing={refreshing} onRefresh={handleRefresh} />
+        }
       >
         <View style={styles.content}>
           <Text style={styles.title}>{getWelcomeMessage()}</Text>
@@ -109,6 +153,12 @@ function AdminHome() {
           </View>
 
           <View style={styles.actionsContainer}>
+            <Button
+              title={resettingSession ? "🔄 Mereset..." : "🔄 Reset Session"}
+              onPress={handleResetSession}
+              style={styles.resetButton}
+              disabled={resettingSession}
+            />
             <Button
               title={loggingOut ? "Keluar..." : "Keluar"}
               onPress={handleLogout}
@@ -220,6 +270,9 @@ const styles = StyleSheet.create({
   },
   actionsContainer: {
     gap: 12,
+  },
+  resetButton: {
+    marginBottom: 8,
   },
   logoutButton: {
     marginBottom: 8,

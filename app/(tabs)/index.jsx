@@ -6,6 +6,7 @@ import {
   SafeAreaView,
   Alert,
   ScrollView,
+  RefreshControl,
 } from "react-native";
 import { useRouter } from "expo-router";
 import { useAuth } from "../../contexts/AuthContext";
@@ -18,6 +19,7 @@ function Home() {
   const { currentUser, userProfile } = useAuth();
   const router = useRouter();
   const [loggingOut, setLoggingOut] = useState(false);
+  const [refreshing, setRefreshing] = useState(false);
   const navigationRef = useRef(false);
 
   const handleLogout = async () => {
@@ -53,11 +55,21 @@ function Home() {
     return "Selamat Datang!";
   };
 
+  const handleRefresh = async () => {
+    setRefreshing(true);
+    setTimeout(() => {
+      setRefreshing(false);
+    }, 1000);
+  };
+
   return (
     <SafeAreaView style={styles.container}>
       <ScrollView
         style={styles.scrollView}
         showsVerticalScrollIndicator={false}
+        refreshControl={
+          <RefreshControl refreshing={refreshing} onRefresh={handleRefresh} />
+        }
       >
         <View style={styles.content}>
           <Text style={styles.title}>{getWelcomeMessage()}</Text>

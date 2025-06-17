@@ -1,4 +1,4 @@
-const nutritionStatuses = ['sehat', 'tidak sehat', 'obesitas'];
+const nutritionStatuses = ['gizi buruk', 'gizi kurang', 'gizi baik', 'overweight', 'obesitas'];
 
 const getRandomInRange = (min, max, decimals = 1) => {
   const random = Math.random() * (max - min) + min;
