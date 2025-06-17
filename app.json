@@ -28,13 +28,14 @@
     "web": {
       "favicon": "./assets/icon-nutrition.png"
     },
-    "extra": {
-      "eas": {
-        "projectId": "fe031588-78a3-42e0-9384-99b7ca8d834d"
-      }
-    },
     "plugins": [
       "expo-router"
-    ]
+    ],
+    "extra": {
+      "router": {},
+      "eas": {
+        "projectId": "72b9e452-49a2-495e-8504-3f1e4f45c59c"
+      }
+    }
   }
 }

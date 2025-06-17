@@ -92,9 +92,43 @@ userData/
 
 5. **SVG Support** - Configured with react-native-svg-transformer for custom illustrations.
 
-## Notes
+## Development Notes
 
-- No testing framework is currently configured
-- No linting/formatting tools are set up
-- The project uses Expo managed workflow
-- Hardware firmware is in the `firmware/` directory and requires Arduino IDE
+### Project Configuration
+- **Expo Managed Workflow**: Uses Expo's managed workflow with EAS Build
+- **New Architecture**: Enabled for React Native 0.79.3
+- **No Testing Framework**: No automated testing is currently configured
+- **No Linting**: No ESLint or formatting tools are set up
+- **SVG Support**: Configured with `react-native-svg-transformer`
+
+### Hardware Development
+- **Arduino IDE Required**: ESP32 firmware development requires Arduino IDE
+- **Kinematrix Framework**: Custom Arduino framework for ESP32 development
+- **Firebase Admin SDK**: Hardware uses service account for Firebase access
+- **Hardware Testing**: Individual component test firmware available
+
+### Firebase Configuration
+- **Project ID**: `intan-680a4`
+- **Admin Email**: `admin@gmail.com` (hardcoded admin detection)
+- **Service Account**: Required for ESP32 hardware integration
+- **Real-time Database**: Not used, only Firestore
+
+### Deployment
+- **EAS Build**: Used for building production apps
+- **Android Package**: `com.intan.intanapp`
+- **Preview Profile**: Generates APK files for testing
+- **Production Profile**: Auto-increment version numbers
+
+### Known Limitations
+- **Single Hardware Device**: System designed for one ESP32 device per location
+- **Indonesian Only**: No internationalization support
+- **No Offline Support**: Requires internet connection for all operations
+- **Admin Email Hardcoded**: Admin detection relies on specific email address
+
+### Documentation Files
+- **GLOBAL_SESSION.md**: Detailed global session management documentation
+- **SESSION_MANAGEMENT.md**: Session coordination patterns
+- **WEIGHING_SESSION.md**: Weighing workflow documentation
+- **PAIRING_SESSION.md**: RFID pairing process
+- **BUILD_APK.md**: Build and deployment instructions
+- **ESP32_SIMULATOR.md**: Hardware simulation documentation
