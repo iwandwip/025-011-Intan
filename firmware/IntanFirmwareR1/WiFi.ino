@@ -9,7 +9,7 @@ const char PRIVATE_KEY[] PROGMEM = "-----BEGIN PRIVATE KEY-----\nMIIEvQIBADANBgk
 
 void wifiTaskHandler() {
   wifiTask.setInitCoreID(1);
-  wifiTask.createTask(10000, [](void* pvParameter) {
+  wifiTask.createTask(10000, [](void *pvParameter) {
     Serial.println("WiFi Task starting on Core 1...");
     displayMenu.connectToWiFi("TIMEOSPACE", "1234Saja", 30);
     displayMenu.showCircleLoading("Connecting WiFi", 50);
@@ -63,7 +63,7 @@ void processGlobalSession() {
   }
 }
 
-void processSessionData(JsonDocument& sessionDoc) {
+void processSessionData(JsonDocument &sessionDoc) {
   bool isInUse = sessionDoc["fields"]["isInUse"]["booleanValue"].as<bool>();
   if (isInUse) {
     currentSession.isActive = true;
@@ -92,7 +92,7 @@ void processSessionData(JsonDocument& sessionDoc) {
   }
 }
 
-void handleWeighingSession(JsonDocument& sessionDoc) {
+void handleWeighingSession(JsonDocument &sessionDoc) {
   String userRfid = sessionDoc["fields"]["userRfid"]["stringValue"].as<String>();
   currentSession.eatingPattern = sessionDoc["fields"]["eatingPattern"]["stringValue"].as<String>();
   currentSession.childResponse = sessionDoc["fields"]["childResponse"]["stringValue"].as<String>();

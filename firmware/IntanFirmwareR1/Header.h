@@ -25,7 +25,7 @@
 #define G_TO_KG(x) x / 1000.f
 
 ////////// System Configuration //////////
-const char* NTP_SERVER = "pool.ntp.org";
+const char *NTP_SERVER = "pool.ntp.org";
 const long GMT_OFFSET_SEC = 7 * 3600;  // Offset for WIB (UTC+7)
 const int DAYLIGHT_OFFSET_SEC = 0;
 
@@ -130,15 +130,15 @@ struct MeasurementData {
 MeasurementData currentMeasurement;
 
 ////////// Selection Options //////////
-const char* EATING_PATTERN_OPTIONS[] = { "Kurang", "Cukup", "Berlebih" };
-const char* EATING_PATTERN_DESCRIPTIONS[] = {
+const char *EATING_PATTERN_OPTIONS[] = { "Kurang", "Cukup", "Berlebih" };
+const char *EATING_PATTERN_DESCRIPTIONS[] = {
   "Sehari Makan Dibawah Kategori Cukup",
   "Sehari Makan 3x + Snack 2x",
   "Sehari Makan Lebih dari Kategori Cukup"
 };
 
-const char* CHILD_RESPONSE_OPTIONS[] = { "Pasif", "Sedang", "Aktif" };
-const char* CHILD_RESPONSE_DESCRIPTIONS[] = {
+const char *CHILD_RESPONSE_OPTIONS[] = { "Pasif", "Sedang", "Aktif" };
+const char *CHILD_RESPONSE_DESCRIPTIONS[] = {
   "Anak Tidak Aktif Bergerak Cenderung Cuek dengan Sekitar",
   "Anak Biasa Saja Tidak Terlalu Aktif",
   "Anak Aktif Secara Fisik dan Cepat Tanggap"

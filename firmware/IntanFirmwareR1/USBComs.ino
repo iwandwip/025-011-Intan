@@ -1,5 +1,5 @@
 
-void handleUSBCommand(const String& receivedData) {
+void handleUSBCommand(const String &receivedData) {
   String data = receivedData;
   String commandHeader = serialCommunication.getStrData(receivedData, 0, "#");
   String commandValue = serialCommunication.getStrData(receivedData, 1, "#");

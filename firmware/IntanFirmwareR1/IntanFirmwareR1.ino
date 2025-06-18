@@ -71,11 +71,12 @@ void updateSensorData() {
 
 void handleUserInput() {
   MenuCursor cursor{
-      .up = false,
-      .down = navigateButton.isPressed(),
-      .select = confirmButton.isPressed(),
-      .back = false,
-      .show = true};
+    .up = false,
+    .down = navigateButton.isPressed(),
+    .select = confirmButton.isPressed(),
+    .back = false,
+    .show = true
+  };
   displayMenu.onListen(&cursor, displayMenuCallback);
 }
 
@@ -127,13 +128,13 @@ String getBMICategory(float bmi) {
 
 String getNutritionStatusFromSession() {
   return getNutritionStatus(
-      currentMeasurement.weight,
-      currentMeasurement.height,
-      currentSessionUser.ageYears,
-      currentSessionUser.ageMonths,
-      currentSessionUser.gender,
-      currentSession.eatingPattern,
-      currentSession.childResponse);
+    currentMeasurement.weight,
+    currentMeasurement.height,
+    currentSessionUser.ageYears,
+    currentSessionUser.ageMonths,
+    currentSessionUser.gender,
+    currentSession.eatingPattern,
+    currentSession.childResponse);
 }
 
 void changeSystemState(SystemState newState) {

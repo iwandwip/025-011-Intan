@@ -29,7 +29,7 @@ void displayMenuCallback() {
 }
 
 void displayStartupScreen() {
-  const char* startupLines[] = { "SISTEM DIMULAI", "MOHON TUNGGU...", "KONEKSI KE WIFI" };
+  const char *startupLines[] = { "SISTEM DIMULAI", "MOHON TUNGGU...", "KONEKSI KE WIFI" };
   displayMenu.renderBoxedText(startupLines, 3);
 }
 
@@ -39,10 +39,10 @@ void displayIdleScreen() {
     return;
   }
   if (testingModeEnabled) {
-    const char* idleLines[] = { "SISTEM SIAP", "[MODE TEST]", "GUNAKAN USB" };
+    const char *idleLines[] = { "SISTEM SIAP", "[MODE TEST]", "GUNAKAN USB" };
     displayMenu.renderBoxedText(idleLines, 3);
   } else {
-    const char* idleLines[] = { "SISTEM SIAP", "PILIH MENU DI", "APLIKASI ANDA" };
+    const char *idleLines[] = { "SISTEM SIAP", "PILIH MENU DI", "APLIKASI ANDA" };
     displayMenu.renderBoxedText(idleLines, 3);
   }
   if (!currentRfidTag.isEmpty()) {
@@ -51,10 +51,10 @@ void displayIdleScreen() {
 }
 
 void displayRFIDPairingScreen() {
-  const char* pairingLines[] = { "MODE PAIRING RFID", "TAP KARTU RFID", "UNTUK PAIRING" };
+  const char *pairingLines[] = { "MODE PAIRING RFID", "TAP KARTU RFID", "UNTUK PAIRING" };
   displayMenu.renderBoxedText(pairingLines, 3);
   if (!currentRfidTag.isEmpty()) {
-    const char* detectedLines[] = { "RFID TERDETEKSI!", currentRfidTag.c_str(), "MEMPROSES..." };
+    const char *detectedLines[] = { "RFID TERDETEKSI!", currentRfidTag.c_str(), "MEMPROSES..." };
     displayMenu.renderBoxedText(detectedLines, 3);
     statusLed.on();
     Serial.println("| RFID tag detected in pairing mode, updating session");
@@ -106,7 +106,7 @@ void displayWeighingRFIDConfirmation() {
     return;
   }
   String timeoutMsg = "TIMEOUT: " + String(timeRemaining / 1000) + "S";
-  const char* confirmLines[] = { "SESI PENIMBANGAN", "TAP RFID UNTUK", "KONFIRMASI", timeoutMsg.c_str() };
+  const char *confirmLines[] = { "SESI PENIMBANGAN", "TAP RFID UNTUK", "KONFIRMASI", timeoutMsg.c_str() };
   displayMenu.renderBoxedText(confirmLines, 4);
   if (!currentRfidTag.isEmpty()) {
     timerInitialized = false;
@@ -125,14 +125,14 @@ void displayWeighingRFIDConfirmation() {
 }
 
 void displayWeighingRFIDError() {
-  const char* errorLines[] = { "RFID SALAH!", "AKSES DITOLAK", "SESI AKAN RESET", "DALAM 3 DETIK..." };
+  const char *errorLines[] = { "RFID SALAH!", "AKSES DITOLAK", "SESI AKAN RESET", "DALAM 3 DETIK..." };
   displayMenu.renderBoxedText(errorLines, 4);
 }
 
 void displayWeighingRFIDConfirmWait() {
   String userInfo = "PENGGUNA: " + currentSessionUser.childName;
   userInfo.toUpperCase();
-  const char* confirmLines[] = { "RFID TERKONFIRMASI!", userInfo.c_str(), "TEKAN OK UNTUK", "MULAI TIMBANG" };
+  const char *confirmLines[] = { "RFID TERKONFIRMASI!", userInfo.c_str(), "TEKAN OK UNTUK", "MULAI TIMBANG" };
   displayMenu.renderBoxedText(confirmLines, 4);
   if (confirmButton.isPressed()) {
     currentWeighingState = WEIGHING_GET_WEIGHT;
@@ -153,7 +153,7 @@ void displayWeighingGetWeight() {
   patternInfo.toUpperCase();
   String responseInfo = "RESPON: " + getChildResponseString(currentMeasurement.childResponseIndex);
   responseInfo.toUpperCase();
-  const char* weightLines[] = { "MENGUKUR BERAT", weightStr.c_str(), patternInfo.c_str(), "TEKAN OK KONFIRMASI" };
+  const char *weightLines[] = { "MENGUKUR BERAT", weightStr.c_str(), patternInfo.c_str(), "TEKAN OK KONFIRMASI" };
   displayMenu.renderBoxedText(weightLines, 4);
   if (confirmButton.isPressed()) {
     currentMeasurement.weight = currentWeight;
@@ -173,7 +173,7 @@ void displayWeighingGetHeight() {
   }
   String childInfo = currentSessionUser.childName + " (" + currentSessionUser.gender + ")";
   childInfo.toUpperCase();
-  const char* heightLines[] = { "MENGUKUR TINGGI", childInfo.c_str(), heightStr.c_str(), "TEKAN OK KONFIRMASI" };
+  const char *heightLines[] = { "MENGUKUR TINGGI", childInfo.c_str(), heightStr.c_str(), "TEKAN OK KONFIRMASI" };
   displayMenu.renderBoxedText(heightLines, 4);
   if (confirmButton.isPressed()) {
     currentMeasurement.height = currentHeight;
@@ -191,7 +191,7 @@ void displayWeighingValidateData() {
   String heightInfo = "TINGGI: " + String(currentMeasurement.height, 1) + " CM";
   String nutritionStatus = getNutritionStatusFromSession();
   String statusInfo = "Status: " + nutritionStatus;
-  const char* validateLines[] = { "MENGHITUNG...", weightInfo.c_str(), heightInfo.c_str(), "TEKAN OK KIRIM" };
+  const char *validateLines[] = { "MENGHITUNG...", weightInfo.c_str(), heightInfo.c_str(), "TEKAN OK KIRIM" };
   displayMenu.renderBoxedText(validateLines, 4);
   if (confirmButton.isPressed()) {
     currentWeighingState = WEIGHING_SEND_DATA;
@@ -204,7 +204,7 @@ void displayWeighingValidateData() {
 }
 
 void displayWeighingSendData() {
-  const char* sendingLines[] = { "MENGIRIM DATA", "KE SERVER", "MOHON TUNGGU..." };
+  const char *sendingLines[] = { "MENGIRIM DATA", "KE SERVER", "MOHON TUNGGU..." };
   displayMenu.renderBoxedText(sendingLines, 3);
   String nutritionStatus = getNutritionStatusFromSession();
   String eatingPattern = getEatingPatternString(currentMeasurement.eatingPatternIndex);
@@ -219,7 +219,7 @@ void displayWeighingSendData() {
 }
 
 void displayWeighingComplete() {
-  const char* completeLines[] = { "PENGUKURAN", "SELESAI!", "CEK APLIKASI ANDA" };
+  const char *completeLines[] = { "PENGUKURAN", "SELESAI!", "CEK APLIKASI ANDA" };
   displayMenu.renderBoxedText(completeLines, 3);
   static uint32_t completeTimer = millis();
   if (millis() - completeTimer > 3000) {
@@ -235,7 +235,7 @@ void displayQuickMeasureScreen() {
     char weightBuffer[30], heightBuffer[30];
     sprintf(weightBuffer, "BERAT: %6.2f KG", currentWeight);
     sprintf(heightBuffer, "TINGGI: %6.2f CM", currentHeight);
-    const char* measureLines[] = { "UKUR CEPAT", weightBuffer, heightBuffer, bmiCategory.c_str() };
+    const char *measureLines[] = { "UKUR CEPAT", weightBuffer, heightBuffer, bmiCategory.c_str() };
     displayMenu.renderBoxedText(measureLines, 4);
     if (confirmButton.isPressed()) {
       displayMenu.clearMenu(quickMeasureMenu, displayMenu.end());
@@ -257,7 +257,7 @@ void displayQuickMeasureScreen() {
 }
 
 void displayAdminScreen() {
-  const char* adminLines[] = { "MODE ADMIN", "HARDWARE SIAP", "TEKAN TOMBOL KELUAR" };
+  const char *adminLines[] = { "MODE ADMIN", "HARDWARE SIAP", "TEKAN TOMBOL KELUAR" };
   displayMenu.renderBoxedText(adminLines, 3);
   if (confirmButton.isPressed()) {
     backToIdleState();
@@ -266,10 +266,10 @@ void displayAdminScreen() {
 
 void performLoadCellCalibration() {
   auto loadCell = sensorManager.getModule<HX711Sens>("loadcell");
-  const char* step1Lines[] = { "KALIBRASI", "LEPAS SEMUA OBJEK", "DARI TIMBANGAN" };
+  const char *step1Lines[] = { "KALIBRASI", "LEPAS SEMUA OBJEK", "DARI TIMBANGAN" };
   displayMenu.renderBoxedText(step1Lines, 3);
   loadCell->setScaleDelay(5000);
-  const char* step2Lines[] = { "KALIBRASI", "LETAKKAN OBJEK 2KG", "DI TIMBANGAN" };
+  const char *step2Lines[] = { "KALIBRASI", "LETAKKAN OBJEK 2KG", "DI TIMBANGAN" };
   displayMenu.renderBoxedText(step2Lines, 3);
   loadCell->tareDelay(5000);
   float units = loadCell->getUnits(10);
@@ -304,7 +304,7 @@ void backToIdleState() {
 }
 
 void initializeDisplayCallback() {
-  const char* initLines[] = { "SISTEM INTAN", "MENGINISIALISASI...", "MOHON TUNGGU" };
+  const char *initLines[] = { "SISTEM INTAN", "MENGINISIALISASI...", "MOHON TUNGGU" };
   displayMenu.renderBoxedText(initLines, 3);
   delay(1000);
 }

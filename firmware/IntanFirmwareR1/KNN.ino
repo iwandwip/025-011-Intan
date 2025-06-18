@@ -24,7 +24,7 @@ String getNutritionStatus(float weight, float height, int ageYears, int ageMonth
     (float)eatingPatternEnum,
     (float)childResponseEnum
   };
-  const char* prediction = nutritionKNN.predict(features);
+  const char *prediction = nutritionKNN.predict(features);
   float confidence = nutritionKNN.getPredictionConfidence(features);
   Serial.print("KNN Prediction: ");
   Serial.print(prediction);
@@ -140,7 +140,7 @@ void addNutritionTrainingData() {
   Serial.println(nutritionKNN.getDataCount());
 }
 
-void addTrainingDataPoint(int ageYears, int ageMonths, Gender gender, float weight, float height, PolaMakan eatingPattern, ResponAnak childResponse, const char* statusGizi) {
+void addTrainingDataPoint(int ageYears, int ageMonths, Gender gender, float weight, float height, PolaMakan eatingPattern, ResponAnak childResponse, const char *statusGizi) {
   float imt = calculateIMT(weight, height);
   float features[] = {
     (float)ageYears,
@@ -193,11 +193,17 @@ StatusGizi encodeNutritionStatus(String status) {
 
 String nutritionStatusToString(StatusGizi status) {
   switch (status) {
-    case GIZI_BURUK: return "gizi buruk";
-    case GIZI_KURANG: return "gizi kurang";
-    case GIZI_BAIK: return "gizi baik";
-    case OVERWEIGHT: return "overweight";
-    case OBESITAS: return "obesitas";
-    default: return "gizi baik";
+    case GIZI_BURUK:
+      return "gizi buruk";
+    case GIZI_KURANG:
+      return "gizi kurang";
+    case GIZI_BAIK:
+      return "gizi baik";
+    case OVERWEIGHT:
+      return "overweight";
+    case OBESITAS:
+      return "obesitas";
+    default:
+      return "gizi baik";
   }
 }
