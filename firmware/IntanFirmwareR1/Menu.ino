@@ -62,6 +62,13 @@ void displayRFIDPairingScreen() {
     const char* detectedLines[] = { "RFID Detected!", currentRfidTag.c_str(), "Processing..." };
     displayMenu.renderBoxedText(detectedLines, 3);
     statusLed.on();
+    
+    Serial.println("| RFID tag detected in pairing mode, updating session");
+    updateGlobalSessionRFID(currentRfidTag);
+    currentRfidTag = "";
+    
+    // Return to idle after successful pairing
+    backToIdleState();
   }
 }
 

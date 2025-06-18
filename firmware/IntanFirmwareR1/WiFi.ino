@@ -128,12 +128,6 @@ void handleWeighingSession(JsonDocument& sessionDoc) {
 void handleRFIDPairingSession() {
   Serial.println("| handleRFIDPairingSession() called - changing to SYSTEM_RFID_PAIRING");
   changeSystemState(SYSTEM_RFID_PAIRING);
-
-  if (!currentRfidTag.isEmpty()) {
-    Serial.println("| RFID tag detected, updating session");
-    updateGlobalSessionRFID(currentRfidTag);
-    currentRfidTag = "";
-  }
 }
 
 void loadUserDataForSession(String userId, String rfidTag) {
@@ -221,7 +215,6 @@ void updateGlobalSessionRFID(String rfidValue) {
 
   firestoreClient.updateDocument("systemStatus/hardware", updateDocStr, "rfid", true);
 }
-
 
 int getEatingPatternIndex(String pattern) {
   if (pattern == "Kurang") return 0;
