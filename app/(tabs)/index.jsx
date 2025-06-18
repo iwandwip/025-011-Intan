@@ -119,7 +119,9 @@ function Home() {
                   <Text
                     style={[styles.value, !userProfile.rfid && styles.notSet]}
                   >
-                    {userProfile.rfid || "Belum dipasang"}
+                    {userProfile.rfid 
+                      ? `${userProfile.rfid}${userProfile.rfidNumber ? ` (No. ${userProfile.rfidNumber})` : ''}` 
+                      : "Belum dipasang"}
                   </Text>
                 </View>
 

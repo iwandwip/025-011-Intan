@@ -32,7 +32,12 @@ npm run test:esp32
 
 # Build for deployment (using EAS)
 eas build --platform android --profile preview
-eas build --platform ios --profile production
+eas build --platform android --profile production
+
+# Utility commands
+npm run cleanup     # Run Firebase cleanup script
+npm run clean      # Remove node_modules and package-lock.json
+npm run reinstall  # Clean and reinstall dependencies
 ```
 
 ## Architecture
@@ -57,6 +62,9 @@ eas build --platform ios --profile production
    - `dataService.js` - User data CRUD operations
    - `weighingService.js` - Measurement session management
    - `globalSessionService.js` - Hardware coordination
+   - `adminService.js` - Admin user management operations
+   - `userService.js` - User profile operations
+   - `pdfService.js` - PDF report generation
 
 3. **Real-time Updates** - Uses Firebase listeners (onSnapshot) for live data synchronization between app and hardware.
 
@@ -92,6 +100,8 @@ userData/
 
 5. **SVG Support** - Configured with react-native-svg-transformer for custom illustrations.
 
+6. **Nutrition Status Calculation** - Implements K-NN and Decision Tree algorithms for determining child nutrition status based on weight/height measurements.
+
 ## Development Notes
 
 ### Project Configuration
@@ -105,7 +115,8 @@ userData/
 - **Arduino IDE Required**: ESP32 firmware development requires Arduino IDE
 - **Kinematrix Framework**: Custom Arduino framework for ESP32 development
 - **Firebase Admin SDK**: Hardware uses service account for Firebase access
-- **Hardware Testing**: Individual component test firmware available
+- **Hardware Testing**: Individual component test firmware available in `firmware/Testing/`
+- **ESP32 Simulator**: JavaScript-based simulator available for testing hardware integration (`npm run test:esp32`)
 
 ### Firebase Configuration
 - **Project ID**: `intan-680a4`
@@ -124,6 +135,8 @@ userData/
 - **Indonesian Only**: No internationalization support
 - **No Offline Support**: Requires internet connection for all operations
 - **Admin Email Hardcoded**: Admin detection relies on specific email address
+- **Portrait Only**: App locked to portrait orientation
+- **No Web Support**: While technically runnable on web, designed for mobile only
 
 ### Documentation Files
 - **GLOBAL_SESSION.md**: Detailed global session management documentation
