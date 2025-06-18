@@ -78,6 +78,7 @@ enum SystemState {
 enum WeighingState {
   WEIGHING_IDLE,
   WEIGHING_RFID_CONFIRMATION,
+  WEIGHING_RFID_CONFIRM_WAIT,
   WEIGHING_GET_WEIGHT,
   WEIGHING_GET_HEIGHT,
   WEIGHING_VALIDATE_DATA,
@@ -150,6 +151,10 @@ const int CHILD_RESPONSE_COUNT = 3;
 
 int selectedEatingPattern = 0;
 int selectedChildResponse = 0;
+
+////////// Timeout Configuration //////////
+const unsigned long RFID_TIMEOUT_MS = 30000; // 30 seconds timeout for RFID confirmation
+unsigned long rfidConfirmationStartTime = 0;
 
 ////////// Sensor Configuration & Data //////////
 float SENSOR_HEIGHT_POLE = 199.0;

@@ -77,6 +77,9 @@ void displayWeighingScreen() {
     case WEIGHING_RFID_CONFIRMATION:
       displayWeighingRFIDConfirmation();
       break;
+    case WEIGHING_RFID_CONFIRM_WAIT:
+      displayWeighingRFIDConfirmWait();
+      break;
     case WEIGHING_GET_WEIGHT:
       displayWeighingGetWeight();
       break;
@@ -99,13 +102,64 @@ void displayWeighingScreen() {
 }
 
 void displayWeighingRFIDConfirmation() {
-  const char* confirmLines[] = { "Weighing Session", "Tap RFID to confirm", "your identity" };
-  displayMenu.renderBoxedText(confirmLines, 3);
+  // Initialize timeout timer when first entering this state
+  static bool timerInitialized = false;
+  if (!timerInitialized) {
+    rfidConfirmationStartTime = millis();
+    timerInitialized = true;
+  }
+  
+  // Check for timeout
+  unsigned long timeRemaining = RFID_TIMEOUT_MS - (millis() - rfidConfirmationStartTime);
+  if (millis() - rfidConfirmationStartTime > RFID_TIMEOUT_MS) {
+    timerInitialized = false;
+    backToIdleState();
+    return;
+  }
+  
+  // Display countdown
+  String timeoutMsg = "Timeout: " + String(timeRemaining / 1000) + "s";
+  const char* confirmLines[] = { "Weighing Session", "Tap RFID to confirm", "your identity", timeoutMsg.c_str() };
+  displayMenu.renderBoxedText(confirmLines, 4);
 
-  if (!currentRfidTag.isEmpty() && currentRfidTag == currentSessionUser.rfidTag) {
+  if (!currentRfidTag.isEmpty()) {
+    timerInitialized = false; // Reset timer flag
+    if (currentRfidTag == currentSessionUser.rfidTag) {
+      // Correct RFID - proceed to confirm wait
+      currentWeighingState = WEIGHING_RFID_CONFIRM_WAIT;
+      systemBuzzer.toggleInit(100, 2);
+      currentRfidTag = "";
+    } else {
+      // Wrong RFID - show error and reset session
+      displayWeighingRFIDError();
+      systemBuzzer.toggleInit(200, 3); // Different buzz pattern for error
+      currentRfidTag = "";
+      
+      // Reset session after 3 seconds
+      delay(3000);
+      backToIdleState();
+    }
+  }
+}
+
+void displayWeighingRFIDError() {
+  const char* errorLines[] = { "WRONG RFID!", "Access Denied", "Session will reset", "in 3 seconds..." };
+  displayMenu.renderBoxedText(errorLines, 4);
+}
+
+void displayWeighingRFIDConfirmWait() {
+  String userInfo = "User: " + currentSessionUser.childName;
+  const char* confirmLines[] = { "RFID Confirmed!", userInfo.c_str(), "Press OK to start", "weighing session" };
+  displayMenu.renderBoxedText(confirmLines, 4);
+
+  if (confirmButton.isPressed()) {
     currentWeighingState = WEIGHING_GET_WEIGHT;
-    systemBuzzer.toggleInit(100, 2);
-    currentRfidTag = "";
+    systemBuzzer.toggleInit(100, 1);
+  }
+
+  if (navigateButton.isLongPressed(2000)) {
+    navigateButton.resetState();
+    backToIdleState();
   }
 }
 
@@ -117,7 +171,7 @@ void displayWeighingGetWeight() {
   String patternInfo = "Pattern: " + getEatingPatternString(currentMeasurement.eatingPatternIndex);
   String responseInfo = "Response: " + getChildResponseString(currentMeasurement.childResponseIndex);
 
-  const char* weightLines[] = { "Get Weight", weightStr.c_str(), patternInfo.c_str(), responseInfo.c_str() };
+  const char* weightLines[] = { "Measuring Weight", weightStr.c_str(), patternInfo.c_str(), "Press OK to confirm" };
   displayMenu.renderBoxedText(weightLines, 4);
 
   if (confirmButton.isPressed()) {
@@ -139,7 +193,7 @@ void displayWeighingGetHeight() {
   }
   String childInfo = currentSessionUser.childName + " (" + currentSessionUser.gender + ")";
 
-  const char* heightLines[] = { "Get Height", childInfo.c_str(), heightStr.c_str(), "Press OK to confirm" };
+  const char* heightLines[] = { "Measuring Height", childInfo.c_str(), heightStr.c_str(), "Press OK to confirm" };
   displayMenu.renderBoxedText(heightLines, 4);
 
   if (confirmButton.isPressed()) {
@@ -162,7 +216,7 @@ void displayWeighingValidateData() {
   String nutritionStatus = getNutritionStatusFromSession();
   String statusInfo = "Status: " + nutritionStatus;
 
-  const char* validateLines[] = { "Validate Data", weightInfo.c_str(), heightInfo.c_str(), statusInfo.c_str() };
+  const char* validateLines[] = { "Calculating...", weightInfo.c_str(), heightInfo.c_str(), "Press OK to send" };
   displayMenu.renderBoxedText(validateLines, 4);
 
   if (confirmButton.isPressed()) {
