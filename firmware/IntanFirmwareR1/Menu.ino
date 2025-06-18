@@ -111,11 +111,13 @@ void displayWeighingRFIDConfirmation() {
   if (!currentRfidTag.isEmpty()) {
     timerInitialized = false;
     if (currentRfidTag == currentSessionUser.rfidTag) {
+      Serial.println("| RFID verification SUCCESS - starting app-controlled weighing");
       currentWeighingState = WEIGHING_RFID_CONFIRM_WAIT;
       systemBuzzer.toggleInit(100, 2);
       // Start app-controlled weighing flow
       startAppControlledWeighing();
       currentRfidTag = "";
+      forceFirebaseSync = true; // Extra force sync
     } else {
       displayWeighingRFIDError();
       systemBuzzer.toggleInit(200, 3);

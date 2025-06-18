@@ -60,6 +60,13 @@ export default function TimbangScreen() {
     const unsubscribe = subscribeToSystemStatus((doc) => {
       if (doc.exists()) {
         const data = doc.data();
+        console.log('System status updated:', data);
+        console.log('Current user ID:', userProfile.id);
+        console.log('Session type:', data.sessionType);
+        console.log('Current user in session:', data.currentUserId);
+        console.log('App controlled:', data.appControlled);
+        console.log('Current step:', data.currentStep);
+        
         setSystemStatus(data);
 
         // Handle app-controlled weighing
@@ -68,7 +75,10 @@ export default function TimbangScreen() {
           data.currentUserId === userProfile.id &&
           data.appControlled
         ) {
+          console.log('Conditions met for handleAppControlledWeighing');
           handleAppControlledWeighing(data);
+        } else {
+          console.log('Conditions NOT met for handleAppControlledWeighing');
         }
 
         // Handle RFID verification failure
@@ -99,14 +109,20 @@ export default function TimbangScreen() {
   const handleAppControlledWeighing = (data) => {
     const { currentStep } = data;
     
+    console.log('handleAppControlledWeighing called with step:', currentStep);
+    console.log('Full data:', data);
+    
     if (currentStep === 'weighing' || currentStep === 'height' || currentStep === 'confirm') {
+      console.log('Setting weighing control visible for step:', currentStep);
       setCurrentWeighingStep(currentStep);
       setWeighingControlVisible(true);
     } else if (currentStep === 'processing') {
       // Show processing state - ESP32 is calculating
+      console.log('Setting processing state');
       setCurrentWeighingStep('processing');
       setWeighingControlVisible(true);
     } else {
+      console.log('Hiding weighing control for step:', currentStep);
       setWeighingControlVisible(false);
     }
   };

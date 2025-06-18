@@ -138,6 +138,7 @@ void handleAppControlledWeighing(String currentStep, String nextAction, String u
       currentWeighingState = WEIGHING_RFID_CONFIRMATION;
       forceFirebaseSync = true; // Force sync on state change
     } else if (currentStep == "weighing") {
+      Serial.println("| Entering weighing state from app control");
       currentWeighingState = WEIGHING_GET_WEIGHT;
       if (nextAction == "continue") {
         currentMeasurement.weight = currentWeight;
@@ -306,6 +307,9 @@ void updateGlobalSessionRFID(String rfidValue) {
 }
 
 void startAppControlledWeighing() {
+  // Give a small delay to ensure RFID confirmation state is visible
+  delay(1000);
+  
   JsonDocument updateDoc;
   JsonObject fields = updateDoc.createNestedObject("fields");
   JsonObject stepField = fields.createNestedObject("currentStep");
@@ -316,7 +320,7 @@ void startAppControlledWeighing() {
   serializeJson(updateDoc, updateDocStr);
   firestoreClient.updateDocument("systemStatus/hardware", updateDocStr, "currentStep,nextAction", true);
   forceFirebaseSync = true;
-  Serial.println("| Started app-controlled weighing flow");
+  Serial.println("| Started app-controlled weighing flow - step set to 'weighing'");
 }
 
 void setRFIDVerificationFailed() {
