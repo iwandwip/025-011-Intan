@@ -36,10 +36,6 @@ Preferences devicePreferences;
 FirebaseV2Firestore firestoreClient;
 WiFiClientSecure wifiSecureClient;
 
-////////// Cross-Core Synchronization //////////
-SemaphoreHandle_t stateMutex;
-SemaphoreHandle_t dataReadyMutex;
-SemaphoreHandle_t displayUpdateMutex;
 ////////// Sensor Management //////////
 SensorModule sensorManager;
 MovingAverageFilter weightFilter(10);
@@ -90,7 +86,7 @@ enum WeighingState {
 };
 
 
-// Thread-safe state variables (using volatile flags instead of mutex)
+// State variables (using volatile flags for thread safety)
 volatile SystemState currentSystemState = SYSTEM_STARTUP;
 volatile SystemState pendingSystemState = SYSTEM_STARTUP;
 volatile bool needDisplayUpdate = true;

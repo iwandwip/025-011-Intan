@@ -49,11 +49,8 @@ void displayIdleScreen() {
     displayMenu.renderBoxedText(idleLines, 3);
   }
 
-  if (xSemaphoreTake(dataReadyMutex, pdMS_TO_TICKS(5)) == pdTRUE) {
-    if (!currentRfidTag.isEmpty()) {
-      forceFirebaseSync = true;
-    }
-    xSemaphoreGive(dataReadyMutex);
+  if (!currentRfidTag.isEmpty()) {
+    forceFirebaseSync = true;
   }
 }
 
@@ -61,13 +58,10 @@ void displayRFIDPairingScreen() {
   const char* pairingLines[] = { "RFID Pairing Mode", "Tap your RFID card", "to pair device" };
   displayMenu.renderBoxedText(pairingLines, 3);
 
-  if (xSemaphoreTake(dataReadyMutex, pdMS_TO_TICKS(5)) == pdTRUE) {
-    if (!currentRfidTag.isEmpty()) {
-      const char* detectedLines[] = { "RFID Detected!", currentRfidTag.c_str(), "Processing..." };
-      displayMenu.renderBoxedText(detectedLines, 3);
-      statusLed.on();
-    }
-    xSemaphoreGive(dataReadyMutex);
+  if (!currentRfidTag.isEmpty()) {
+    const char* detectedLines[] = { "RFID Detected!", currentRfidTag.c_str(), "Processing..." };
+    displayMenu.renderBoxedText(detectedLines, 3);
+    statusLed.on();
   }
 }
 
@@ -101,13 +95,10 @@ void displayWeighingRFIDConfirmation() {
   const char* confirmLines[] = { "Weighing Session", "Tap RFID to confirm", "your identity" };
   displayMenu.renderBoxedText(confirmLines, 3);
 
-  if (xSemaphoreTake(dataReadyMutex, pdMS_TO_TICKS(5)) == pdTRUE) {
-    if (!currentRfidTag.isEmpty() && currentRfidTag == currentSessionUser.rfidTag) {
-      currentWeighingState = WEIGHING_GET_WEIGHT;
-      systemBuzzer.toggleInit(100, 2);
-      currentRfidTag = "";
-    }
-    xSemaphoreGive(dataReadyMutex);
+  if (!currentRfidTag.isEmpty() && currentRfidTag == currentSessionUser.rfidTag) {
+    currentWeighingState = WEIGHING_GET_WEIGHT;
+    systemBuzzer.toggleInit(100, 2);
+    currentRfidTag = "";
   }
 }
 
@@ -292,10 +283,7 @@ void backToIdleState() {
   currentWeighingState = WEIGHING_IDLE;
   forceFirebaseSync = true;
 
-  if (xSemaphoreTake(dataReadyMutex, pdMS_TO_TICKS(100)) == pdTRUE) {
-    currentRfidTag = "";
-    xSemaphoreGive(dataReadyMutex);
-  }
+  currentRfidTag = "";
 
   SessionUser emptyUser;
   currentSessionUser = emptyUser;

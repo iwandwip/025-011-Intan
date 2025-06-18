@@ -129,13 +129,10 @@ void handleRFIDPairingSession() {
   Serial.println("| handleRFIDPairingSession() called - changing to SYSTEM_RFID_PAIRING");
   changeSystemState(SYSTEM_RFID_PAIRING);
 
-  if (xSemaphoreTake(dataReadyMutex, pdMS_TO_TICKS(10)) == pdTRUE) {
-    if (!currentRfidTag.isEmpty()) {
-      Serial.println("| RFID tag detected, updating session");
-      updateGlobalSessionRFID(currentRfidTag);
-      currentRfidTag = "";
-    }
-    xSemaphoreGive(dataReadyMutex);
+  if (!currentRfidTag.isEmpty()) {
+    Serial.println("| RFID tag detected, updating session");
+    updateGlobalSessionRFID(currentRfidTag);
+    currentRfidTag = "";
   }
 }
 
@@ -158,29 +155,26 @@ void loadUserDataForSession(String userId, String rfidTag) {
 }
 
 void handleRFIDDetection() {
-  if (xSemaphoreTake(dataReadyMutex, pdMS_TO_TICKS(10)) == pdTRUE) {
-    if (!currentRfidTag.isEmpty()) {
-      String usersResponse = firestoreClient.getDocument("users", "", true);
-      JsonDocument usersDoc;
-      deserializeJson(usersDoc, usersResponse);
+  if (!currentRfidTag.isEmpty()) {
+    String usersResponse = firestoreClient.getDocument("users", "", true);
+    JsonDocument usersDoc;
+    deserializeJson(usersDoc, usersResponse);
 
-      for (JsonVariant user : usersDoc["documents"].as<JsonArray>()) {
-        String userRfid = user["fields"]["rfid"]["stringValue"].as<String>();
-        String userEmail = user["fields"]["email"]["stringValue"].as<String>();
+    for (JsonVariant user : usersDoc["documents"].as<JsonArray>()) {
+      String userRfid = user["fields"]["rfid"]["stringValue"].as<String>();
+      String userEmail = user["fields"]["email"]["stringValue"].as<String>();
 
-        if (userRfid == currentRfidTag) {
-          if (userEmail == "admin@gmail.com") {
-            changeSystemState(SYSTEM_ADMIN_MODE);
-          } else {
-            changeSystemState(SYSTEM_QUICK_MEASURE);
-          }
-          systemBuzzer.toggleInit(100, 3);
-          currentRfidTag = "";
-          break;
+      if (userRfid == currentRfidTag) {
+        if (userEmail == "admin@gmail.com") {
+          changeSystemState(SYSTEM_ADMIN_MODE);
+        } else {
+          changeSystemState(SYSTEM_QUICK_MEASURE);
         }
+        systemBuzzer.toggleInit(100, 3);
+        currentRfidTag = "";
+        break;
       }
     }
-    xSemaphoreGive(dataReadyMutex);
   }
 }
 

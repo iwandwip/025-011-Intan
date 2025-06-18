@@ -4,14 +4,6 @@ void setup() {
   serialCommunication.begin(&Serial, 115200);
   Serial.println("=== INTAN System Starting ===");
 
-  stateMutex = xSemaphoreCreateMutex();
-  dataReadyMutex = xSemaphoreCreateMutex();
-  displayUpdateMutex = xSemaphoreCreateMutex();
-
-  if (!stateMutex || !dataReadyMutex || !displayUpdateMutex) {
-    Serial.println("ERROR: Failed to create mutexes!");
-    while (1) delay(1000);
-  }
 
   devicePreferences.begin("intan", false);
   SENSOR_HEIGHT_POLE = devicePreferences.getFloat("heightPole", 199.0);
@@ -67,40 +59,33 @@ void initializeSensorModules() {
 void updateSensorData() {
   if (testingModeEnabled) {
     // In testing mode, use manual values instead of sensors
-    if (xSemaphoreTake(dataReadyMutex, pdMS_TO_TICKS(10)) == pdTRUE) {
-      currentRfidTag = testRfidTag;
-      currentWeight = testWeight;
-      currentHeight = testHeight;
-      newSensorData = true;
-      xSemaphoreGive(dataReadyMutex);
-    }
+    currentRfidTag = testRfidTag;
+    currentWeight = testWeight;
+    currentHeight = testHeight;
+    newSensorData = true;
   } else {
     // Normal sensor operation
     sensorManager.update([]() {
-      if (xSemaphoreTake(dataReadyMutex, pdMS_TO_TICKS(10)) == pdTRUE) {
-        String newRfidTag = sensorManager["rfid"].as<String>();
-        float rawWeight = sensorManager["loadcell"];
-        float rawHeight = sensorManager["ultrasonic"];
+      String newRfidTag = sensorManager["rfid"].as<String>();
+      float rawWeight = sensorManager["loadcell"];
+      float rawHeight = sensorManager["ultrasonic"];
 
-        rawHeight = SENSOR_HEIGHT_POLE - rawHeight;
-        rawHeight = constrain(rawHeight, 0, SENSOR_HEIGHT_POLE);
+      rawHeight = SENSOR_HEIGHT_POLE - rawHeight;
+      rawHeight = constrain(rawHeight, 0, SENSOR_HEIGHT_POLE);
 
-        weightFilter.addMeasurement(rawWeight);
-        rawWeight = abs(weightFilter.getFilteredValue());
-        rawWeight = rawWeight < 1.0 ? 0.0 : rawWeight;
+      weightFilter.addMeasurement(rawWeight);
+      rawWeight = abs(weightFilter.getFilteredValue());
+      rawWeight = rawWeight < 1.0 ? 0.0 : rawWeight;
 
-        currentRfidTag = newRfidTag;
-        currentWeight = rawWeight;
-        currentHeight = rawHeight;
-        newSensorData = true;
+      currentRfidTag = newRfidTag;
+      currentWeight = rawWeight;
+      currentHeight = rawHeight;
+      newSensorData = true;
 
-        if (!currentRfidTag.isEmpty()) {
-          Serial.print("| currentRfidTag: ");
-          Serial.print(currentRfidTag);
-          Serial.println();
-        }
-
-        xSemaphoreGive(dataReadyMutex);
+      if (!currentRfidTag.isEmpty()) {
+        Serial.print("| currentRfidTag: ");
+        Serial.print(currentRfidTag);
+        Serial.println();
       }
     });
   }
@@ -115,10 +100,7 @@ void handleUserInput() {
     .show = true
   };
 
-  if (xSemaphoreTake(displayUpdateMutex, pdMS_TO_TICKS(5)) == pdTRUE) {
-    displayMenu.onListen(&cursor, displayMenuCallback);
-    xSemaphoreGive(displayUpdateMutex);
-  }
+  displayMenu.onListen(&cursor, displayMenuCallback);
 }
 
 void updateDisplayInterface() {
