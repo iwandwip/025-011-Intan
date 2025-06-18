@@ -100,14 +100,16 @@ void handleWeighingSession(JsonDocument &sessionDoc) {
   currentSession.ageYears = sessionDoc["fields"]["ageYears"]["integerValue"].as<int>();
   currentSession.ageMonths = sessionDoc["fields"]["ageMonths"]["integerValue"].as<int>();
   currentSession.measurementComplete = sessionDoc["fields"]["measurementComplete"]["booleanValue"].as<bool>();
-  
+
   // Handle app-controlled weighing
   bool appControlled = sessionDoc["fields"]["appControlled"]["booleanValue"].as<bool>();
   if (appControlled) {
     String currentStep = sessionDoc["fields"]["currentStep"]["stringValue"].as<String>();
     String nextAction = sessionDoc["fields"]["nextAction"]["stringValue"].as<String>();
+    Serial.printf("| App-controlled weighing: step=%s, action=%s\n", currentStep.c_str(), nextAction.c_str());
     handleAppControlledWeighing(currentStep, nextAction, userRfid);
   } else if (!currentSession.measurementComplete) {
+    Serial.println("| Standard weighing mode (not app-controlled)");
     loadUserDataForSession(currentSession.userId, userRfid);
     changeSystemState(SYSTEM_WEIGHING_SESSION);
   }
@@ -116,28 +118,28 @@ void handleWeighingSession(JsonDocument &sessionDoc) {
 void handleAppControlledWeighing(String currentStep, String nextAction, String userRfid) {
   static String lastStep = "";
   static String lastAction = "";
-  
+
   // Load user data if not already loaded
   if (currentSessionUser.userId.isEmpty()) {
     loadUserDataForSession(currentSession.userId, userRfid);
     changeSystemState(SYSTEM_WEIGHING_SESSION);
     currentWeighingState = WEIGHING_RFID_CONFIRMATION;
     forceFirebaseSync = true;
-    return; // Wait for RFID verification first
+    return;  // Wait for RFID verification first
   }
-  
+
   // Update real-time sensor data to Firestore
   updateRealTimeSensorData();
-  
+
   // Process step changes
   if (currentStep != lastStep || nextAction != lastAction) {
     Serial.printf("App Control - Step: %s, Action: %s\n", currentStep.c_str(), nextAction.c_str());
     Serial.printf("Last step was: %s, Last action was: %s\n", lastStep.c_str(), lastAction.c_str());
-    
+
     if (currentStep == "idle") {
       changeSystemState(SYSTEM_WEIGHING_SESSION);
       currentWeighingState = WEIGHING_RFID_CONFIRMATION;
-      forceFirebaseSync = true; // Force sync on state change
+      forceFirebaseSync = true;  // Force sync on state change
     } else if (currentStep == "weighing") {
       Serial.println("| Entering weighing state from app control");
       currentWeighingState = WEIGHING_GET_WEIGHT;
@@ -146,7 +148,7 @@ void handleAppControlledWeighing(String currentStep, String nextAction, String u
         currentMeasurement.weight = currentWeight;
         clearNextAction();
       }
-      forceFirebaseSync = true; // Force sync when entering weighing
+      forceFirebaseSync = true;  // Force sync when entering weighing
     } else if (currentStep == "height") {
       currentWeighingState = WEIGHING_GET_HEIGHT;
       if (nextAction == "continue") {
@@ -154,77 +156,144 @@ void handleAppControlledWeighing(String currentStep, String nextAction, String u
         currentMeasurement.height = currentHeight;
         // Don't overwrite weight here - it should already be stored from weighing step
         Serial.printf("| Final measurements: Weight=%.1f, Height=%.1f\n", currentMeasurement.weight, currentMeasurement.height);
-        
+
         // Automatically proceed to processing without confirm step
         setProcessingStep();
         currentWeighingState = WEIGHING_SEND_DATA;
         clearNextAction();
       }
-      forceFirebaseSync = true; // Force sync when entering height measurement
+      forceFirebaseSync = true;  // Force sync when entering height measurement
     } else if (currentStep == "processing") {
       currentWeighingState = WEIGHING_SEND_DATA;
-      forceFirebaseSync = true; // Force sync during processing
+      forceFirebaseSync = true;  // Force sync during processing
     }
-    
+
     if (nextAction == "cancel") {
       Serial.println("| Cancel action received, resetting to idle state");
       backToIdleState();
       clearNextAction();
-      forceFirebaseSync = true; // Force sync after cancellation
+      forceFirebaseSync = true;  // Force sync after cancellation
     }
-    
+
     lastStep = currentStep;
     lastAction = nextAction;
   }
-  
+
   changeSystemState(SYSTEM_WEIGHING_SESSION);
 }
 
 void updateRealTimeSensorData() {
   static uint32_t lastUpdate = 0;
-  if (millis() - lastUpdate >= 500) { // Update every 500ms
+  if (millis() - lastUpdate >= 500) {  // Update every 500ms
     JsonDocument updateDoc;
     JsonObject fields = updateDoc.createNestedObject("fields");
-    
+
     JsonObject realTimeWeightField = fields.createNestedObject("realTimeWeight");
     realTimeWeightField["doubleValue"] = currentWeight;
-    
+
     JsonObject realTimeHeightField = fields.createNestedObject("realTimeHeight");
     realTimeHeightField["doubleValue"] = currentHeight;
-    
+
     JsonObject activityField = fields.createNestedObject("lastActivity");
     activityField["timestampValue"] = dateTimeManager.getISO8601Time();
-    
+
     String updateDocStr;
     serializeJson(updateDoc, updateDocStr);
     firestoreClient.updateDocument("systemStatus/hardware", updateDocStr, "realTimeWeight,realTimeHeight,lastActivity", true);
-    
+
     lastUpdate = millis();
   }
 }
 
 void clearNextAction() {
-  JsonDocument updateDoc;
-  JsonObject fields = updateDoc.createNestedObject("fields");
-  JsonObject actionField = fields.createNestedObject("nextAction");
-  actionField["stringValue"] = "";
-  String updateDocStr;
-  serializeJson(updateDoc, updateDocStr);
-  firestoreClient.updateDocument("systemStatus/hardware", updateDocStr, "nextAction", true);
-  forceFirebaseSync = true; // Force immediate sync after clearing action
+  Serial.println("| clearNextAction() called");
+
+  // RESPONSIVE BLOCKING APPROACH with firestoreClient.loop()
+  int retryCount = 0;
+  bool updateSuccess = false;
+
+  while (!updateSuccess && retryCount < 3) {
+    JsonDocument updateDoc;
+    JsonObject fields = updateDoc.createNestedObject("fields");
+    JsonObject actionField = fields.createNestedObject("nextAction");
+    actionField["stringValue"] = "";
+
+    String updateDocStr;
+    serializeJson(updateDoc, updateDocStr);
+    Serial.printf("| Clear Action Attempt %d\n", retryCount + 1);
+
+    updateSuccess = firestoreClient.updateDocument("systemStatus/hardware", updateDocStr, "nextAction", false);
+    Serial.printf("| Clear action result: %s\n", updateSuccess ? "SUCCESS" : "FAILED");
+
+    if (!updateSuccess) {
+      retryCount++;
+      // Responsive waiting instead of delay
+      uint32_t waitStart = millis();
+      while (millis() - waitStart < 500) {
+        firestoreClient.loop();
+        yield();
+      }
+    }
+  }
+
+  if (updateSuccess) {
+    forceFirebaseSync = true;
+    // Responsive waiting for propagation
+    uint32_t waitStart = millis();
+    while (millis() - waitStart < 1000) {
+      firestoreClient.loop();
+      yield();
+    }
+    Serial.println("| Next action cleared successfully");
+  }
 }
 
 void setProcessingStep() {
-  JsonDocument updateDoc;
-  JsonObject fields = updateDoc.createNestedObject("fields");
-  JsonObject stepField = fields.createNestedObject("currentStep");
-  stepField["stringValue"] = "processing";
-  JsonObject actionField = fields.createNestedObject("nextAction");
-  actionField["stringValue"] = "";
-  String updateDocStr;
-  serializeJson(updateDoc, updateDocStr);
-  firestoreClient.updateDocument("systemStatus/hardware", updateDocStr, "currentStep,nextAction", true);
-  forceFirebaseSync = true; // Force immediate sync for processing state
+  Serial.println("| setProcessingStep() called - switching to processing mode");
+
+  // RESPONSIVE BLOCKING APPROACH for processing step
+  int retryCount = 0;
+  bool updateSuccess = false;
+
+  while (!updateSuccess && retryCount < 5) {
+    JsonDocument updateDoc;
+    JsonObject fields = updateDoc.createNestedObject("fields");
+    JsonObject stepField = fields.createNestedObject("currentStep");
+    stepField["stringValue"] = "processing";
+    JsonObject actionField = fields.createNestedObject("nextAction");
+    actionField["stringValue"] = "";
+
+    String updateDocStr;
+    serializeJson(updateDoc, updateDocStr);
+    Serial.printf("| Processing Step Attempt %d - Sending to Firestore:\n", retryCount + 1);
+    Serial.println(updateDocStr);
+
+    updateSuccess = firestoreClient.updateDocument("systemStatus/hardware", updateDocStr, "currentStep,nextAction", false);
+    Serial.printf("| Processing step update result: %s\n", updateSuccess ? "SUCCESS" : "FAILED");
+
+    if (!updateSuccess) {
+      retryCount++;
+      // Responsive waiting instead of delay
+      uint32_t waitStart = millis();
+      while (millis() - waitStart < 1000) {
+        firestoreClient.loop();
+        yield();
+      }
+    }
+  }
+
+  if (updateSuccess) {
+    forceFirebaseSync = true;
+    // Responsive waiting for propagation
+    uint32_t waitStart = millis();
+    while (millis() - waitStart < 2000) {
+      firestoreClient.loop();
+      yield();
+    }
+    Serial.println("| Processing step successfully set!");
+  } else {
+    Serial.println("| FAILED to set processing step after 5 attempts!");
+  }
 }
 
 void handleRFIDPairingSession() {
@@ -272,37 +341,67 @@ void handleRFIDDetection() {
 
 void updateGlobalSessionData(float weightValue, float heightValue, String nutritionStatus, String eatingPattern, String childResponse) {
   float imt = calculateIMT(weightValue, heightValue);
-  
-  Serial.println("| Updating global session data to Firestore");
+
+  Serial.println("| ===== FINAL DATA UPDATE =====");
   Serial.printf("| Weight: %.1f, Height: %.1f, IMT: %.2f\n", weightValue, heightValue, imt);
-  Serial.printf("| Nutrition: %s, Eating: %s, Response: %s\n", 
+  Serial.printf("| Nutrition: %s, Eating: %s, Response: %s\n",
                 nutritionStatus.c_str(), eatingPattern.c_str(), childResponse.c_str());
-  
-  JsonDocument updateDoc;
-  JsonObject fields = updateDoc.createNestedObject("fields");
-  JsonObject weightField = fields.createNestedObject("weight");
-  weightField["doubleValue"] = weightValue;
-  JsonObject heightField = fields.createNestedObject("height");
-  heightField["doubleValue"] = heightValue;
-  JsonObject imtField = fields.createNestedObject("imt");
-  imtField["doubleValue"] = imt;
-  JsonObject nutritionField = fields.createNestedObject("nutritionStatus");
-  nutritionField["stringValue"] = nutritionStatus;
-  JsonObject eatingField = fields.createNestedObject("eatingPattern");
-  eatingField["stringValue"] = eatingPattern;
-  JsonObject responseField = fields.createNestedObject("childResponse");
-  responseField["stringValue"] = childResponse;
-  JsonObject completeField = fields.createNestedObject("measurementComplete");
-  completeField["booleanValue"] = true;
-  JsonObject activityField = fields.createNestedObject("lastActivity");
-  activityField["timestampValue"] = dateTimeManager.getISO8601Time();
-  
-  String updateDocStr;
-  serializeJson(updateDoc, updateDocStr);
-  Serial.println("| Sending update to Firestore...");
-  firestoreClient.updateDocument("systemStatus/hardware", updateDocStr, "weight,height,imt,nutritionStatus,eatingPattern,childResponse,measurementComplete,lastActivity", true);
-  forceFirebaseSync = true; // Force immediate sync when measurement is complete
-  Serial.println("| Global session data update sent");
+
+  // RESPONSIVE BLOCKING APPROACH for final data
+  int retryCount = 0;
+  bool updateSuccess = false;
+
+  while (!updateSuccess && retryCount < 5) {
+    JsonDocument updateDoc;
+    JsonObject fields = updateDoc.createNestedObject("fields");
+    JsonObject weightField = fields.createNestedObject("weight");
+    weightField["doubleValue"] = weightValue;
+    JsonObject heightField = fields.createNestedObject("height");
+    heightField["doubleValue"] = heightValue;
+    JsonObject imtField = fields.createNestedObject("imt");
+    imtField["doubleValue"] = imt;
+    JsonObject nutritionField = fields.createNestedObject("nutritionStatus");
+    nutritionField["stringValue"] = nutritionStatus;
+    JsonObject eatingField = fields.createNestedObject("eatingPattern");
+    eatingField["stringValue"] = eatingPattern;
+    JsonObject responseField = fields.createNestedObject("childResponse");
+    responseField["stringValue"] = childResponse;
+    JsonObject completeField = fields.createNestedObject("measurementComplete");
+    completeField["booleanValue"] = true;
+    JsonObject activityField = fields.createNestedObject("lastActivity");
+    activityField["timestampValue"] = dateTimeManager.getISO8601Time();
+
+    String updateDocStr;
+    serializeJson(updateDoc, updateDocStr);
+    Serial.printf("| Final Data Attempt %d - Sending to Firestore:\n", retryCount + 1);
+    Serial.println(updateDocStr);
+
+    updateSuccess = firestoreClient.updateDocument("systemStatus/hardware", updateDocStr, "weight,height,imt,nutritionStatus,eatingPattern,childResponse,measurementComplete,lastActivity", false);
+    Serial.printf("| Final data update result: %s\n", updateSuccess ? "SUCCESS" : "FAILED");
+
+    if (!updateSuccess) {
+      retryCount++;
+      // Responsive waiting instead of delay
+      uint32_t waitStart = millis();
+      while (millis() - waitStart < 1000) {
+        firestoreClient.loop();
+        yield();
+      }
+    }
+  }
+
+  if (updateSuccess) {
+    forceFirebaseSync = true;
+    // Responsive waiting for critical final data propagation
+    uint32_t waitStart = millis();
+    while (millis() - waitStart < 3000) {
+      firestoreClient.loop();
+      yield();
+    }
+    Serial.println("| ===== MEASUREMENT COMPLETED SUCCESSFULLY =====");
+  } else {
+    Serial.println("| ===== FAILED TO COMPLETE MEASUREMENT =====");
+  }
 }
 
 void updateGlobalSessionRFID(String rfidValue) {
@@ -317,32 +416,59 @@ void updateGlobalSessionRFID(String rfidValue) {
 
 void startAppControlledWeighing() {
   Serial.println("| startAppControlledWeighing() called");
-  
-  // Give a small delay to ensure RFID confirmation state is visible
-  delay(2000);
-  
-  JsonDocument updateDoc;
-  JsonObject fields = updateDoc.createNestedObject("fields");
-  JsonObject stepField = fields.createNestedObject("currentStep");
-  stepField["stringValue"] = "weighing";
-  JsonObject actionField = fields.createNestedObject("nextAction");
-  actionField["stringValue"] = "";
-  
-  String updateDocStr;
-  serializeJson(updateDoc, updateDocStr);
-  Serial.println("| Sending currentStep update to Firestore:");
-  Serial.println(updateDocStr);
-  
-  bool success = firestoreClient.updateDocument("systemStatus/hardware", updateDocStr, "currentStep,nextAction", true);
-  Serial.printf("| Firestore update result: %s\n", success ? "SUCCESS" : "FAILED");
-  
-  // Force immediate sync to ensure app gets update
-  forceFirebaseSync = true;
-  
-  // Additional delay to ensure update is sent
-  delay(500);
-  
-  Serial.println("| Started app-controlled weighing flow - step set to 'weighing'");
+
+  // Responsive waiting to ensure RFID confirmation state is visible
+  uint32_t waitStart = millis();
+  while (millis() - waitStart < 2000) {
+    firestoreClient.loop();
+    yield();
+  }
+
+  // RESPONSIVE BLOCKING APPROACH - retry until successful
+  int retryCount = 0;
+  bool updateSuccess = false;
+
+  while (!updateSuccess && retryCount < 5) {
+    JsonDocument updateDoc;
+    JsonObject fields = updateDoc.createNestedObject("fields");
+    JsonObject stepField = fields.createNestedObject("currentStep");
+    stepField["stringValue"] = "weighing";
+    JsonObject actionField = fields.createNestedObject("nextAction");
+    actionField["stringValue"] = "";
+
+    String updateDocStr;
+    serializeJson(updateDoc, updateDocStr);
+    Serial.printf("| Attempt %d - Sending currentStep update to Firestore:\n", retryCount + 1);
+    Serial.println(updateDocStr);
+
+    updateSuccess = firestoreClient.updateDocument("systemStatus/hardware", updateDocStr, "currentStep,nextAction", false);
+    Serial.printf("| Firestore update result: %s\n", updateSuccess ? "SUCCESS" : "FAILED");
+
+    if (!updateSuccess) {
+      retryCount++;
+      // Responsive waiting instead of delay
+      uint32_t retryWaitStart = millis();
+      while (millis() - retryWaitStart < 1000) {
+        firestoreClient.loop();
+        yield();
+      }
+    }
+  }
+
+  if (updateSuccess) {
+    forceFirebaseSync = true;
+    
+    // Responsive waiting for propagation
+    uint32_t propagateWaitStart = millis();
+    while (millis() - propagateWaitStart < 2000) {
+      firestoreClient.loop();
+      yield();
+    }
+
+    Serial.println("| Started app-controlled weighing flow - step set to 'weighing'");
+  } else {
+    Serial.println("| FAILED to start app-controlled weighing after 5 attempts!");
+  }
 }
 
 void setRFIDVerificationFailed() {

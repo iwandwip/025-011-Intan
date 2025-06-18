@@ -30,6 +30,7 @@ export const initializeSystemStatus = async () => {
         realTimeWeight: 0,
         realTimeHeight: 0,
         rfidVerificationFailed: false,
+        rfidVerified: false, // Flag untuk RFID berhasil diverifikasi
         
         eatingPattern: '',
         childResponse: '',

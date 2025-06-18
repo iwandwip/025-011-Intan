@@ -72,6 +72,14 @@ export default function TimbangScreen() {
         // Highlight step changes
         if (data.currentStep && data.currentStep !== 'idle') {
           console.log('🚨 NON-IDLE STEP DETECTED:', data.currentStep);
+          
+          if (data.currentStep === 'processing') {
+            console.log('⏳⏳⏳ PROCESSING STEP DETECTED ⏳⏳⏳');
+          }
+          
+          if (data.measurementComplete) {
+            console.log('✅✅✅ MEASUREMENT COMPLETE DETECTED ✅✅✅');
+          }
         }
         
         setSystemStatus(data);
