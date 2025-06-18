@@ -5,7 +5,7 @@
 #define FIREBASE_USER_PASSWORD "admin123"
 #define FIREBASE_CLIENT_EMAIL "firebase-adminsdk-fbsvc@intan-680a4.iam.gserviceaccount.com"
 #define FIREBASE_MSG_DEVICE_TOKEN "cJnjCBzORlawc7T2WvCq2L:APA91bEyoA65YjDAEU6Y_Mj6DQzw5KH_Svfs7ZoLv3Vdl-ZurpiN8BGi1R3qaOh1Ux_wNHacMHSGOfHuxxKQraLcWC-RowpmEvPQboZasgsWJQ_MWdS285Q"
-const char PRIVATE_KEY[] PROGMEM = "-----BEGIN PRIVATE KEY-----\nMIIEvQIBADANBgkqhkiG9w0BAQEFAASCBKcwggSjAgEAAoIBAQCVl49X+xeXIIC3\nignigvgWSsqiSXq/i8q//Xexc11HRbcA9R133716qgMfrtxVCrmOBcdBTofHiOiK\niGF5hiSup7SGXnuYqj7zgnZjrCAtqTHnEJ/mOcHJbbJL0RdDYUmCHwaJ198c3Hy8\nyjnOM373ylRnhkujRXbNqFz+V04GPCJbvHbE0vtr811wKmiSmjhxXmhFZS/cbX6a\ng567X3e64Kq/YmEjbQDC1tl5zkGP9DUugBlQH8lguQBk4wCFeO6wB2lPNc4AcoRl\npmCLl1hQldxvRVNM/aMHOHmmxniNZN6S8AA71S4Ohn5TonYqteP1jVpeUnokmRKu\nTVl97lS/AgMBAAECggEAHh936QKR/Ie6A7uTQ/6VkH+dEFL1mc6/lCupR51wgiKi\nuFmjhnkSgbnsiRvAGIvhU50MQ7VZmC+UjBjsb/k4N8djjc9G2jYmGQkDaAzIKgmx\nF9N8L3Mf97zUM3o2UgYsNDylJ2rF7dzkbWvXehNalPE0T+h2ILmjM8ScfUb9WjnA\n6zqleaeZIusSPcZgaErSyjxkIZHD7E6sC+cmfcK2FYqH3H/2MusrMxsYEU8WRQB6\nU9w8JN3Kmi66t0MLaH5L7p+ewo4Yjn1iNgP5i5QrFeKkzG8UvcrSIU35MELprWGq\npjSkJySjmHMLxa9hyT6dpqy5lGyIF759tn9N2DB4UQKBgQDGefM+BJz5gxIKLGQF\nxpLntKGYnoUjqkZnrFgLzhgTy47q0icbjSuPrXTxgbqd8bmUSu5Ob4jfqIH4i3v+\nBSaF6K2cMYN+Ilg9Ijiffb9OJwQZrH09bpus4zpRq61oTuqGkn3Zb66D9QO1e/bl\nHAk/R4f2BP9g5XB9wOxUQrUeWQKBgQDA8pzh/t2/wFVm4SRKL9kWZ7/3SI/7KaoA\njYsQeYZmMxXSBlYf/slERJyaJ4qeDI1lE8hrDCjReN937tyR9gR1XqqlZ3ijdo4w\ndmxipqZ2ysZgD4EfdDRgettJq9WT6hGrb798XiWkM2ok83cL0Ttl0s/7wAlk7wgy\ncSvI5JWY1wKBgGgNSv56gKk2k+CNgSqd/ipHQmi2wmn+PMbhTY9yzqCiGRz2a9Y/\n3lSGxUZPkrx3G6mo1uJ8Cq/msazRw4FaxeVyJII8WwlnjAcQx8qlrAOW5Mlo6oeo\nUykCP3LNpC2JId7HMf8qU72OWBFvGfLnDdoE8DyERjZQUvc6iytphXaRAoGAfzDv\nnkLmZvsg0RrlU0pLbuuhrh9VWppSiN7Fp2yU3lYaskKfD6RjhO891JjwVdOsec8a\ntQZk+gEWPvdky4tD0SNAlpyo+Ai1HtlSBY4Z+gEd2EEgO13dESSr3dq6hjEsyLh3\noEJnyeBivk0IUu/wmeToWepzxueTnbzgwiN9Qi0CgYEAwOsLoS/NHtmX5Pb+zv7r\nf43162Nwo+DlrM1+tc4ZKdCbnSYxUOLZZm5JGAk0Kzg9arFEm1ijZFGNdt0z+hbk\nkhBsSAv94XBkA4xxCX4DLkybTse+WNdhBzh4aGFutWbpq7u73UH9G6/qCQrT5Lzk\nlR63HDAseusj6kxFOoj3j7k=\n-----END PRIVATE KEY-----\n";
+const char PRIVATE_KEY[] PROGMEM = "-----BEGIN PRIVATE KEY-----\nMIIEvQIBADANBgkqhkiG9w0BAQEFAASCBKcwggSjAgEAAoIBAQDbE0XOrU00qix3\nZiSspJ/TwKJ+AHKBhV4jdj6g6F58DGnYYElN+ow2wC2vrTvcxkFy6cTjdYiy18d5\nWn0omQU5R3B4lzW9X9q4AxTGyIn6ffEprAdOGeo44hpBQ2mitcvbW9cWI6pv1KCw\ncUkFVhdynWapd2bAC1OZ02jboeacfvYCzVijRknsLXFngW4Z08rywE3g70k/mchR\nnEhXCWuSAZRbVtY6pPAeEDJioRYeJzBB6sbryN76om+XIQioAKCkeco7MTwQ5FL/\nZIzMf384eUjUbP9gXJGAGe5J6I+RFQN+9MUEkSdbPTJc4H5CTx7R8YFiTxvM6KFZ\ngKCtK06lAgMBAAECggEAMPEISljbA6X00yPFk7AfaJ4DbyTIb/kMg92ZtjbTTOE1\nEDrKhZowktayHioUUokT/AkPjEUoqdOc45Z8mYI98YLtNHOLdOgiI7PEg3gvov9Z\nzhZ5d1BAzD5u4R+fTNNSXIoS7gY/wEX/NAvK5V9LU7aoRbnAAa1GGvpo1ZBAxbsJ\ndvUGqhubXR96Z/E7TCVaHWj6L4LORrBNhoLpBqgPvfpa46m3yPWnnYMQVUB0d+aM\nOQrEJW2tOlSHCoLXIpkRKto7YCwERd8iASdEvYLf/H4xmHaK541YZZ18tl5FI5sl\n2xUc8CBf/UCcRCGYNRoMK1c4iV16n7Lfyb3aptceAQKBgQD1iGv1yc7G/VN1F6uO\n2wIPHdTYXB9BQdlB7Evg6WzU6ujFywGjyIJEltBmvbWidYViUboq9oVcnjOpe/zk\n2YtBVnkq3lYIkcqIz4ToPa3oivKDeDpTW33+EPVTafZym6XhZG8U/kgKiFLVsmtK\nCx3fL3BOU7T5YHymqy37ACStJQKBgQDkahxTkKvjghi/fb2C1G2k6bDEvEaRFWY6\nWypCb+sOCmSx2lY4iUupoxLcgwmH+GGqsgNNSft599PU3ODu44ZI1nMThuay175K\nzX9WJA+m8zgWE9wG0VYa8diyPMrMMm9MzF06A1wv1jWtzSsUGcck27WR0Pd4aZAh\nRwJmpbQjgQKBgF7zYsyqPky1qpCdlrqn9yPhZW5GMdAKpvnXZ4CSxIOSVHIpD3lH\nERl1OSKCOruYtvxOnq/+pZQrmc7xI9tcRX3+8tyhHqQxvSErHzqwn5BOK3qsA+I4\nf4DBDh4z3Bp2FrATJuH3c+Se02nQla0Mn4Cv175yoInPxmStzhpC8+wBAoGAHm70\n7z1raZi/62O5iGD9aueoIc5kKJiNUmErNEbtLqW73OaWbln8ttF/hdn/vxodCT1G\nq1mcJBgdJVN4tNuj3LiWBJgIzPNp61WODdAoNbpaUra6rj3eFyD6GmV3L9XYdocU\nNNKVydnktQ+NGdSFcCfF/XO2RVjrV0O60ipp4gECgYEA3z/CIpmYtSpxhIth4I8T\nK0kp50oHncVy2tr8zOmZCoErFaQrTaFHvMBlJe48JDMDxqoigU1sxRvGrYY37HvO\nLNWFDGgXZaghTr9E+yvIOrrXnK1hieDqZxpf5JstFPX/4UFByfvnx+7TV3/eB8b8\nCuVxmJ8C4wGBxY2Gy/Y4vtY=\n-----END PRIVATE KEY-----\n";
 
 void wifiTaskHandler() {
   wifiTask.setInitCoreID(1);
@@ -104,6 +104,9 @@ void handleWeighingSession(JsonDocument& sessionDoc) {
   String userRfid = sessionDoc["fields"]["userRfid"]["stringValue"].as<String>();
   currentSession.eatingPattern = sessionDoc["fields"]["eatingPattern"]["stringValue"].as<String>();
   currentSession.childResponse = sessionDoc["fields"]["childResponse"]["stringValue"].as<String>();
+  currentSession.gender = sessionDoc["fields"]["gender"]["stringValue"].as<String>();
+  currentSession.ageYears = sessionDoc["fields"]["ageYears"]["integerValue"].as<int>();
+  currentSession.ageMonths = sessionDoc["fields"]["ageMonths"]["integerValue"].as<int>();
   currentSession.measurementComplete = sessionDoc["fields"]["measurementComplete"]["booleanValue"].as<bool>();
 
   if (!currentSession.measurementComplete) {
@@ -131,8 +134,10 @@ void loadUserDataForSession(String userId, String rfidTag) {
 
   if (userDoc.containsKey("fields")) {
     currentSessionUser.userId = userId;
-    currentSessionUser.childName = userDoc["fields"]["namaAnak"]["stringValue"].as<String>();
-    currentSessionUser.gender = userDoc["fields"]["gender"]["stringValue"].as<String>();
+    currentSessionUser.childName = userDoc["fields"]["name"]["stringValue"].as<String>();
+    currentSessionUser.gender = currentSession.gender;
+    currentSessionUser.ageYears = currentSession.ageYears;
+    currentSessionUser.ageMonths = currentSession.ageMonths;
     currentSessionUser.rfidTag = rfidTag;
 
     currentMeasurement.eatingPatternIndex = getEatingPatternIndex(currentSession.eatingPattern);

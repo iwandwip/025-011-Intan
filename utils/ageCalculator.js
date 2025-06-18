@@ -27,18 +27,18 @@ export const formatAge = (birthdate) => {
   const age = calculateAge(birthdate);
   
   if (age.years === 0 && age.months === 0) {
-    return "Unknown";
+    return "Belum diketahui";
   }
   
   if (age.years === 0) {
-    return `${age.months} month${age.months !== 1 ? 's' : ''} old`;
+    return `${age.months} bulan`;
   }
   
   if (age.months === 0) {
-    return `${age.years} year${age.years !== 1 ? 's' : ''} old`;
+    return `${age.years} tahun`;
   }
   
-  return `${age.years} year${age.years !== 1 ? 's' : ''} ${age.months} month${age.months !== 1 ? 's' : ''} old`;
+  return `${age.years} tahun ${age.months} bulan`;
 };
 
 export const getAgeInYears = (birthdate) => {
@@ -49,4 +49,22 @@ export const getAgeInYears = (birthdate) => {
 export const getAgeInMonths = (birthdate) => {
   const age = calculateAge(birthdate);
   return (age.years * 12) + age.months;
+};
+
+export const formatAgeShort = (birthdate) => {
+  const age = calculateAge(birthdate);
+  
+  if (age.years === 0 && age.months === 0) {
+    return "N/A";
+  }
+  
+  if (age.years === 0) {
+    return `${age.months}bl`;
+  }
+  
+  if (age.months === 0) {
+    return `${age.years}th`;
+  }
+  
+  return `${age.years}th ${age.months}bl`;
 };

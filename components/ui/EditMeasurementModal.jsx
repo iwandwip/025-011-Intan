@@ -118,6 +118,30 @@ const EditMeasurementModal = ({ visible, measurement, onClose, onSave }) => {
         </View>
 
         <View style={styles.content}>
+          {measurement && (measurement.ageYears || measurement.gender) && (
+            <View style={styles.contextInfo}>
+              <Text style={styles.contextTitle}>Informasi Anak</Text>
+              <View style={styles.contextRow}>
+                {measurement.ageYears && (
+                  <View style={styles.contextItem}>
+                    <Text style={styles.contextLabel}>Usia:</Text>
+                    <Text style={styles.contextValue}>
+                      {measurement.ageYears} tahun {measurement.ageMonths || 0} bulan
+                    </Text>
+                  </View>
+                )}
+                {measurement.gender && (
+                  <View style={styles.contextItem}>
+                    <Text style={styles.contextLabel}>Jenis Kelamin:</Text>
+                    <Text style={styles.contextValue}>
+                      {measurement.gender === 'male' ? 'Laki-laki' : 'Perempuan'}
+                    </Text>
+                  </View>
+                )}
+              </View>
+            </View>
+          )}
+
           <Input
             label="Berat Badan (kg)"
             placeholder="Masukkan berat badan"
@@ -226,6 +250,38 @@ const styles = StyleSheet.create({
     flex: 1,
     paddingHorizontal: 24,
     paddingTop: 24,
+  },
+  contextInfo: {
+    backgroundColor: Colors.gray50,
+    borderRadius: 12,
+    padding: 16,
+    marginBottom: 20,
+  },
+  contextTitle: {
+    fontSize: 16,
+    fontWeight: "600",
+    color: Colors.gray900,
+    marginBottom: 12,
+  },
+  contextRow: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    flexWrap: "wrap",
+  },
+  contextItem: {
+    flex: 1,
+    minWidth: "45%",
+    marginBottom: 8,
+  },
+  contextLabel: {
+    fontSize: 13,
+    color: Colors.gray600,
+    marginBottom: 2,
+  },
+  contextValue: {
+    fontSize: 14,
+    fontWeight: "500",
+    color: Colors.gray900,
   },
   nutritionContainer: {
     marginBottom: 16,

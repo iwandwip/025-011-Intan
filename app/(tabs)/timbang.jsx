@@ -80,18 +80,24 @@ export default function TimbangScreen() {
         childResponse: data.childResponse,
       };
 
-      const addResult = await addMeasurement(userProfile.id, measurementData);
+      const addResult = await addMeasurement(userProfile.id, measurementData, userProfile);
 
       if (addResult.success) {
         await updateUserProfile(userProfile.id, {
           latestWeighing: {
             ...measurementData,
+            ageYears: userProfile.ageYears,
+            ageMonths: userProfile.ageMonths,
+            gender: userProfile.gender,
             dateTime: new Date(),
           },
         });
 
         setResultData({
           ...measurementData,
+          ageYears: userProfile.ageYears,
+          ageMonths: userProfile.ageMonths,
+          gender: userProfile.gender,
           dateTime: new Date(),
         });
         setResultModalVisible(true);
@@ -143,7 +149,8 @@ export default function TimbangScreen() {
         userProfile.id,
         userProfile.name,
         userProfile.rfid,
-        selectionData
+        selectionData,
+        userProfile
       );
 
       if (result.success) {

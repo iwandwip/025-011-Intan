@@ -143,8 +143,9 @@ void displayWeighingValidateData() {
   String weightInfo = "Weight: " + String(currentMeasurement.weight, 1) + " Kg";
   String heightInfo = "Height: " + String(currentMeasurement.height, 1) + " cm";
 
-  float bmi = calculateBMI(currentMeasurement.weight, currentMeasurement.height);
-  String statusInfo = "Status: " + getBMICategory(bmi);
+  // Use KNN for nutrition status prediction
+  String nutritionStatus = getNutritionStatusFromSession();
+  String statusInfo = "Status: " + nutritionStatus;
 
   const char* validateLines[] = { "Validate Data", weightInfo.c_str(), heightInfo.c_str(), statusInfo.c_str() };
   displayMenu.renderBoxedText(validateLines, 4);
@@ -164,8 +165,8 @@ void displayWeighingSendData() {
   const char* sendingLines[] = { "Sending Data", "to Server", "Please wait..." };
   displayMenu.renderBoxedText(sendingLines, 3);
 
-  float bmi = calculateBMI(currentMeasurement.weight, currentMeasurement.height);
-  String nutritionStatus = getBMICategory(bmi);
+  // Use KNN for nutrition status prediction
+  String nutritionStatus = getNutritionStatusFromSession();
   String eatingPattern = getEatingPatternString(currentMeasurement.eatingPatternIndex);
   String childResponse = getChildResponseString(currentMeasurement.childResponseIndex);
 

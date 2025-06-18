@@ -32,10 +32,14 @@ const generateUserProfileHTML = (user) => {
           <td style="padding: 8px; color: #374151;">${formatDate(user.birthdate)}</td>
         </tr>
         <tr>
+          <td style="padding: 8px; font-weight: 500; color: #6b7280;">Umur:</td>
+          <td style="padding: 8px; color: #374151;">${formatAge(user.birthdate)}</td>
+        </tr>
+        <tr style="background-color: #ffffff;">
           <td style="padding: 8px; font-weight: 500; color: #6b7280;">Orang Tua:</td>
           <td style="padding: 8px; color: #374151;">${user.parentName}</td>
         </tr>
-        <tr style="background-color: #ffffff;">
+        <tr>
           <td style="padding: 8px; font-weight: 500; color: #6b7280;">RFID:</td>
           <td style="padding: 8px; color: #374151;">${user.rfid || "Belum dipasang"}</td>
         </tr>
@@ -83,6 +87,12 @@ const generateMeasurementsTableHTML = (measurements) => {
       <td style="padding: 12px; border: 1px solid #e5e7eb; text-align: center;">${formatDateTime(measurement.dateTime)}</td>
       <td style="padding: 12px; border: 1px solid #e5e7eb; text-align: center;">${measurement.weight} kg</td>
       <td style="padding: 12px; border: 1px solid #e5e7eb; text-align: center;">${measurement.height} cm</td>
+      <td style="padding: 12px; border: 1px solid #e5e7eb; text-align: center;">
+        ${measurement.ageYears ? `${measurement.ageYears}th ${measurement.ageMonths || 0}bl` : 'N/A'}
+      </td>
+      <td style="padding: 12px; border: 1px solid #e5e7eb; text-align: center;">
+        ${measurement.gender === 'male' ? 'L' : measurement.gender === 'female' ? 'P' : 'N/A'}
+      </td>
       <td style="padding: 12px; border: 1px solid #e5e7eb; text-align: center; color: ${getStatusColor(measurement.nutritionStatus)}; font-weight: 500;">
         ${measurement.nutritionStatus}
       </td>
@@ -98,6 +108,8 @@ const generateMeasurementsTableHTML = (measurements) => {
             <th style="padding: 12px; border: 1px solid #e5e7eb; text-align: center;">Tanggal & Waktu</th>
             <th style="padding: 12px; border: 1px solid #e5e7eb; text-align: center;">Berat</th>
             <th style="padding: 12px; border: 1px solid #e5e7eb; text-align: center;">Tinggi</th>
+            <th style="padding: 12px; border: 1px solid #e5e7eb; text-align: center;">Usia</th>
+            <th style="padding: 12px; border: 1px solid #e5e7eb; text-align: center;">Gender</th>
             <th style="padding: 12px; border: 1px solid #e5e7eb; text-align: center;">Status Gizi</th>
           </tr>
         </thead>

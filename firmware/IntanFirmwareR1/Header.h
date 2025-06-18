@@ -63,6 +63,8 @@ struct SessionUser {
   String childName;
   String rfidTag;
   String gender;
+  int ageYears;
+  int ageMonths;
 };
 
 SessionUser currentSessionUser;
@@ -105,6 +107,9 @@ struct ActiveSession {
   String userName;
   String eatingPattern;
   String childResponse;
+  String gender;
+  int ageYears;
+  int ageMonths;
   bool isActive;
   bool measurementComplete;
 };

@@ -506,7 +506,7 @@ export default function UserDetail() {
         <View style={styles.tableContainer}>
           {tableData.length > 0 ? (
             <DataTable
-              headers={["Tanggal & Waktu", "Berat", "Tinggi", "Status", "Aksi"]}
+              headers={["Tanggal & Waktu", "Berat", "Tinggi", "Usia", "Gender", "Status", "Aksi"]}
               data={tableData}
               onEdit={() => {}}
               onDelete={() => {}}

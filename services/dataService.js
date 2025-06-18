@@ -2,7 +2,7 @@ import { collection, doc, addDoc, getDocs, query, orderBy, deleteDoc, updateDoc 
 import { db } from './firebase';
 import { generateRandomMeasurement } from '../utils/dataGenerator';
 
-export const addMeasurement = async (userId, measurementData) => {
+export const addMeasurement = async (userId, measurementData, userProfile) => {
   try {
     if (!db) {
       throw new Error('Firestore is not initialized');
@@ -11,6 +11,9 @@ export const addMeasurement = async (userId, measurementData) => {
     const userDataRef = collection(db, 'users', userId, 'data');
     const docRef = await addDoc(userDataRef, {
       ...measurementData,
+      ageYears: userProfile.ageYears,
+      ageMonths: userProfile.ageMonths,
+      gender: userProfile.gender,
       dateTime: new Date(),
       createdAt: new Date()
     });
@@ -78,7 +81,7 @@ export const deleteMeasurement = async (userId, measurementId) => {
   }
 };
 
-export const generateRandomData = async (userId) => {
+export const generateRandomData = async (userId, userProfile, count = 5) => {
   try {
     if (!db) {
       throw new Error('Firestore is not initialized');
@@ -87,11 +90,14 @@ export const generateRandomData = async (userId) => {
     const userDataRef = collection(db, 'users', userId, 'data');
     const promises = [];
 
-    for (let i = 0; i < 5; i++) {
+    for (let i = 0; i < count; i++) {
       const randomData = generateRandomMeasurement();
       promises.push(
         addDoc(userDataRef, {
           ...randomData,
+          ageYears: userProfile.ageYears,
+          ageMonths: userProfile.ageMonths,
+          gender: userProfile.gender,
           dateTime: new Date(Date.now() - (i * 24 * 60 * 60 * 1000)),
           createdAt: new Date()
         })

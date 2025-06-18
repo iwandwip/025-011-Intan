@@ -26,6 +26,9 @@ export const initializeSystemStatus = async () => {
         eatingPattern: '',
         childResponse: '',
         userRfid: '',
+        ageYears: 0,
+        ageMonths: 0,
+        gender: '',
         weight: 0,
         height: 0,
         nutritionStatus: '',
@@ -105,6 +108,9 @@ export const endGlobalSession = async () => {
       eatingPattern: '',
       childResponse: '',
       userRfid: '',
+      ageYears: 0,
+      ageMonths: 0,
+      gender: '',
       weight: 0,
       height: 0,
       nutritionStatus: '',
@@ -146,7 +152,7 @@ export const updateLastActivity = async () => {
   }
 };
 
-export const startWeighingSession = async (userId, userName, userRfid, selectionData) => {
+export const startWeighingSession = async (userId, userName, userRfid, selectionData, userProfile) => {
   return await startGlobalSession(
     GLOBAL_SESSION_TYPES.WEIGHING,
     userId,
@@ -155,6 +161,9 @@ export const startWeighingSession = async (userId, userName, userRfid, selection
       eatingPattern: selectionData.eatingPattern,
       childResponse: selectionData.childResponse,
       userRfid: userRfid,
+      ageYears: userProfile.ageYears,
+      ageMonths: userProfile.ageMonths,
+      gender: userProfile.gender,
       weight: 0,
       height: 0,
       nutritionStatus: '',

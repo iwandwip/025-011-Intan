@@ -7,10 +7,10 @@ void setup() {
   stateMutex = xSemaphoreCreateMutex();
   dataReadyMutex = xSemaphoreCreateMutex();
   displayUpdateMutex = xSemaphoreCreateMutex();
-  
+
   if (!stateMutex || !dataReadyMutex || !displayUpdateMutex) {
     Serial.println("ERROR: Failed to create mutexes!");
-    while(1) delay(1000);
+    while (1) delay(1000);
   }
 
   devicePreferences.begin("intan", false);
@@ -21,22 +21,25 @@ void setup() {
 
   displayMenu.flipVertical(true);
   displayMenu.initialize(true, initializeDisplayCallback, true);
-  
+
   initializeSensorModules();
-  
+
+  // Initialize KNN model for nutrition status prediction
+  initKNNMethods();
+
   wifiTask.initialize(wifiTaskHandler);
-  
+
   systemBuzzer.toggleInit(100, 5);
   Serial.println("=== System Ready ===");
 }
 
 void loop() {
   updateSensorData();
-  
+
   handleUserInput();
-  
+
   updateDisplayInterface();
-  
+
   serialCommunication.receive(handleUSBCommand);
 
   DigitalIn::updateAll(&confirmButton, &navigateButton, DigitalIn::stop());
@@ -47,16 +50,16 @@ void initializeSensorModules() {
   sensorManager.addModule("rfid", new RFID_Mfrc522(5, 27));
   sensorManager.addModule("ultrasonic", new UltrasonicSens(32, 33, 200, 1, 1, 1000, 10));
   sensorManager.addModule("loadcell", new HX711Sens(26, 25, HX711Sens::KG, 0.25, 5, 2000, 0.25));
-  
+
   sensorManager.init([]() {
     auto loadCell = sensorManager.getModule<HX711Sens>("loadcell");
     devicePreferences.begin("intan", false);
     float calibrationFactor = devicePreferences.getFloat("calibration", -22.5);
     devicePreferences.end();
-    
+
     loadCell->setScale(calibrationFactor);
     loadCell->tare();
-    
+
     Serial.printf("Load cell calibration: %.2f\n", calibrationFactor);
   });
 }
@@ -67,19 +70,19 @@ void updateSensorData() {
       String newRfidTag = sensorManager["rfid"].as<String>();
       float rawWeight = sensorManager["loadcell"];
       float rawHeight = sensorManager["ultrasonic"];
-      
+
       rawHeight = SENSOR_HEIGHT_POLE - rawHeight;
       rawHeight = constrain(rawHeight, 0, SENSOR_HEIGHT_POLE);
-      
+
       weightFilter.addMeasurement(rawWeight);
       rawWeight = abs(weightFilter.getFilteredValue());
       rawWeight = rawWeight < 1.0 ? 0.0 : rawWeight;
-      
+
       currentRfidTag = newRfidTag;
       currentWeight = rawWeight;
       currentHeight = rawHeight;
       newSensorData = true;
-      
+
       xSemaphoreGive(dataReadyMutex);
     }
   });
@@ -93,7 +96,7 @@ void handleUserInput() {
     .back = false,
     .show = true
   };
-  
+
   if (xSemaphoreTake(displayUpdateMutex, pdMS_TO_TICKS(5)) == pdTRUE) {
     displayMenu.onListen(&cursor, displayMenuCallback);
     xSemaphoreGive(displayUpdateMutex);
@@ -132,11 +135,24 @@ float calculateBMI(float weight, float height) {
   return (isinf(bmi) || isnan(bmi)) ? 0.0 : bmi;
 }
 
+// Legacy BMI function - kept for compatibility but not used
 String getBMICategory(float bmi) {
-  if (bmi < 18.5) return "Kurang";
-  else if (bmi >= 18.5 && bmi < 24.9) return "Ideal";
-  else if (bmi >= 25 && bmi < 29.9) return "Lebih";
-  else return "Obesitas";
+  if (bmi < 18.5) return "gizi kurang";
+  else if (bmi >= 18.5 && bmi < 24.9) return "gizi baik";
+  else if (bmi >= 25 && bmi < 29.9) return "overweight";
+  else return "obesitas";
+}
+
+// New KNN-based nutrition status prediction using current session data
+String getNutritionStatusFromSession() {
+  return getNutritionStatus(
+    currentMeasurement.weight,
+    currentMeasurement.height,
+    currentSessionUser.ageYears,
+    currentSessionUser.ageMonths,
+    currentSessionUser.gender,
+    currentSession.eatingPattern,
+    currentSession.childResponse);
 }
 
 void changeSystemState(SystemState newState) {

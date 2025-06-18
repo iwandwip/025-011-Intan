@@ -124,6 +124,22 @@ const WeighingResultModal = ({ visible, data, onClose }) => {
                   {data.height ? `${data.height} cm` : "N/A"}
                 </Text>
               </View>
+
+              <View style={styles.measurementCard}>
+                <Text style={styles.measurementIcon}>🎂</Text>
+                <Text style={styles.measurementLabel}>Usia</Text>
+                <Text style={styles.measurementValue}>
+                  {data.ageYears ? `${data.ageYears} tahun ${data.ageMonths || 0} bulan` : "N/A"}
+                </Text>
+              </View>
+
+              <View style={styles.measurementCard}>
+                <Text style={styles.measurementIcon}>{data.gender === 'male' ? '👦' : '👧'}</Text>
+                <Text style={styles.measurementLabel}>Jenis Kelamin</Text>
+                <Text style={styles.measurementValue}>
+                  {data.gender === 'male' ? 'Laki-laki' : data.gender === 'female' ? 'Perempuan' : 'N/A'}
+                </Text>
+              </View>
             </View>
 
             <View style={styles.additionalInfo}>
@@ -281,15 +297,17 @@ const styles = StyleSheet.create({
   },
   measurementsGrid: {
     flexDirection: "row",
-    gap: 12,
+    flexWrap: "wrap",
+    justifyContent: "space-between",
     marginBottom: 24,
   },
   measurementCard: {
-    flex: 1,
+    width: "48%",
     backgroundColor: Colors.gray50,
     borderRadius: 16,
     padding: 16,
     alignItems: "center",
+    marginBottom: 12,
   },
   measurementIcon: {
     fontSize: 24,

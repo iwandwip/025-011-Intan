@@ -1,4 +1,6 @@
 const nutritionStatuses = ['gizi buruk', 'gizi kurang', 'gizi baik', 'overweight', 'obesitas'];
+const eatingPatterns = ['kurang', 'cukup', 'berlebih'];
+const childResponses = ['pasif', 'sedang', 'aktif'];
 
 const getRandomInRange = (min, max, decimals = 1) => {
   const random = Math.random() * (max - min) + min;
@@ -13,11 +15,15 @@ export const generateRandomMeasurement = () => {
   const weight = getRandomInRange(15, 45, 1);
   const height = getRandomInRange(90, 130, 0);
   const nutritionStatus = getRandomElement(nutritionStatuses);
+  const eatingPattern = getRandomElement(eatingPatterns);
+  const childResponse = getRandomElement(childResponses);
 
   return {
     weight,
     height,
-    nutritionStatus
+    nutritionStatus,
+    eatingPattern,
+    childResponse
   };
 };
 
