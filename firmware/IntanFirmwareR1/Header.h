@@ -156,6 +156,32 @@ int selectedChildResponse = 0;
 const unsigned long RFID_TIMEOUT_MS = 30000; // 30 seconds timeout for RFID confirmation
 unsigned long rfidConfirmationStartTime = 0;
 
+////////// Enums for KNN Data Encoding //////////
+enum Gender {
+  PEREMPUAN = 0,
+  LAKI_LAKI = 1
+};
+
+enum PolaMakan {
+  KURANG = 0,
+  CUKUP = 1,
+  BERLEBIH = 2
+};
+
+enum ResponAnak {
+  PASIF = 0,
+  SEDANG = 1,
+  AKTIF = 2
+};
+
+enum StatusGizi {
+  GIZI_BURUK = 0,
+  GIZI_KURANG = 1,
+  GIZI_BAIK = 2,
+  OVERWEIGHT = 3,
+  OBESITAS = 4
+};
+
 ////////// Function Declarations //////////
 float calculateIMT(float weight, float height);
 
