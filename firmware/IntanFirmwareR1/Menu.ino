@@ -186,14 +186,20 @@ void displayWeighingSendData() {
   // Add delay to show processing
   if (processingStartTime == 0) {
     processingStartTime = millis();
+    Serial.println("| Processing timer started");
     forceFirebaseSync = true; // Force sync when processing starts
   }
   
   // Process for 3 seconds to show calculation
   if (millis() - processingStartTime >= 3000) {
+    Serial.println("| Processing complete - calculating nutrition status");
     String nutritionStatus = getNutritionStatusFromSession();
     String eatingPattern = getEatingPatternString(currentMeasurement.eatingPatternIndex);
     String childResponse = getChildResponseString(currentMeasurement.childResponseIndex);
+    
+    Serial.printf("| Final data: Weight=%.1f, Height=%.1f, Status=%s\n", 
+                  currentMeasurement.weight, currentMeasurement.height, nutritionStatus.c_str());
+    
     updateGlobalSessionData(
       currentMeasurement.weight,
       currentMeasurement.height,
@@ -202,6 +208,7 @@ void displayWeighingSendData() {
       childResponse);
     currentWeighingState = WEIGHING_COMPLETE;
     processingStartTime = 0; // Reset for next time
+    Serial.println("| Weighing state changed to COMPLETE");
   }
 }
 

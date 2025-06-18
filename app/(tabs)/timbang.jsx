@@ -60,12 +60,19 @@ export default function TimbangScreen() {
     const unsubscribe = subscribeToSystemStatus((doc) => {
       if (doc.exists()) {
         const data = doc.data();
-        console.log('System status updated:', data);
-        console.log('Current user ID:', userProfile.id);
-        console.log('Session type:', data.sessionType);
-        console.log('Current user in session:', data.currentUserId);
-        console.log('App controlled:', data.appControlled);
-        console.log('Current step:', data.currentStep);
+        console.log('=== System status updated ===');
+        console.log('🕐 Timestamp:', new Date().toLocaleTimeString());
+        console.log('👤 Current user ID:', userProfile.id);
+        console.log('📋 Session type:', data.sessionType);
+        console.log('👤 Current user in session:', data.currentUserId);
+        console.log('🎮 App controlled:', data.appControlled);
+        console.log('📍 Current step:', data.currentStep);
+        console.log('🔄 Is in use:', data.isInUse);
+        
+        // Highlight step changes
+        if (data.currentStep && data.currentStep !== 'idle') {
+          console.log('🚨 NON-IDLE STEP DETECTED:', data.currentStep);
+        }
         
         setSystemStatus(data);
 
@@ -75,10 +82,13 @@ export default function TimbangScreen() {
           data.currentUserId === userProfile.id &&
           data.appControlled
         ) {
-          console.log('Conditions met for handleAppControlledWeighing');
+          console.log('✅ Conditions met for handleAppControlledWeighing');
           handleAppControlledWeighing(data);
         } else {
-          console.log('Conditions NOT met for handleAppControlledWeighing');
+          console.log('❌ Conditions NOT met for handleAppControlledWeighing');
+          console.log('  - Session type match:', data.sessionType === GLOBAL_SESSION_TYPES.WEIGHING);
+          console.log('  - User ID match:', data.currentUserId === userProfile.id);
+          console.log('  - App controlled:', data.appControlled);
         }
 
         // Handle RFID verification failure
@@ -98,7 +108,18 @@ export default function TimbangScreen() {
           data.weight > 0 &&
           data.height > 0
         ) {
+          console.log('Measurement completed detected:', data);
           handleWeighingCompleted(data);
+        } else if (
+          data.sessionType === GLOBAL_SESSION_TYPES.WEIGHING &&
+          data.currentUserId === userProfile.id &&
+          data.measurementComplete
+        ) {
+          console.log('Measurement complete but missing weight/height:', {
+            weight: data.weight,
+            height: data.height,
+            complete: data.measurementComplete
+          });
         }
       }
     });
@@ -109,20 +130,24 @@ export default function TimbangScreen() {
   const handleAppControlledWeighing = (data) => {
     const { currentStep } = data;
     
-    console.log('handleAppControlledWeighing called with step:', currentStep);
-    console.log('Full data:', data);
+    console.log('🔄 handleAppControlledWeighing called with step:', currentStep);
+    console.log('📊 Current weighing step state:', currentWeighingStep);
+    console.log('👁️ Modal visible:', weighingControlVisible);
     
-    if (currentStep === 'weighing' || currentStep === 'height' || currentStep === 'confirm') {
-      console.log('Setting weighing control visible for step:', currentStep);
+    if (currentStep === 'weighing' || currentStep === 'height') {
+      console.log('✅ Setting weighing control visible for step:', currentStep);
       setCurrentWeighingStep(currentStep);
       setWeighingControlVisible(true);
     } else if (currentStep === 'processing') {
       // Show processing state - ESP32 is calculating
-      console.log('Setting processing state');
+      console.log('⏳ Setting processing state');
       setCurrentWeighingStep('processing');
       setWeighingControlVisible(true);
+    } else if (currentStep === 'idle') {
+      console.log('💤 Step is idle - hiding weighing control');
+      setWeighingControlVisible(false);
     } else {
-      console.log('Hiding weighing control for step:', currentStep);
+      console.log('❓ Unknown step, hiding weighing control:', currentStep);
       setWeighingControlVisible(false);
     }
   };
@@ -227,13 +252,21 @@ export default function TimbangScreen() {
       let result;
       switch (currentWeighingStep) {
         case 'weighing':
+          console.log('Proceeding to height measurement');
           result = await proceedToHeight();
           break;
         case 'height':
+          console.log('Confirming height and starting processing');
           result = await confirmMeasurements();
-          break;
-        case 'confirm':
-          result = await confirmMeasurements();
+          
+          // Set timeout for processing if it gets stuck
+          setTimeout(() => {
+            if (loading) {
+              console.log('Processing timeout - stopping loading');
+              setLoading(false);
+              Alert.alert("Timeout", "ESP32 tidak merespons. Silakan coba lagi.");
+            }
+          }, 15000); // 15 second timeout
           break;
         default:
           return;
@@ -243,9 +276,13 @@ export default function TimbangScreen() {
         Alert.alert("Kesalahan", result.error);
       }
     } catch (error) {
+      console.error('Error in handleWeighingProceed:', error);
       Alert.alert("Kesalahan", "Gagal melanjutkan pengukuran");
     } finally {
-      setLoading(false);
+      if (currentWeighingStep !== 'height') {
+        setLoading(false);
+      }
+      // For 'height' step, loading will be cleared by handleWeighingCompleted or timeout
     }
   };
 

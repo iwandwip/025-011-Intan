@@ -51,47 +51,7 @@ const WeighingControlModal = ({
               </Text>
             </View>
           ),
-          proceedText: "Lanjut ke Konfirmasi",
-          showCancel: true
-        };
-      
-      case 'confirm':
-        const imt = realTimeWeight > 0 && realTimeHeight > 0 
-          ? (realTimeWeight / ((realTimeHeight / 100) * (realTimeHeight / 100))) 
-          : 0;
-        
-        return {
-          title: "Konfirmasi Data Lengkap",
-          content: (
-            <View style={styles.measurementContainer}>
-              <View style={styles.summaryRow}>
-                <Text style={styles.summaryLabel}>Nama:</Text>
-                <Text style={styles.summaryValue}>{userProfile?.name || 'N/A'}</Text>
-              </View>
-              <View style={styles.summaryRow}>
-                <Text style={styles.summaryLabel}>Umur:</Text>
-                <Text style={styles.summaryValue}>
-                  {userProfile?.ageYears || 0} tahun {userProfile?.ageMonths || 0} bulan
-                </Text>
-              </View>
-              <View style={styles.summaryRow}>
-                <Text style={styles.summaryLabel}>Berat:</Text>
-                <Text style={styles.summaryValue}>{realTimeWeight.toFixed(1)} kg</Text>
-              </View>
-              <View style={styles.summaryRow}>
-                <Text style={styles.summaryLabel}>Tinggi:</Text>
-                <Text style={styles.summaryValue}>{realTimeHeight.toFixed(1)} cm</Text>
-              </View>
-              <View style={styles.summaryRow}>
-                <Text style={styles.summaryLabel}>IMT:</Text>
-                <Text style={styles.summaryValue}>{imt.toFixed(1)}</Text>
-              </View>
-              <Text style={styles.instructionText}>
-                Periksa kembali semua data. Tekan "Kirim Data" untuk menyelesaikan pengukuran.
-              </Text>
-            </View>
-          ),
-          proceedText: "Kirim Data",
+          proceedText: "Konfirmasi Tinggi",
           showCancel: true
         };
       

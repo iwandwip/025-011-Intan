@@ -132,6 +132,7 @@ void handleAppControlledWeighing(String currentStep, String nextAction, String u
   // Process step changes
   if (currentStep != lastStep || nextAction != lastAction) {
     Serial.printf("App Control - Step: %s, Action: %s\n", currentStep.c_str(), nextAction.c_str());
+    Serial.printf("Last step was: %s, Last action was: %s\n", lastStep.c_str(), lastAction.c_str());
     
     if (currentStep == "idle") {
       changeSystemState(SYSTEM_WEIGHING_SESSION);
@@ -141,6 +142,7 @@ void handleAppControlledWeighing(String currentStep, String nextAction, String u
       Serial.println("| Entering weighing state from app control");
       currentWeighingState = WEIGHING_GET_WEIGHT;
       if (nextAction == "continue") {
+        Serial.printf("| Weight confirmed: %.1f kg\n", currentWeight);
         currentMeasurement.weight = currentWeight;
         clearNextAction();
       }
@@ -148,19 +150,17 @@ void handleAppControlledWeighing(String currentStep, String nextAction, String u
     } else if (currentStep == "height") {
       currentWeighingState = WEIGHING_GET_HEIGHT;
       if (nextAction == "continue") {
+        Serial.println("| Height confirmed - starting automatic processing");
         currentMeasurement.height = currentHeight;
-        clearNextAction();
-      }
-      forceFirebaseSync = true; // Force sync when entering height measurement
-    } else if (currentStep == "confirm") {
-      currentWeighingState = WEIGHING_VALIDATE_DATA;
-      if (nextAction == "confirm") {
-        // Set processing step and start calculation
+        // Don't overwrite weight here - it should already be stored from weighing step
+        Serial.printf("| Final measurements: Weight=%.1f, Height=%.1f\n", currentMeasurement.weight, currentMeasurement.height);
+        
+        // Automatically proceed to processing without confirm step
         setProcessingStep();
         currentWeighingState = WEIGHING_SEND_DATA;
         clearNextAction();
       }
-      forceFirebaseSync = true; // Force sync when entering confirmation
+      forceFirebaseSync = true; // Force sync when entering height measurement
     } else if (currentStep == "processing") {
       currentWeighingState = WEIGHING_SEND_DATA;
       forceFirebaseSync = true; // Force sync during processing
@@ -272,6 +272,12 @@ void handleRFIDDetection() {
 
 void updateGlobalSessionData(float weightValue, float heightValue, String nutritionStatus, String eatingPattern, String childResponse) {
   float imt = calculateIMT(weightValue, heightValue);
+  
+  Serial.println("| Updating global session data to Firestore");
+  Serial.printf("| Weight: %.1f, Height: %.1f, IMT: %.2f\n", weightValue, heightValue, imt);
+  Serial.printf("| Nutrition: %s, Eating: %s, Response: %s\n", 
+                nutritionStatus.c_str(), eatingPattern.c_str(), childResponse.c_str());
+  
   JsonDocument updateDoc;
   JsonObject fields = updateDoc.createNestedObject("fields");
   JsonObject weightField = fields.createNestedObject("weight");
@@ -290,10 +296,13 @@ void updateGlobalSessionData(float weightValue, float heightValue, String nutrit
   completeField["booleanValue"] = true;
   JsonObject activityField = fields.createNestedObject("lastActivity");
   activityField["timestampValue"] = dateTimeManager.getISO8601Time();
+  
   String updateDocStr;
   serializeJson(updateDoc, updateDocStr);
+  Serial.println("| Sending update to Firestore...");
   firestoreClient.updateDocument("systemStatus/hardware", updateDocStr, "weight,height,imt,nutritionStatus,eatingPattern,childResponse,measurementComplete,lastActivity", true);
   forceFirebaseSync = true; // Force immediate sync when measurement is complete
+  Serial.println("| Global session data update sent");
 }
 
 void updateGlobalSessionRFID(String rfidValue) {
@@ -307,8 +316,10 @@ void updateGlobalSessionRFID(String rfidValue) {
 }
 
 void startAppControlledWeighing() {
+  Serial.println("| startAppControlledWeighing() called");
+  
   // Give a small delay to ensure RFID confirmation state is visible
-  delay(1000);
+  delay(2000);
   
   JsonDocument updateDoc;
   JsonObject fields = updateDoc.createNestedObject("fields");
@@ -316,10 +327,21 @@ void startAppControlledWeighing() {
   stepField["stringValue"] = "weighing";
   JsonObject actionField = fields.createNestedObject("nextAction");
   actionField["stringValue"] = "";
+  
   String updateDocStr;
   serializeJson(updateDoc, updateDocStr);
-  firestoreClient.updateDocument("systemStatus/hardware", updateDocStr, "currentStep,nextAction", true);
+  Serial.println("| Sending currentStep update to Firestore:");
+  Serial.println(updateDocStr);
+  
+  bool success = firestoreClient.updateDocument("systemStatus/hardware", updateDocStr, "currentStep,nextAction", true);
+  Serial.printf("| Firestore update result: %s\n", success ? "SUCCESS" : "FAILED");
+  
+  // Force immediate sync to ensure app gets update
   forceFirebaseSync = true;
+  
+  // Additional delay to ensure update is sent
+  delay(500);
+  
   Serial.println("| Started app-controlled weighing flow - step set to 'weighing'");
 }
 
