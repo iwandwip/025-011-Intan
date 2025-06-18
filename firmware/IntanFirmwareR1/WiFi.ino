@@ -134,10 +134,6 @@ void loadUserDataForSession(String userId, String rfidTag) {
     currentSessionUser.childName = userDoc["fields"]["namaAnak"]["stringValue"].as<String>();
     currentSessionUser.gender = userDoc["fields"]["gender"]["stringValue"].as<String>();
     currentSessionUser.rfidTag = rfidTag;
-    currentSessionUser.email = userDoc["fields"]["email"]["stringValue"].as<String>();
-    currentSessionUser.userName = userDoc["fields"]["username"]["stringValue"].as<String>();
-    currentSessionUser.birthDate = userDoc["fields"]["birthdate"]["stringValue"].as<String>();
-    currentSessionUser.userRole = userDoc["fields"]["role"]["stringValue"].as<String>();
 
     currentMeasurement.eatingPatternIndex = getEatingPatternIndex(currentSession.eatingPattern);
     currentMeasurement.childResponseIndex = getChildResponseIndex(currentSession.childResponse);

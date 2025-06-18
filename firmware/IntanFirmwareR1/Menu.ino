@@ -227,23 +227,12 @@ void displayQuickMeasureScreen() {
 }
 
 void displayAdminScreen() {
-  static auto adminMenu = displayMenu.createMenu(2, "Account Recovery", "Back");
+  const char* adminLines[] = { "Admin Mode", "Hardware Ready", "Press button to exit" };
+  displayMenu.renderBoxedText(adminLines, 3);
 
-  displayMenu.onSelect(adminMenu, "Account Recovery", []() {
-    const char* recoveryLines[] = { "Account Recovery", "Feature coming", "soon..." };
-    displayMenu.renderBoxedText(recoveryLines, 3);
-
-    if (confirmButton.isPressed()) {
-      displayMenu.clearMenu(adminMenu, displayMenu.end());
-    }
-  });
-
-  displayMenu.onSelect(adminMenu, "Back", []() {
+  if (confirmButton.isPressed()) {
     backToIdleState();
-    displayMenu.clearMenu(adminMenu, displayMenu.end());
-  });
-
-  displayMenu.showMenu(adminMenu);
+  }
 }
 
 void performLoadCellCalibration() {
@@ -283,7 +272,6 @@ void performLoadCellTare() {
 void backToIdleState() {
   changeSystemState(SYSTEM_IDLE);
   currentWeighingState = WEIGHING_IDLE;
-  currentAdminState = ADMIN_IDLE;
   forceFirebaseSync = true;
 
   if (xSemaphoreTake(dataReadyMutex, pdMS_TO_TICKS(100)) == pdTRUE) {
@@ -293,32 +281,15 @@ void backToIdleState() {
 
   UserAccount emptyUser;
   currentSessionUser = emptyUser;
-  quickAccessUser = emptyUser;
-  adminUser = emptyUser;
 
   MeasurementData emptyMeasurement;
   currentMeasurement = emptyMeasurement;
 
   systemBuzzer.toggleInit(100, 2);
-
-  for (int i = 1; i <= 100; i++) {
-    displayMenu.showLoadingBar("Returning to idle", i);
-  }
 }
 
 void initializeDisplayCallback() {
-  displayMenu.clear();
-  displayMenu.drawRect(0, 0, 128, 64);
-  displayMenu.setColor(WHITE);
-  displayMenu.fillRect(0, 0, 128, 15);
-  displayMenu.setColor(BLACK);
-  displayMenu.setTextAlignment(TEXT_ALIGN_CENTER);
-  displayMenu.setFont(ArialMT_Plain_10);
-  displayMenu.drawString(64, 3, "INTAN SYSTEM");
-  displayMenu.setColor(WHITE);
-  displayMenu.drawString(64, 25, "Initializing...");
-  displayMenu.drawRect(24, 40, 80, 10);
-  displayMenu.fillRect(24, 40, 80, 10);
-  displayMenu.display();
+  const char* initLines[] = { "INTAN SYSTEM", "Initializing...", "Please wait" };
+  displayMenu.renderBoxedText(initLines, 3);
   delay(1000);
 }

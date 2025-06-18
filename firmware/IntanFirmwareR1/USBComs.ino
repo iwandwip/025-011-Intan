@@ -63,33 +63,6 @@ void handleUSBCommand(const String& receivedData) {
     performLoadCellTare();
   }
   
-  if (commandHeader == "TEST_WEIGHT") {
-    float testWeight = commandValue.toFloat();
-    if (testWeight >= 0 && testWeight <= 200) {
-      if (xSemaphoreTake(dataReadyMutex, pdMS_TO_TICKS(100)) == pdTRUE) {
-        currentWeight = testWeight;
-        Serial.printf("Test weight set to: %.2f Kg\n", testWeight);
-        xSemaphoreGive(dataReadyMutex);
-      }
-    }
-  }
   
-  if (commandHeader == "TEST_HEIGHT") {
-    float testHeight = commandValue.toFloat();
-    if (testHeight >= 0 && testHeight <= SENSOR_HEIGHT_POLE) {
-      if (xSemaphoreTake(dataReadyMutex, pdMS_TO_TICKS(100)) == pdTRUE) {
-        currentHeight = testHeight;
-        Serial.printf("Test height set to: %.2f cm\n", testHeight);
-        xSemaphoreGive(dataReadyMutex);
-      }
-    }
-  }
   
-  if (commandHeader == "TEST_RFID") {
-    if (xSemaphoreTake(dataReadyMutex, pdMS_TO_TICKS(100)) == pdTRUE) {
-      currentRfidTag = commandValue;
-      Serial.printf("Test RFID set to: %s\n", commandValue.c_str());
-      xSemaphoreGive(dataReadyMutex);
-    }
-  }
 }

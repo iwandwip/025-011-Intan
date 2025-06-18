@@ -58,20 +58,13 @@ DigitalOut statusLed(4);
 
 ////////// User Account Data Structure //////////
 struct UserAccount {
-  String birthDate;
-  String email;
-  String password;
-  String gender;
   String userId;
   String childName;
   String rfidTag;
-  String userRole;
-  String userName;
+  String gender;
 };
 
 UserAccount currentSessionUser;
-UserAccount quickAccessUser;
-UserAccount adminUser;
 
 ////////// System State Management //////////
 enum SystemState {
@@ -93,15 +86,10 @@ enum WeighingState {
   WEIGHING_COMPLETE,
 };
 
-enum AdminState {
-  ADMIN_IDLE,
-  ADMIN_ACCOUNT_RECOVERY,
-};
 
 // Thread-safe state variables
 volatile SystemState currentSystemState = SYSTEM_STARTUP;
 volatile WeighingState currentWeighingState = WEIGHING_IDLE;
-volatile AdminState currentAdminState = ADMIN_IDLE;
 
 ////////// System Runtime Variables //////////
 String currentRfidTag = "";

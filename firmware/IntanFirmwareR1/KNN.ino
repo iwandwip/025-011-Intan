@@ -1,0 +1,7 @@
+void initKNNMethods() {
+
+}
+
+String getTutritionStatus() {
+
+}
