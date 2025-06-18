@@ -1,314 +1,324 @@
-void lcdMenuCallbackCustom() {
-  // String beratStr = String(String(weight, 2) + " Kg");
-  // const char* lines1[] = { "Berat Badan", beratStr.c_str() };
-  // menu.renderBoxedText(lines1, 2);
-
-  String tinggiStr = String(String(height, 2) + " cm");
-  const char* lines1[] = { "Tinggi Badan", tinggiStr.c_str() };
-  menu.renderBoxedText(lines1, 2);
-}
-
-void lcdMenuCallback() {
-  if (measurementState == MEASUREMENT_IDLE) {
-    const char* statusTimbangLines1[] = { "Silahkan Pilih", "Menu Ambil Data", "Pada Aplikasi Anda" };
-    menu.renderBoxedText(statusTimbangLines1, 3);
-    if (!uuidRFIDNow.isEmpty()) {
-      firestoreGetDataForce = true;
-      userAccShowBMI.rfid = uuidRFIDNow;
-      userAccAdmin.rfid = uuidRFIDNow;
-      for (int i = 1; i <= 90; i++) {
-        menu.showLoadingBar("Loading", i);
-      }
-      while (measurementState == MEASUREMENT_IDLE) {
-        ledRed.on();
-      }
-      menu.showLoadingBar("Loading", 100);
+void displayMenuCallback() {
+  if (xSemaphoreTake(stateMutex, pdMS_TO_TICKS(5)) == pdTRUE) {
+    switch (currentSystemState) {
+      case SYSTEM_STARTUP:
+        displayStartupScreen();
+        break;
+      case SYSTEM_IDLE:
+        displayIdleScreen();
+        break;
+      case SYSTEM_RFID_PAIRING:
+        displayRFIDPairingScreen();
+        break;
+      case SYSTEM_WEIGHING_SESSION:
+        displayWeighingScreen();
+        break;
+      case SYSTEM_QUICK_MEASURE:
+        displayQuickMeasureScreen();
+        break;
+      case SYSTEM_ADMIN_MODE:
+        displayAdminScreen();
+        break;
     }
-  } else if (measurementState == MEASUREMENT_VALIDATION) {
-    const char* statusTimbangLines2[] = { "Silahkan Tap", "Kartu RFID", "Anda" };
-    menu.renderBoxedText(statusTimbangLines2, 3);
-    if (!uuidRFIDNow.isEmpty()) {
-      firestoreGetDataForce = true;
-      if (uuidRFIDNow == userAccValid.rfid) {
-        measurementState = MEASUREMENT_SUCCESS;
-        userState = USER_GET_POLA_MAKAN;
-        UserMeasurementData userEmptyData;
-        userData = userEmptyData;
-      }
-    }
-  } else if (measurementState == MEASUREMENT_SUCCESS) {
-    if (userState == USER_GET_POLA_MAKAN) {
-      menu.renderRadioMenu("Pola Makan", polaMakanOption, polaMakanNumOptions, polaMakanSelectedOption);
-      if (buttonDown.isLongPressed(2000)) {
-        buttonDown.resetState();
-        backToMainMenu();
-      }
-      if (buttonOk.isLongPressed(2000)) {
-        while (!buttonOk.getState()) {
-          menu.renderModal(polaMakanOption[polaMakanSelectedOption], polaMakanExt[polaMakanSelectedOption], nullptr, false, false);
-          buttonOk.update();
-        }
-        return;
-      }
-      if (buttonOk.isReleased()) {
-        userData.polaMakan = polaMakanSelectedOption;
-        userState = USER_GET_RESPON_ANAK;
-      }
-      if (buttonDown.isReleased()) {
-        polaMakanSelectedOption = (polaMakanSelectedOption + 1) % polaMakanNumOptions;
-      }
-    } else if (userState == USER_GET_RESPON_ANAK) {
-      menu.renderRadioMenu("Respon Anak", responAnakOption, responAnakNumOptions, responAnakSelectedOption);
-      if (buttonDown.isLongPressed(2000)) {
-        buttonDown.resetState();
-        userState = USER_GET_POLA_MAKAN;
-        return;
-      }
-      if (buttonOk.isLongPressed(2000)) {
-        while (!buttonOk.getState()) {
-          menu.renderModal(responAnakOption[responAnakSelectedOption], responAnakExt[responAnakSelectedOption], nullptr, false, false);
-          buttonOk.update();
-        }
-        return;
-      }
-      if (buttonOk.isReleased()) {
-        userData.responAnak = responAnakSelectedOption;
-        userState = USER_GET_WEIGHT;
-      }
-      if (buttonDown.isReleased()) {
-        responAnakSelectedOption = (responAnakSelectedOption + 1) % responAnakNumOptions;
-      }
-    } else if (userState == USER_GET_WEIGHT) {
-      String beratBadanStr = String(weight) + " Kg";
-      menu.renderInfoScreenCenter("Berat Badan", userAccValid.namaAnak.c_str(), userAccValid.gender.c_str(), beratBadanStr.c_str());
-      if (buttonDown.isLongPressed(2000)) {
-        buttonDown.resetState();
-        userState = USER_GET_RESPON_ANAK;
-        return;
-      }
-      if (buttonOk.isPressed()) {
-        userData.weight = weight;
-        userState = USER_GET_HEIGHT;
-      }
-    } else if (userState == USER_GET_HEIGHT) {
-      String tinggiBadanStr = String(height) + " Cm";
-      menu.renderInfoScreenCenter("Tinggi Badan", userAccValid.namaAnak.c_str(), userAccValid.gender.c_str(), tinggiBadanStr.c_str());
-      if (buttonDown.isLongPressed(2000)) {
-        buttonDown.resetState();
-        userState = USER_GET_WEIGHT;
-        return;
-      }
-      if (buttonOk.isPressed()) {
-        userData.height = height;
-        userData.bmi = calculateBMI(userData.weight, userData.height);
-        userState = USER_VALIDATION_DATA;
-      }
-    } else if (userState == USER_VALIDATION_DATA) {
-      String beratBadanStr = "Berat : " + String(userData.weight) + " Kg";
-      String tinggiBadanStr = "Tinggi : " + String(userData.height) + " Cm";
-      String bmiStr = "BMI   : " + getKategoriBMI(userData.bmi);
-      menu.renderInfoScreenCenter("Data Anak", beratBadanStr.c_str(), tinggiBadanStr.c_str(), bmiStr.c_str());
-      if (buttonDown.isLongPressed(2000)) {
-        buttonDown.resetState();
-        userState = USER_GET_HEIGHT;
-        return;
-      }
-      if (buttonOk.isPressed()) {
-        userState = USER_SEND_DATA;
-      }
-    } else if (userState == USER_SEND_DATA) {
-      firestoreGetDataForce = true;
-    }
-  } else if (measurementState == MEASUREMENT_SHOW_BMI) {
-    static auto showBMIMenu = menu.createMenu(4, "Timbang", "Kalibrasi", "Tare", "Kembali");
-
-    menu.onSelect(showBMIMenu, "Timbang", []() {
-      // static uint32_t measurementShowBMITimer;
-      // if (millis() - measurementShowBMITimer >= 500) {
-      //   measurementShowBMITimer = millis();
-      bmi = calculateBMI(weight, height);
-      String bmiStr = getKategoriBMI(bmi);
-      char bufferLine1[30], bufferLine2[30];
-      sprintf(bufferLine1, "Berat   : %6.2f Kg", weight);
-      sprintf(bufferLine2, "Tinggi  : %6.2f Cm", height);
-      menu.renderInfoScreen("Timbang", String(bufferLine1).c_str(), String(bufferLine2).c_str(), bmiStr.c_str());
-      // }
-      if (buttonOk.isPressed()) {
-        menu.clearMenu(showBMIMenu, menu.end());
-      }
-    });
-
-    menu.onSelect(showBMIMenu, "Kalibrasi", []() {
-      auto loadCell = sensor.getModule<HX711Sens>("lCell");
-
-      const char* kalibrasilines1[] = { "Hilangkan Semua", "Objek Pada", "Timbangan" };
-      menu.renderBoxedText(kalibrasilines1, 3);
-      loadCell->setScaleDelay(5000);
-
-      const char* kalibrasilines2[] = { "Letakan", "Objek Yang", "Terukur (2 KG)" };
-      menu.renderBoxedText(kalibrasilines2, 3);
-      loadCell->tareDelay(5000);
-
-      float units = loadCell->getUnits(10);
-      float cal = loadCell->getCalibrateFactor(units, KG_TO_G(2));
-      Serial.printf("| Cal Factor: %.2f\n", cal);
-
-      preferences.begin("intan", false);
-      preferences.putFloat("cal", cal);
-      preferences.end();
-
-      loadCell->setScale(cal);
-      menu.renderStatusScreen("Tare Loadcell", "Berhasil", true);
-      delay(5000);
-
-      loadCell->tare();
-      menu.clearMenu(showBMIMenu, menu.end());
-    });
-
-    menu.onSelect(showBMIMenu, "Tare", []() {
-      auto loadCell = sensor.getModule<HX711Sens>("lCell");
-      loadCell->tare();
-      menu.renderStatusScreen("Tare Loadcell", "Berhasil", true);
-      delay(2000);
-      menu.clearMenu(showBMIMenu, menu.end());
-    });
-
-    menu.onSelect(showBMIMenu, "Kembali", []() {
-      backToMainMenu();
-      for (int i = 1; i <= 100; i++) {
-        menu.showLoadingBar("Loading", i);
-      }
-      menu.clearMenu(showBMIMenu, menu.end());
-      return;
-    });
-
-    menu.showMenu(showBMIMenu);
-  } else if (measurementState == MEASUREMENT_ADMIN) {
-    static auto adminMenu = menu.createMenu(3, "Daftar Akun", "Lupa Akun", "Kembali");
-
-    menu.onSelect(
-      adminMenu, "Daftar Akun", []() {
-        uuidRFIDNow = "";
-      },
-      []() {
-        const char* tapRFIDlines[] = { "Silahkan Tap", "Kartu RFID", "Anda" };
-        menu.renderBoxedText(tapRFIDlines, 3);
-        if (!uuidRFIDNow.isEmpty()) {
-          const char* successRFIDLines[] = { "Berhasil TAP", "UUID RFID", uuidRFIDNow.c_str() };
-          menu.renderBoxedText(successRFIDLines, 3);
-          delay(3000);
-          const char* loadingAccountLines[] = { "Mendaftarkan", "Akun", "Mohon Tunggu" };
-          menu.renderBoxedText(loadingAccountLines, 3);
-          if (apiRegisterAccount()) {
-            userNumber++;
-            preferences.begin("intan", false);
-            preferences.putULong("userNumber", userNumber);
-            preferences.end();
-            menu.renderStatusScreen("Status Daftar", "Berhasil", true);
-            delay(2000);
-            const char* infoAccountLines[] = { "Email:", userAccRegister.email.c_str(), "Password:", userAccRegister.password.c_str() };
-            menu.renderBoxedText(infoAccountLines, 4);
-            while (true) {
-              if (buttonOk.isPressed()) {
-                menu.clearMenu(adminMenu, menu.end());
-                break;
-              }
-              buttonOk.update();
-            }
-          } else {
-            menu.renderStatusScreen("Status Daftar", "Gagal", false);
-            delay(2000);
-            menu.clearMenu(adminMenu, menu.end());
-          }
-          uuidRFIDNow = "";
-        }
-        if (buttonOk.isPressed()) {
-          menu.clearMenu(adminMenu, menu.end());
-        }
-      });
-
-    menu.onSelect(adminMenu, "Lupa Akun", []() {
-      if (!uuidRFIDNow.isEmpty()) {
-        userAccAdmin.rfid = uuidRFIDNow;
-        adminState = ADMIN_FORGOT_ACCOUNT;
-      }
-      const char* testRFIDLines1[] = { "Tap Your RFID", userAccAdmin.rfid.c_str(), userAccAdmin.email.c_str(), userAccAdmin.password.c_str() };
-      menu.renderBoxedText(testRFIDLines1, 4);
-      if (buttonDown.isPressed()) {
-        UserAcc UserAccEmpty;
-        userAccAdmin = UserAccEmpty;
-        adminState = ADMIN_IDLE;
-      }
-      if (buttonOk.isPressed()) {
-        menu.clearMenu(adminMenu, menu.end());
-      }
-    });
-
-    menu.onSelect(adminMenu, "Kembali", []() {
-      backToMainMenu();
-      menu.clearMenu(adminMenu, menu.end());
-      return;
-    });
-
-    menu.showMenu(adminMenu);
+    xSemaphoreGive(stateMutex);
   }
 }
 
-void backToMainMenu() {
-  measurementState = MEASUREMENT_IDLE;
-  adminState = ADMIN_IDLE;
-  userState = USER_IDLE;
-  firestoreGetDataForce = true;
-  uuidRFIDNow = "";
-  UserAcc UserAccEmpty;
-  userAccValid = UserAccEmpty;
-  userAccShowBMI = UserAccEmpty;
-  userAccAdmin = UserAccEmpty;
-  userAccRegister = UserAccEmpty;
-  UserMeasurementData userDataEmpty;
-  userData = userDataEmpty;
-  buzzer.toggleInit(100, 2);
-  // delay(3000);
+void displayStartupScreen() {
+  const char* startupLines[] = { "System Starting", "Please Wait...", "Connecting to WiFi" };
+  displayMenu.renderBoxedText(startupLines, 3);
+}
+
+void displayIdleScreen() {
+  if (!systemInitialized) {
+    displayStartupScreen();
+    return;
+  }
+
+  const char* idleLines[] = { "System Ready", "Please select menu", "on your app" };
+  displayMenu.renderBoxedText(idleLines, 3);
+
+  if (xSemaphoreTake(dataReadyMutex, pdMS_TO_TICKS(5)) == pdTRUE) {
+    if (!currentRfidTag.isEmpty()) {
+      forceFirebaseSync = true;
+    }
+    xSemaphoreGive(dataReadyMutex);
+  }
+}
+
+void displayRFIDPairingScreen() {
+  const char* pairingLines[] = { "RFID Pairing Mode", "Tap your RFID card", "to pair device" };
+  displayMenu.renderBoxedText(pairingLines, 3);
+
+  if (xSemaphoreTake(dataReadyMutex, pdMS_TO_TICKS(5)) == pdTRUE) {
+    if (!currentRfidTag.isEmpty()) {
+      const char* detectedLines[] = { "RFID Detected!", currentRfidTag.c_str(), "Processing..." };
+      displayMenu.renderBoxedText(detectedLines, 3);
+      statusLed.on();
+    }
+    xSemaphoreGive(dataReadyMutex);
+  }
+}
+
+void displayWeighingScreen() {
+  switch (currentWeighingState) {
+    case WEIGHING_RFID_CONFIRMATION:
+      displayWeighingRFIDConfirmation();
+      break;
+    case WEIGHING_GET_WEIGHT:
+      displayWeighingGetWeight();
+      break;
+    case WEIGHING_GET_HEIGHT:
+      displayWeighingGetHeight();
+      break;
+    case WEIGHING_VALIDATE_DATA:
+      displayWeighingValidateData();
+      break;
+    case WEIGHING_SEND_DATA:
+      displayWeighingSendData();
+      break;
+    case WEIGHING_COMPLETE:
+      displayWeighingComplete();
+      break;
+    default:
+      displayWeighingRFIDConfirmation();
+      break;
+  }
+}
+
+void displayWeighingRFIDConfirmation() {
+  const char* confirmLines[] = { "Weighing Session", "Tap RFID to confirm", "your identity" };
+  displayMenu.renderBoxedText(confirmLines, 3);
+
+  if (xSemaphoreTake(dataReadyMutex, pdMS_TO_TICKS(5)) == pdTRUE) {
+    if (!currentRfidTag.isEmpty() && currentRfidTag == currentSessionUser.rfidTag) {
+      currentWeighingState = WEIGHING_GET_WEIGHT;
+      systemBuzzer.toggleInit(100, 2);
+      currentRfidTag = "";
+    }
+    xSemaphoreGive(dataReadyMutex);
+  }
+}
+
+void displayWeighingGetWeight() {
+  String weightStr = String(currentWeight, 1) + " Kg";
+  String patternInfo = "Pattern: " + getEatingPatternString(currentMeasurement.eatingPatternIndex);
+  String responseInfo = "Response: " + getChildResponseString(currentMeasurement.childResponseIndex);
+
+  const char* weightLines[] = { "Get Weight", weightStr.c_str(), patternInfo.c_str(), responseInfo.c_str() };
+  displayMenu.renderBoxedText(weightLines, 4);
+
+  if (confirmButton.isPressed()) {
+    currentMeasurement.weight = currentWeight;
+    currentWeighingState = WEIGHING_GET_HEIGHT;
+    systemBuzzer.toggleInit(100, 1);
+  }
+
+  if (navigateButton.isLongPressed(2000)) {
+    navigateButton.resetState();
+    backToIdleState();
+  }
+}
+
+void displayWeighingGetHeight() {
+  String heightStr = String(currentHeight, 1) + " cm";
+  String childInfo = currentSessionUser.childName + " (" + currentSessionUser.gender + ")";
+
+  const char* heightLines[] = { "Get Height", childInfo.c_str(), heightStr.c_str(), "Press OK to confirm" };
+  displayMenu.renderBoxedText(heightLines, 4);
+
+  if (confirmButton.isPressed()) {
+    currentMeasurement.height = currentHeight;
+    currentWeighingState = WEIGHING_VALIDATE_DATA;
+    systemBuzzer.toggleInit(100, 1);
+  }
+
+  if (navigateButton.isLongPressed(2000)) {
+    navigateButton.resetState();
+    currentWeighingState = WEIGHING_GET_WEIGHT;
+  }
+}
+
+void displayWeighingValidateData() {
+  String weightInfo = "Weight: " + String(currentMeasurement.weight, 1) + " Kg";
+  String heightInfo = "Height: " + String(currentMeasurement.height, 1) + " cm";
+
+  float bmi = calculateBMI(currentMeasurement.weight, currentMeasurement.height);
+  String statusInfo = "Status: " + getBMICategory(bmi);
+
+  const char* validateLines[] = { "Validate Data", weightInfo.c_str(), heightInfo.c_str(), statusInfo.c_str() };
+  displayMenu.renderBoxedText(validateLines, 4);
+
+  if (confirmButton.isPressed()) {
+    currentWeighingState = WEIGHING_SEND_DATA;
+    systemBuzzer.toggleInit(100, 1);
+  }
+
+  if (navigateButton.isLongPressed(2000)) {
+    navigateButton.resetState();
+    currentWeighingState = WEIGHING_GET_HEIGHT;
+  }
+}
+
+void displayWeighingSendData() {
+  const char* sendingLines[] = { "Sending Data", "to Server", "Please wait..." };
+  displayMenu.renderBoxedText(sendingLines, 3);
+
+  float bmi = calculateBMI(currentMeasurement.weight, currentMeasurement.height);
+  String nutritionStatus = getBMICategory(bmi);
+  String eatingPattern = getEatingPatternString(currentMeasurement.eatingPatternIndex);
+  String childResponse = getChildResponseString(currentMeasurement.childResponseIndex);
+
+  updateGlobalSessionData(
+    currentMeasurement.weight,
+    currentMeasurement.height,
+    nutritionStatus,
+    eatingPattern,
+    childResponse);
+
+  currentWeighingState = WEIGHING_COMPLETE;
+}
+
+void displayWeighingComplete() {
+  const char* completeLines[] = { "Measurement", "Complete!", "Check your app" };
+  displayMenu.renderBoxedText(completeLines, 3);
+
+  static uint32_t completeTimer = millis();
+  if (millis() - completeTimer > 3000) {
+    backToIdleState();
+  }
+}
+
+void displayQuickMeasureScreen() {
+  static auto quickMeasureMenu = displayMenu.createMenu(4, "Measure", "Calibrate", "Tare", "Back");
+
+  displayMenu.onSelect(quickMeasureMenu, "Measure", []() {
+    float bmi = calculateBMI(currentWeight, currentHeight);
+    String bmiCategory = getBMICategory(bmi);
+
+    char weightBuffer[30], heightBuffer[30];
+    sprintf(weightBuffer, "Weight: %6.2f Kg", currentWeight);
+    sprintf(heightBuffer, "Height: %6.2f cm", currentHeight);
+
+    const char* measureLines[] = { "Quick Measure", weightBuffer, heightBuffer, bmiCategory.c_str() };
+    displayMenu.renderBoxedText(measureLines, 4);
+
+    if (confirmButton.isPressed()) {
+      displayMenu.clearMenu(quickMeasureMenu, displayMenu.end());
+    }
+  });
+
+  displayMenu.onSelect(quickMeasureMenu, "Calibrate", []() {
+    performLoadCellCalibration();
+    displayMenu.clearMenu(quickMeasureMenu, displayMenu.end());
+  });
+
+  displayMenu.onSelect(quickMeasureMenu, "Tare", []() {
+    performLoadCellTare();
+    displayMenu.clearMenu(quickMeasureMenu, displayMenu.end());
+  });
+
+  displayMenu.onSelect(quickMeasureMenu, "Back", []() {
+    backToIdleState();
+    displayMenu.clearMenu(quickMeasureMenu, displayMenu.end());
+  });
+
+  displayMenu.showMenu(quickMeasureMenu);
+}
+
+void displayAdminScreen() {
+  static auto adminMenu = displayMenu.createMenu(2, "Account Recovery", "Back");
+
+  displayMenu.onSelect(adminMenu, "Account Recovery", []() {
+    const char* recoveryLines[] = { "Account Recovery", "Feature coming", "soon..." };
+    displayMenu.renderBoxedText(recoveryLines, 3);
+
+    if (confirmButton.isPressed()) {
+      displayMenu.clearMenu(adminMenu, displayMenu.end());
+    }
+  });
+
+  displayMenu.onSelect(adminMenu, "Back", []() {
+    backToIdleState();
+    displayMenu.clearMenu(adminMenu, displayMenu.end());
+  });
+
+  displayMenu.showMenu(adminMenu);
+}
+
+void performLoadCellCalibration() {
+  auto loadCell = sensorManager.getModule<HX711Sens>("loadcell");
+
+  const char* step1Lines[] = { "Calibration", "Remove all objects", "from scale" };
+  displayMenu.renderBoxedText(step1Lines, 3);
+  loadCell->setScaleDelay(5000);
+
+  const char* step2Lines[] = { "Calibration", "Place 2kg object", "on scale" };
+  displayMenu.renderBoxedText(step2Lines, 3);
+  loadCell->tareDelay(5000);
+
+  float units = loadCell->getUnits(10);
+  float calibrationFactor = loadCell->getCalibrateFactor(units, KG_TO_G(2));
+
+  Serial.printf("Calibration factor: %.2f\n", calibrationFactor);
+
+  devicePreferences.begin("intan", false);
+  devicePreferences.putFloat("calibration", calibrationFactor);
+  devicePreferences.end();
+
+  loadCell->setScale(calibrationFactor);
+  displayMenu.renderStatusScreen("Calibration", "Success", true);
+  delay(3000);
+
+  loadCell->tare();
+}
+
+void performLoadCellTare() {
+  auto loadCell = sensorManager.getModule<HX711Sens>("loadcell");
+  loadCell->tare();
+  displayMenu.renderStatusScreen("Tare", "Success", true);
+  delay(2000);
+}
+
+void backToIdleState() {
+  changeSystemState(SYSTEM_IDLE);
+  currentWeighingState = WEIGHING_IDLE;
+  currentAdminState = ADMIN_IDLE;
+  forceFirebaseSync = true;
+
+  if (xSemaphoreTake(dataReadyMutex, pdMS_TO_TICKS(100)) == pdTRUE) {
+    currentRfidTag = "";
+    xSemaphoreGive(dataReadyMutex);
+  }
+
+  UserAccount emptyUser;
+  currentSessionUser = emptyUser;
+  quickAccessUser = emptyUser;
+  adminUser = emptyUser;
+
+  MeasurementData emptyMeasurement;
+  currentMeasurement = emptyMeasurement;
+
+  systemBuzzer.toggleInit(100, 2);
+
   for (int i = 1; i <= 100; i++) {
-    menu.showLoadingBar("Loading", i);
+    displayMenu.showLoadingBar("Returning to idle", i);
   }
 }
 
-void initDisplayCallback() {
-  menu.clear();
-  menu.drawRect(0, 0, 128, 64);
-  menu.setColor(WHITE);
-  menu.fillRect(0, 0, 128, 15);
-  menu.setColor(BLACK);
-  menu.setTextAlignment(TEXT_ALIGN_CENTER);
-  menu.setFont(ArialMT_Plain_10);
-  menu.drawString(64, 3, "ARI INTAN");
-  menu.setColor(WHITE);
-  menu.drawString(64, 25, "Loading...");
-  menu.drawRect(24, 40, 80, 10);
-  menu.fillRect(24, 40, 80, 10);
-  menu.display();
+void initializeDisplayCallback() {
+  displayMenu.clear();
+  displayMenu.drawRect(0, 0, 128, 64);
+  displayMenu.setColor(WHITE);
+  displayMenu.fillRect(0, 0, 128, 15);
+  displayMenu.setColor(BLACK);
+  displayMenu.setTextAlignment(TEXT_ALIGN_CENTER);
+  displayMenu.setFont(ArialMT_Plain_10);
+  displayMenu.drawString(64, 3, "INTAN SYSTEM");
+  displayMenu.setColor(WHITE);
+  displayMenu.drawString(64, 25, "Initializing...");
+  displayMenu.drawRect(24, 40, 80, 10);
+  displayMenu.fillRect(24, 40, 80, 10);
+  displayMenu.display();
   delay(1000);
-}
-
-String getKategoriBMI(float bmiAnak) {
-  if (bmiAnak < 18.5) {
-    return "Kurang";
-  } else if (bmiAnak >= 18.5 && bmiAnak < 24.9) {
-    return "Ideal";
-  } else if (bmiAnak >= 25 && bmiAnak < 29.9) {
-    return "Lebih";
-  } else {
-    return "Obesitas";
-  }
-}
-
-String getMeasurementStr() {
-  String measurementStr;
-  if (measurementState == MEASUREMENT_IDLE) measurementStr = "MEASUREMENT_IDLE";
-  if (measurementState == MEASUREMENT_VALIDATION) measurementStr = "MEASUREMENT_VALIDATION";
-  if (measurementState == MEASUREMENT_SUCCESS) measurementStr = "MEASUREMENT_SUCCESS";
-  if (measurementState == MEASUREMENT_SHOW_BMI) measurementStr = "MEASUREMENT_SHOW_BMI";
-  if (measurementState == MEASUREMENT_ADMIN) measurementStr = "MEASUREMENT_ADMIN";
-  return measurementStr;
 }

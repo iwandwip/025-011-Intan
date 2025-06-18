@@ -5,9 +5,7 @@
 #define ENABLE_MODULE_TIMER_TASK
 #define ENABLE_MODULE_SERIAL_HARD
 #define ENABLE_MODULE_DATETIME_NTP_V2
-#define ENABLE_MODULE_FIREBASE_RTDB_V2
 #define ENABLE_MODULE_FIREBASE_FIRESTORE_V2
-#define ENABLE_MODULE_FIREBASE_MESSAGING_V2
 #define ENABLE_MODULE_SH1106_MENU
 
 #define ENABLE_SENSOR_MODULE
@@ -25,152 +23,138 @@
 #define KG_TO_G(x) x * 1000.f
 #define G_TO_KG(x) x / 1000.f
 
-////////// Utility //////////
-const char* ntpServer = "pool.ntp.org";
-const long gmtOffset_sec = 7 * 3600;  // Offset for WIB (UTC+7)
-const int daylightOffset_sec = 0;
+////////// System Configuration //////////
+const char* NTP_SERVER = "pool.ntp.org";
+const long GMT_OFFSET_SEC = 7 * 3600;  // Offset for WIB (UTC+7)
+const int DAYLIGHT_OFFSET_SEC = 0;
 
-DateTimeNTPV2 dateTime(ntpServer, gmtOffset_sec, daylightOffset_sec);
-TaskHandle task;
-Preferences preferences;
-FirebaseV2RTDB firebase;
-FirebaseV2Firestore firestore;
-FirebaseV2Messaging messaging;
-WiFiClientSecure client;
-////////// Sensor //////////
-SensorModule sensor;
-MovingAverageFilter loadCellFilter(10);
+////////// Core System Objects //////////
+DateTimeNTPV2 dateTimeManager(NTP_SERVER, GMT_OFFSET_SEC, DAYLIGHT_OFFSET_SEC);
+TaskHandle wifiTask;
+Preferences devicePreferences;
+FirebaseV2Firestore firestoreClient;
+WiFiClientSecure wifiSecureClient;
+
+////////// Cross-Core Synchronization //////////
+SemaphoreHandle_t stateMutex;
+SemaphoreHandle_t dataReadyMutex;
+SemaphoreHandle_t displayUpdateMutex;
+////////// Sensor Management //////////
+SensorModule sensorManager;
+MovingAverageFilter weightFilter(10);
 
 ////////// Communication //////////
-HardSerial usbSerial;
+HardSerial serialCommunication;
 
-////////// Input Module //////////
-DigitalIn buttonOk(39);
-DigitalIn buttonDown(36);
+////////// User Input //////////
+DigitalIn confirmButton(39);
+DigitalIn navigateButton(36);
 
-////////// Output Module //////////
-SH1106Menu menu(0x3C, 21, 22);
-DigitalOut buzzer(4);  // 2
-DigitalOut ledRed(4);
-DigitalOut ledGreen(16);
-DigitalOut ledYellow(17);
+////////// Display & Feedback //////////
+SH1106Menu displayMenu(0x3C, 21, 22);
+DigitalOut systemBuzzer(4);
+DigitalOut statusLed(4);
 
-////////// Firebase State //////////
-bool firebaseEnable = false;
 
-enum FirebaseRTDBState {
-  RTDB_IDLE,
-  RTDB_SET_VALUE,
-  RTDB_SET_VALUE_JSON,
-  RTDB_SET_VALUE_PERIODIC,
-  RTDB_GET_VALUE,
-  RTDB_GET_VALUE_JSON,
-  RTDB_GET_VALUE_PERIODIC,
-};
-
-enum FirebaseFirestoreState {
-  FIRESTORE_IDE,
-  FIRESTORE_CREATE,
-  FIRESTORE_READ,
-  FIRESTORE_UPDATE,
-  FIRESTORE_DELETE,
-};
-
-enum FirebaseMessagingState {
-  MESSAGING_IDLE,
-  MESSAGING_SEND,
-};
-
-FirebaseRTDBState firebaseRTDBState = RTDB_IDLE;
-FirebaseFirestoreState firebaseFirestoreState = FIRESTORE_IDE;
-FirebaseMessagingState firebaseMessagingState = MESSAGING_IDLE;
-
-////////// Firebase User Account //////////
-
-struct UserAcc {
-  String birthdate;
+////////// User Account Data Structure //////////
+struct UserAccount {
+  String birthDate;
   String email;
   String password;
   String gender;
-  String id;
-  String namaAnak;
-  String rfid;
-  String role;
-  String username;
+  String userId;
+  String childName;
+  String rfidTag;
+  String userRole;
+  String userName;
 };
 
-UserAcc userAccValid;
-UserAcc userAccShowBMI;
-UserAcc userAccAdmin;
-UserAcc userAccRegister;
+UserAccount currentSessionUser;
+UserAccount quickAccessUser;
+UserAccount adminUser;
 
-////////// State Management //////////
+////////// System State Management //////////
+enum SystemState {
+  SYSTEM_STARTUP,
+  SYSTEM_IDLE,
+  SYSTEM_RFID_PAIRING,
+  SYSTEM_WEIGHING_SESSION,
+  SYSTEM_QUICK_MEASURE,
+  SYSTEM_ADMIN_MODE,
+};
 
-enum MeasurementState {
-  MEASUREMENT_IDLE,
-  MEASUREMENT_VALIDATION,
-  MEASUREMENT_SUCCESS,
-  MEASUREMENT_SHOW_BMI,
-  MEASUREMENT_ADMIN,
-  MEASUREMENT_FORGOT_ACCOUNT,
-  MEASUREMENT_CONNECT_TO_FIREBASE,
+enum WeighingState {
+  WEIGHING_IDLE,
+  WEIGHING_RFID_CONFIRMATION,
+  WEIGHING_GET_WEIGHT,
+  WEIGHING_GET_HEIGHT,
+  WEIGHING_VALIDATE_DATA,
+  WEIGHING_SEND_DATA,
+  WEIGHING_COMPLETE,
 };
 
 enum AdminState {
   ADMIN_IDLE,
-  ADMIN_REGISTER,
-  ADMIN_FORGOT_ACCOUNT,
+  ADMIN_ACCOUNT_RECOVERY,
 };
 
-enum UserState {
-  USER_IDLE,
-  USER_GET_POLA_MAKAN,
-  USER_GET_RESPON_ANAK,
-  USER_GET_WEIGHT,
-  USER_GET_HEIGHT,
-  USER_VALIDATION_DATA,
-  USER_SEND_DATA,
+// Thread-safe state variables
+volatile SystemState currentSystemState = SYSTEM_STARTUP;
+volatile WeighingState currentWeighingState = WEIGHING_IDLE;
+volatile AdminState currentAdminState = ADMIN_IDLE;
+
+////////// System Runtime Variables //////////
+String currentRfidTag = "";
+uint32_t lastFirebaseSync = 0;
+bool forceFirebaseSync = true;
+bool systemInitialized = false;
+
+////////// Session Management //////////
+struct ActiveSession {
+  String sessionType;
+  String userId;
+  String userName;
+  String eatingPattern;
+  String childResponse;
+  bool isActive;
+  bool measurementComplete;
 };
 
-int measurementState = MEASUREMENT_CONNECT_TO_FIREBASE;
-int adminState = ADMIN_IDLE;
-int userState = USER_IDLE;
+ActiveSession currentSession;
 
-////////// System Variable //////////
-
-String uuidRFIDNow = "";
-uint32_t userNumber = 0;
-uint32_t firestoreGetDataTimer = 0;
-bool isStatusRFIDInitialize = false;
-bool firestoreGetDataForce = true;
-
-////////// User Data //////////
-
-struct UserMeasurementData {
+////////// Measurement Data Structure //////////
+struct MeasurementData {
   float weight;
   float height;
-  float bmi;
-  int polaMakan;
-  int responAnak;
+  int eatingPatternIndex;
+  int childResponseIndex;
 };
 
-UserMeasurementData userData;
+MeasurementData currentMeasurement;
 
-const char* polaMakanOption[] = { "Kurang", "Cukup", "Berlebih" };
-const char* polaMakanExt[] = { "Sehari Makan Dibawah Kategori Cukup", "Sehari Makan 3x + Snack 2x", "Sehari Makan Lebih dari Kategori Cukup" };
+////////// Selection Options //////////
+const char* EATING_PATTERN_OPTIONS[] = { "Kurang", "Cukup", "Berlebih" };
+const char* EATING_PATTERN_DESCRIPTIONS[] = { 
+  "Sehari Makan Dibawah Kategori Cukup", 
+  "Sehari Makan 3x + Snack 2x", 
+  "Sehari Makan Lebih dari Kategori Cukup" 
+};
 
-const char* responAnakOption[] = { "Pasif", "Sedang", "Aktif" };
-const char* responAnakExt[] = { "Anak Tidak Aktif Bergerak Cenderung Cuek dengan Sekitar", "Anak Biasa Saja Tidak Terlalu Aktif", "Anak Aktif Secara Fisik dan Cepat Tanggap" };
+const char* CHILD_RESPONSE_OPTIONS[] = { "Pasif", "Sedang", "Aktif" };
+const char* CHILD_RESPONSE_DESCRIPTIONS[] = { 
+  "Anak Tidak Aktif Bergerak Cenderung Cuek dengan Sekitar", 
+  "Anak Biasa Saja Tidak Terlalu Aktif", 
+  "Anak Aktif Secara Fisik dan Cepat Tanggap" 
+};
 
-int polaMakanNumOptions = 3;
-int polaMakanSelectedOption = 0;
+const int EATING_PATTERN_COUNT = 3;
+const int CHILD_RESPONSE_COUNT = 3;
 
-int responAnakNumOptions = 3;
-int responAnakSelectedOption = 0;
+int selectedEatingPattern = 0;
+int selectedChildResponse = 0;
 
-////////// Sensor Data //////////
-
-float heightPole = 199.0;
-float weight = 0.0;
-float height = 0.0;
-float bmi = 0.0;
+////////// Sensor Configuration & Data //////////
+float SENSOR_HEIGHT_POLE = 199.0;
+volatile float currentWeight = 0.0;
+volatile float currentHeight = 0.0;
+volatile bool newSensorData = false;
