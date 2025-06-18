@@ -60,9 +60,6 @@ void processGlobalSession() {
     lastSync = millis();
 
     String sessionResponse = firestoreClient.getDocument("systemStatus/hardware", "", true);
-    Serial.print("| sessionResponse: ");
-    Serial.print(sessionResponse);
-    Serial.println();
     JsonDocument sessionDoc;
     deserializeJson(sessionDoc, sessionResponse);
 
@@ -88,10 +85,20 @@ void processSessionData(JsonDocument& sessionDoc) {
       currentSession.userId = sessionDoc["fields"]["currentUserId"]["stringValue"].as<String>();
       currentSession.userName = sessionDoc["fields"]["currentUserName"]["stringValue"].as<String>();
 
+      Serial.print("| Parsed sessionType: '");
+      Serial.print(currentSession.sessionType);
+      Serial.print("' length: ");
+      Serial.println(currentSession.sessionType.length());
+
       if (currentSession.sessionType == "weighing") {
+        Serial.println("| Entering weighing session");
         handleWeighingSession(sessionDoc);
       } else if (currentSession.sessionType == "rfid") {
+        Serial.println("| Entering RFID pairing session");
         handleRFIDPairingSession();
+      } else {
+        Serial.print("| Unknown session type: ");
+        Serial.println(currentSession.sessionType);
       }
     } else {
       if (currentSession.isActive) {
@@ -119,10 +126,12 @@ void handleWeighingSession(JsonDocument& sessionDoc) {
 }
 
 void handleRFIDPairingSession() {
+  Serial.println("| handleRFIDPairingSession() called - changing to SYSTEM_RFID_PAIRING");
   changeSystemState(SYSTEM_RFID_PAIRING);
 
   if (xSemaphoreTake(dataReadyMutex, pdMS_TO_TICKS(10)) == pdTRUE) {
     if (!currentRfidTag.isEmpty()) {
+      Serial.println("| RFID tag detected, updating session");
       updateGlobalSessionRFID(currentRfidTag);
       currentRfidTag = "";
     }

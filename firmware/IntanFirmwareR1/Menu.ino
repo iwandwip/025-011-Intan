@@ -52,11 +52,13 @@ void displayIdleScreen() {
 }
 
 void displayRFIDPairingScreen() {
+  Serial.println("| displayRFIDPairingScreen() called - showing RFID pairing screen");
   const char* pairingLines[] = { "RFID Pairing Mode", "Tap your RFID card", "to pair device" };
   displayMenu.renderBoxedText(pairingLines, 3);
 
   if (xSemaphoreTake(dataReadyMutex, pdMS_TO_TICKS(5)) == pdTRUE) {
     if (!currentRfidTag.isEmpty()) {
+      Serial.println("| RFID tag detected in pairing mode");
       const char* detectedLines[] = { "RFID Detected!", currentRfidTag.c_str(), "Processing..." };
       displayMenu.renderBoxedText(detectedLines, 3);
       statusLed.on();
