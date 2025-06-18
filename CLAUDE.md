@@ -28,7 +28,7 @@ npm run web        # Run in web browser
 npm run clear
 
 # Test ESP32 simulator
-npm run test:esp32
+npm run test
 
 # Build for deployment (using EAS)
 eas build --platform android --profile preview
@@ -116,7 +116,7 @@ userData/
 - **Kinematrix Framework**: Custom Arduino framework for ESP32 development
 - **Firebase Admin SDK**: Hardware uses service account for Firebase access
 - **Hardware Testing**: Individual component test firmware available in `firmware/Testing/`
-- **ESP32 Simulator**: JavaScript-based simulator available for testing hardware integration (`npm run test:esp32`)
+- **ESP32 Simulator**: JavaScript-based simulator available for testing hardware integration (`npm run test`)
 
 ### Firebase Configuration
 - **Project ID**: `intan-680a4`
