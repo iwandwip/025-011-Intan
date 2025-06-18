@@ -14,6 +14,7 @@ const getRandomElement = (array) => {
 export const generateRandomMeasurement = () => {
   const weight = getRandomInRange(15, 45, 1);
   const height = getRandomInRange(90, 130, 0);
+  const imt = weight / ((height / 100) * (height / 100));
   const nutritionStatus = getRandomElement(nutritionStatuses);
   const eatingPattern = getRandomElement(eatingPatterns);
   const childResponse = getRandomElement(childResponses);
@@ -21,6 +22,7 @@ export const generateRandomMeasurement = () => {
   return {
     weight,
     height,
+    imt: parseFloat(imt.toFixed(1)),
     nutritionStatus,
     eatingPattern,
     childResponse

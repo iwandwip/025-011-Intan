@@ -75,6 +75,7 @@ export default function TimbangScreen() {
       const measurementData = {
         weight: data.weight,
         height: data.height,
+        imt: data.imt || 0,
         nutritionStatus: data.nutritionStatus,
         eatingPattern: data.eatingPattern,
         childResponse: data.childResponse,

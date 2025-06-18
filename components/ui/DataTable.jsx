@@ -80,22 +80,42 @@ const DataTable = ({ headers, data, onEdit, onDelete, keyExtractor }) => {
                 <Text style={styles.cellText}>{row.dateTime}</Text>
               </View>
               <View style={[styles.dataCell, styles.column1]}>
-                <Text style={styles.cellText}>{row.weight}</Text>
-              </View>
-              <View style={[styles.dataCell, styles.column2]}>
-                <Text style={styles.cellText}>{row.height}</Text>
-              </View>
-              <View style={[styles.dataCell, styles.column3]}>
                 <Text style={styles.cellText}>
-                  {row.ageYears !== undefined ? `${row.ageYears}th ${row.ageMonths || 0}bl` : 'N/A'}
+                  {row.ageYears !== undefined ? `${row.ageYears}` : 'N/A'}
                 </Text>
               </View>
-              <View style={[styles.dataCell, styles.column4]}>
+              <View style={[styles.dataCell, styles.column2]}>
+                <Text style={styles.cellText}>
+                  {row.ageMonths !== undefined ? `${row.ageMonths}` : 'N/A'}
+                </Text>
+              </View>
+              <View style={[styles.dataCell, styles.column3]}>
                 <Text style={styles.cellText}>
                   {row.gender === 'male' ? 'L' : row.gender === 'female' ? 'P' : 'N/A'}
                 </Text>
               </View>
+              <View style={[styles.dataCell, styles.column4]}>
+                <Text style={styles.cellText}>{row.weight}</Text>
+              </View>
               <View style={[styles.dataCell, styles.column5]}>
+                <Text style={styles.cellText}>{row.height}</Text>
+              </View>
+              <View style={[styles.dataCell, styles.column6]}>
+                <Text style={styles.cellText}>
+                  {row.imt !== undefined ? row.imt.toFixed(1) : 'N/A'}
+                </Text>
+              </View>
+              <View style={[styles.dataCell, styles.column7]}>
+                <Text style={styles.cellText}>
+                  {row.eatingPattern || 'N/A'}
+                </Text>
+              </View>
+              <View style={[styles.dataCell, styles.column8]}>
+                <Text style={styles.cellText}>
+                  {row.childResponse || 'N/A'}
+                </Text>
+              </View>
+              <View style={[styles.dataCell, styles.column9]}>
                 <Text
                   style={[
                     styles.cellText,
@@ -106,7 +126,7 @@ const DataTable = ({ headers, data, onEdit, onDelete, keyExtractor }) => {
                   {row.nutritionStatus}
                 </Text>
               </View>
-              <View style={[styles.dataCell, styles.column6]}>
+              <View style={[styles.dataCell, styles.column10]}>
                 {renderActionButtons(row, rowIndex)}
               </View>
             </View>
@@ -200,24 +220,36 @@ const styles = StyleSheet.create({
     fontSize: 14,
   },
   column0: {
-    width: 110,  // Tanggal - sedikit dikurangi
+    width: 130,  // Tanggal & Waktu
   },
   column1: {
-    width: 65,   // Berat
+    width: 50,   // Usia (tahun)
   },
   column2: {
-    width: 65,   // Tinggi
+    width: 50,   // Usia (bulan)
   },
   column3: {
-    width: 75,   // Usia
+    width: 70,   // Jenis Kelamin
   },
   column4: {
-    width: 70,   // Gender
+    width: 60,   // Berat Badan (kg)
   },
   column5: {
-    width: 100,  // Status Gizi
+    width: 60,   // Tinggi Badan (cm)
   },
   column6: {
+    width: 50,   // IMT
+  },
+  column7: {
+    width: 80,   // Pola Makan
+  },
+  column8: {
+    width: 80,   // Respon Anak
+  },
+  column9: {
+    width: 100,  // Status Gizi
+  },
+  column10: {
     width: 90,   // Actions
   },
 });

@@ -31,6 +31,7 @@ export const initializeSystemStatus = async () => {
         gender: '',
         weight: 0,
         height: 0,
+        imt: 0,
         nutritionStatus: '',
         measurementComplete: false,
         
@@ -113,6 +114,7 @@ export const endGlobalSession = async () => {
       gender: '',
       weight: 0,
       height: 0,
+      imt: 0,
       nutritionStatus: '',
       measurementComplete: false,
       
@@ -166,6 +168,7 @@ export const startWeighingSession = async (userId, userName, userRfid, selection
       gender: userProfile.gender,
       weight: 0,
       height: 0,
+      imt: 0,
       nutritionStatus: '',
       measurementComplete: false,
     }

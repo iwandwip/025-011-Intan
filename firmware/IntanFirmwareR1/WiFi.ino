@@ -150,12 +150,15 @@ void handleRFIDDetection() {
 }
 
 void updateGlobalSessionData(float weightValue, float heightValue, String nutritionStatus, String eatingPattern, String childResponse) {
+  float imt = calculateIMT(weightValue, heightValue);
   JsonDocument updateDoc;
   JsonObject fields = updateDoc.createNestedObject("fields");
   JsonObject weightField = fields.createNestedObject("weight");
   weightField["doubleValue"] = weightValue;
   JsonObject heightField = fields.createNestedObject("height");
   heightField["doubleValue"] = heightValue;
+  JsonObject imtField = fields.createNestedObject("imt");
+  imtField["doubleValue"] = imt;
   JsonObject nutritionField = fields.createNestedObject("nutritionStatus");
   nutritionField["stringValue"] = nutritionStatus;
   JsonObject eatingField = fields.createNestedObject("eatingPattern");
@@ -168,7 +171,7 @@ void updateGlobalSessionData(float weightValue, float heightValue, String nutrit
   activityField["timestampValue"] = dateTimeManager.getISO8601Time();
   String updateDocStr;
   serializeJson(updateDoc, updateDocStr);
-  firestoreClient.updateDocument("systemStatus/hardware", updateDocStr, "weight,height,nutritionStatus,eatingPattern,childResponse,measurementComplete,lastActivity", true);
+  firestoreClient.updateDocument("systemStatus/hardware", updateDocStr, "weight,height,imt,nutritionStatus,eatingPattern,childResponse,measurementComplete,lastActivity", true);
 }
 
 void updateGlobalSessionRFID(String rfidValue) {

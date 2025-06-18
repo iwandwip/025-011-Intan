@@ -377,6 +377,9 @@ export default function UserDetail() {
     dateTime: formatDateTime(item.dateTime),
     weight: `${item.weight} kg`,
     height: `${item.height} cm`,
+    imt: item.imt || 0,
+    eatingPattern: item.eatingPattern || 'N/A',
+    childResponse: item.childResponse || 'N/A',
     nutritionStatus: item.nutritionStatus,
   }));
 
@@ -538,7 +541,7 @@ export default function UserDetail() {
         <View style={styles.tableContainer}>
           {tableData.length > 0 ? (
             <DataTable
-              headers={["Tanggal & Waktu", "Berat", "Tinggi", "Usia", "Gender", "Status", "Aksi"]}
+              headers={["Tanggal & Waktu", "Usia (th)", "Usia (bl)", "Gender", "Berat (kg)", "Tinggi (cm)", "IMT", "Pola Makan", "Respon Anak", "Status Gizi", "Aksi"]}
               data={tableData}
               onEdit={() => {}}
               onDelete={() => {}}

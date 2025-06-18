@@ -84,16 +84,18 @@ const generateMeasurementsTableHTML = (measurements) => {
 
   const tableRows = measurements.map((measurement, index) => `
     <tr style="background-color: ${index % 2 === 0 ? '#ffffff' : '#f9fafb'};">
-      <td style="padding: 12px; border: 1px solid #e5e7eb; text-align: center;">${formatDateTime(measurement.dateTime)}</td>
-      <td style="padding: 12px; border: 1px solid #e5e7eb; text-align: center;">${measurement.weight} kg</td>
-      <td style="padding: 12px; border: 1px solid #e5e7eb; text-align: center;">${measurement.height} cm</td>
-      <td style="padding: 12px; border: 1px solid #e5e7eb; text-align: center;">
-        ${measurement.ageYears ? `${measurement.ageYears}th ${measurement.ageMonths || 0}bl` : 'N/A'}
-      </td>
-      <td style="padding: 12px; border: 1px solid #e5e7eb; text-align: center;">
+      <td style="padding: 10px; border: 1px solid #e5e7eb; text-align: center; font-size: 10px;">${formatDateTime(measurement.dateTime)}</td>
+      <td style="padding: 10px; border: 1px solid #e5e7eb; text-align: center; font-size: 10px;">${measurement.ageYears || 'N/A'}</td>
+      <td style="padding: 10px; border: 1px solid #e5e7eb; text-align: center; font-size: 10px;">${measurement.ageMonths || 'N/A'}</td>
+      <td style="padding: 10px; border: 1px solid #e5e7eb; text-align: center; font-size: 10px;">
         ${measurement.gender === 'male' ? 'L' : measurement.gender === 'female' ? 'P' : 'N/A'}
       </td>
-      <td style="padding: 12px; border: 1px solid #e5e7eb; text-align: center; color: ${getStatusColor(measurement.nutritionStatus)}; font-weight: 500;">
+      <td style="padding: 10px; border: 1px solid #e5e7eb; text-align: center; font-size: 10px;">${measurement.weight} kg</td>
+      <td style="padding: 10px; border: 1px solid #e5e7eb; text-align: center; font-size: 10px;">${measurement.height} cm</td>
+      <td style="padding: 10px; border: 1px solid #e5e7eb; text-align: center; font-size: 10px;">${measurement.imt ? measurement.imt.toFixed(1) : 'N/A'}</td>
+      <td style="padding: 10px; border: 1px solid #e5e7eb; text-align: center; font-size: 10px;">${measurement.eatingPattern || 'N/A'}</td>
+      <td style="padding: 10px; border: 1px solid #e5e7eb; text-align: center; font-size: 10px;">${measurement.childResponse || 'N/A'}</td>
+      <td style="padding: 10px; border: 1px solid #e5e7eb; text-align: center; color: ${getStatusColor(measurement.nutritionStatus)}; font-weight: 500; font-size: 10px;">
         ${measurement.nutritionStatus}
       </td>
     </tr>
@@ -105,12 +107,16 @@ const generateMeasurementsTableHTML = (measurements) => {
       <table style="width: 100%; border-collapse: collapse; border: 1px solid #e5e7eb;">
         <thead>
           <tr style="background-color: #7C3AED; color: white;">
-            <th style="padding: 12px; border: 1px solid #e5e7eb; text-align: center;">Tanggal & Waktu</th>
-            <th style="padding: 12px; border: 1px solid #e5e7eb; text-align: center;">Berat</th>
-            <th style="padding: 12px; border: 1px solid #e5e7eb; text-align: center;">Tinggi</th>
-            <th style="padding: 12px; border: 1px solid #e5e7eb; text-align: center;">Usia</th>
-            <th style="padding: 12px; border: 1px solid #e5e7eb; text-align: center;">Gender</th>
-            <th style="padding: 12px; border: 1px solid #e5e7eb; text-align: center;">Status Gizi</th>
+            <th style="padding: 10px; border: 1px solid #e5e7eb; text-align: center; font-size: 10px;">Tanggal & Waktu</th>
+            <th style="padding: 10px; border: 1px solid #e5e7eb; text-align: center; font-size: 10px;">Usia (th)</th>
+            <th style="padding: 10px; border: 1px solid #e5e7eb; text-align: center; font-size: 10px;">Usia (bl)</th>
+            <th style="padding: 10px; border: 1px solid #e5e7eb; text-align: center; font-size: 10px;">Gender</th>
+            <th style="padding: 10px; border: 1px solid #e5e7eb; text-align: center; font-size: 10px;">Berat (kg)</th>
+            <th style="padding: 10px; border: 1px solid #e5e7eb; text-align: center; font-size: 10px;">Tinggi (cm)</th>
+            <th style="padding: 10px; border: 1px solid #e5e7eb; text-align: center; font-size: 10px;">IMT</th>
+            <th style="padding: 10px; border: 1px solid #e5e7eb; text-align: center; font-size: 10px;">Pola Makan</th>
+            <th style="padding: 10px; border: 1px solid #e5e7eb; text-align: center; font-size: 10px;">Respon Anak</th>
+            <th style="padding: 10px; border: 1px solid #e5e7eb; text-align: center; font-size: 10px;">Status Gizi</th>
           </tr>
         </thead>
         <tbody>
