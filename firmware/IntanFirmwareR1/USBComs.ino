@@ -1,3 +1,4 @@
+
 void handleUSBCommand(const String& receivedData) {
   String data = receivedData;
   String commandHeader = serialCommunication.getStrData(receivedData, 0, "#");

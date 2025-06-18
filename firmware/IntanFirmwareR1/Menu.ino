@@ -1,3 +1,4 @@
+
 void displayMenuCallback() {
   if (needDisplayUpdate) {
     currentSystemState = pendingSystemState;
@@ -26,10 +27,12 @@ void displayMenuCallback() {
       break;
   }
 }
+
 void displayStartupScreen() {
   const char* startupLines[] = { "SISTEM DIMULAI", "MOHON TUNGGU...", "KONEKSI KE WIFI" };
   displayMenu.renderBoxedText(startupLines, 3);
 }
+
 void displayIdleScreen() {
   if (!systemInitialized) {
     displayStartupScreen();
@@ -46,6 +49,7 @@ void displayIdleScreen() {
     forceFirebaseSync = true;
   }
 }
+
 void displayRFIDPairingScreen() {
   const char* pairingLines[] = { "MODE PAIRING RFID", "TAP KARTU RFID", "UNTUK PAIRING" };
   displayMenu.renderBoxedText(pairingLines, 3);
@@ -59,6 +63,7 @@ void displayRFIDPairingScreen() {
     backToIdleState();
   }
 }
+
 void displayWeighingScreen() {
   switch (currentWeighingState) {
     case WEIGHING_RFID_CONFIRMATION:
@@ -87,6 +92,7 @@ void displayWeighingScreen() {
       break;
   }
 }
+
 void displayWeighingRFIDConfirmation() {
   static bool timerInitialized = false;
   if (!timerInitialized) {
@@ -117,10 +123,12 @@ void displayWeighingRFIDConfirmation() {
     }
   }
 }
+
 void displayWeighingRFIDError() {
   const char* errorLines[] = { "RFID SALAH!", "AKSES DITOLAK", "SESI AKAN RESET", "DALAM 3 DETIK..." };
   displayMenu.renderBoxedText(errorLines, 4);
 }
+
 void displayWeighingRFIDConfirmWait() {
   String userInfo = "PENGGUNA: " + currentSessionUser.childName;
   userInfo.toUpperCase();
@@ -135,6 +143,7 @@ void displayWeighingRFIDConfirmWait() {
     backToIdleState();
   }
 }
+
 void displayWeighingGetWeight() {
   String weightStr = String(currentWeight, 1) + " KG";
   if (testingModeEnabled) {
@@ -156,6 +165,7 @@ void displayWeighingGetWeight() {
     backToIdleState();
   }
 }
+
 void displayWeighingGetHeight() {
   String heightStr = String(currentHeight, 1) + " CM";
   if (testingModeEnabled) {
@@ -175,6 +185,7 @@ void displayWeighingGetHeight() {
     currentWeighingState = WEIGHING_GET_WEIGHT;
   }
 }
+
 void displayWeighingValidateData() {
   String weightInfo = "BERAT: " + String(currentMeasurement.weight, 1) + " KG";
   String heightInfo = "TINGGI: " + String(currentMeasurement.height, 1) + " CM";
@@ -191,6 +202,7 @@ void displayWeighingValidateData() {
     currentWeighingState = WEIGHING_GET_HEIGHT;
   }
 }
+
 void displayWeighingSendData() {
   const char* sendingLines[] = { "MENGIRIM DATA", "KE SERVER", "MOHON TUNGGU..." };
   displayMenu.renderBoxedText(sendingLines, 3);
@@ -205,6 +217,7 @@ void displayWeighingSendData() {
     childResponse);
   currentWeighingState = WEIGHING_COMPLETE;
 }
+
 void displayWeighingComplete() {
   const char* completeLines[] = { "PENGUKURAN", "SELESAI!", "CEK APLIKASI ANDA" };
   displayMenu.renderBoxedText(completeLines, 3);
@@ -213,6 +226,7 @@ void displayWeighingComplete() {
     backToIdleState();
   }
 }
+
 void displayQuickMeasureScreen() {
   static auto quickMeasureMenu = displayMenu.createMenu(4, "UKUR", "KALIBRASI", "TARE", "KEMBALI");
   displayMenu.onSelect(quickMeasureMenu, "UKUR", []() {
@@ -241,6 +255,7 @@ void displayQuickMeasureScreen() {
   });
   displayMenu.showMenu(quickMeasureMenu);
 }
+
 void displayAdminScreen() {
   const char* adminLines[] = { "MODE ADMIN", "HARDWARE SIAP", "TEKAN TOMBOL KELUAR" };
   displayMenu.renderBoxedText(adminLines, 3);
@@ -248,6 +263,7 @@ void displayAdminScreen() {
     backToIdleState();
   }
 }
+
 void performLoadCellCalibration() {
   auto loadCell = sensorManager.getModule<HX711Sens>("loadcell");
   const char* step1Lines[] = { "KALIBRASI", "LEPAS SEMUA OBJEK", "DARI TIMBANGAN" };
@@ -267,12 +283,14 @@ void performLoadCellCalibration() {
   delay(3000);
   loadCell->tare();
 }
+
 void performLoadCellTare() {
   auto loadCell = sensorManager.getModule<HX711Sens>("loadcell");
   loadCell->tare();
   displayMenu.renderStatusScreen("TARE", "BERHASIL", true);
   delay(2000);
 }
+
 void backToIdleState() {
   changeSystemState(SYSTEM_IDLE);
   currentWeighingState = WEIGHING_IDLE;
@@ -284,6 +302,7 @@ void backToIdleState() {
   currentMeasurement = emptyMeasurement;
   systemBuzzer.toggleInit(100, 2);
 }
+
 void initializeDisplayCallback() {
   const char* initLines[] = { "SISTEM INTAN", "MENGINISIALISASI...", "MOHON TUNGGU" };
   displayMenu.renderBoxedText(initLines, 3);

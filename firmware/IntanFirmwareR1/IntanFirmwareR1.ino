@@ -1,4 +1,5 @@
 #include "Header.h"
+
 void setup() {
   serialCommunication.begin(&Serial, 115200);
   Serial.println("=== INTAN System Starting ===");
@@ -14,6 +15,7 @@ void setup() {
   systemBuzzer.toggleInit(100, 5);
   Serial.println("=== System Ready ===");
 }
+
 void loop() {
   updateSensorData();
   handleUserInput();
@@ -22,6 +24,7 @@ void loop() {
   DigitalIn::updateAll(&confirmButton, &navigateButton, DigitalIn::stop());
   DigitalOut::updateAll(&systemBuzzer, DigitalOut::stop());
 }
+
 void initializeSensorModules() {
   sensorManager.addModule("rfid", new RFID_Mfrc522(5, 27));
   sensorManager.addModule("ultrasonic", new UltrasonicSens(32, 33, 200, 1, 1, 1000, 10));
@@ -36,6 +39,7 @@ void initializeSensorModules() {
     Serial.printf("Load cell calibration: %.2f\n", calibrationFactor);
   });
 }
+
 void updateSensorData() {
   if (testingModeEnabled) {
     currentRfidTag = testRfidTag;
@@ -64,6 +68,7 @@ void updateSensorData() {
     });
   }
 }
+
 void handleUserInput() {
   MenuCursor cursor{
     .up = false,
@@ -74,6 +79,7 @@ void handleUserInput() {
   };
   displayMenu.onListen(&cursor, displayMenuCallback);
 }
+
 void updateDisplayInterface() {
   if (needDisplayUpdate) {
     currentSystemState = pendingSystemState;
@@ -102,11 +108,13 @@ void updateDisplayInterface() {
       break;
   }
 }
+
 float calculateBMI(float weight, float height) {
   if (height <= 0 || weight <= 0) return 0.0;
   float bmi = weight / ((height / 100) * (height / 100));
   return (isinf(bmi) || isnan(bmi)) ? 0.0 : bmi;
 }
+
 String getBMICategory(float bmi) {
   if (bmi < 18.5)
     return "gizi kurang";
@@ -117,6 +125,7 @@ String getBMICategory(float bmi) {
   else
     return "obesitas";
 }
+
 String getNutritionStatusFromSession() {
   return getNutritionStatus(
     currentMeasurement.weight,
@@ -127,6 +136,7 @@ String getNutritionStatusFromSession() {
     currentSession.eatingPattern,
     currentSession.childResponse);
 }
+
 void changeSystemState(SystemState newState) {
   pendingSystemState = newState;
   needDisplayUpdate = true;

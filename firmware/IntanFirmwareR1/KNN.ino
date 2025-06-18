@@ -1,4 +1,5 @@
 KNN nutritionKNN(5, 8, 120);
+
 void initKNNMethods() {
   Serial.println("Initializing KNN Nutrition Status Model...");
   nutritionKNN.setDistanceMetric(EUCLIDEAN);
@@ -7,6 +8,7 @@ void initKNNMethods() {
   addNutritionTrainingData();
   Serial.println("KNN Model initialized with training data");
 }
+
 String getNutritionStatus(float weight, float height, int ageYears, int ageMonths, String gender, String eatingPattern, String childResponse) {
   Gender genderEnum = encodeGender(gender);
   PolaMakan eatingPatternEnum = encodeEatingPattern(eatingPattern);
@@ -31,6 +33,7 @@ String getNutritionStatus(float weight, float height, int ageYears, int ageMonth
   Serial.println("%)");
   return String(prediction);
 }
+
 void addNutritionTrainingData() {
   Serial.println("Adding nutrition training data from dataset.csv in exact row order...");
   addTrainingDataPoint(6, 5, PEREMPUAN, 29.6, 110.1, CUKUP, PASIF, "obesitas");
@@ -136,6 +139,7 @@ void addNutritionTrainingData() {
   Serial.print("Total training data added: ");
   Serial.println(nutritionKNN.getDataCount());
 }
+
 void addTrainingDataPoint(int ageYears, int ageMonths, Gender gender, float weight, float height, PolaMakan eatingPattern, ResponAnak childResponse, const char* statusGizi) {
   float imt = calculateIMT(weight, height);
   float features[] = {
@@ -150,29 +154,34 @@ void addTrainingDataPoint(int ageYears, int ageMonths, Gender gender, float weig
   };
   nutritionKNN.addTrainingData(statusGizi, features);
 }
+
 float calculateIMT(float weight, float height) {
   if (height <= 0) return 0.0;
   float heightInMeters = height / 100.0;
   return weight / (heightInMeters * heightInMeters);
 }
+
 Gender encodeGender(String gender) {
   if (gender.equals("male") || gender.equals("laki-laki") || gender.equals("Laki-laki") || gender.equals("L")) {
     return LAKI_LAKI;
   }
   return PEREMPUAN;
 }
+
 PolaMakan encodeEatingPattern(String pattern) {
   if (pattern.equals("kurang") || pattern.equals("Kurang")) return KURANG;
   if (pattern.equals("cukup") || pattern.equals("Cukup")) return CUKUP;
   if (pattern.equals("berlebih") || pattern.equals("Berlebih")) return BERLEBIH;
   return CUKUP;
 }
+
 ResponAnak encodeChildResponse(String response) {
   if (response.equals("pasif") || response.equals("Pasif")) return PASIF;
   if (response.equals("sedang") || response.equals("Sedang")) return SEDANG;
   if (response.equals("aktif") || response.equals("Aktif")) return AKTIF;
   return SEDANG;
 }
+
 StatusGizi encodeNutritionStatus(String status) {
   if (status.equals("gizi buruk") || status.equals("Gizi Buruk")) return GIZI_BURUK;
   if (status.equals("gizi kurang") || status.equals("Gizi Kurang")) return GIZI_KURANG;
@@ -181,6 +190,7 @@ StatusGizi encodeNutritionStatus(String status) {
   if (status.equals("obesitas") || status.equals("Obesitas")) return OBESITAS;
   return GIZI_BAIK;
 }
+
 String nutritionStatusToString(StatusGizi status) {
   switch (status) {
     case GIZI_BURUK: return "gizi buruk";
