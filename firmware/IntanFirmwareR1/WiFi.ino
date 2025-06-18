@@ -60,6 +60,9 @@ void processGlobalSession() {
     lastSync = millis();
 
     String sessionResponse = firestoreClient.getDocument("systemStatus/hardware", "", true);
+    Serial.print("| sessionResponse: ");
+    Serial.print(sessionResponse);
+    Serial.println();
     JsonDocument sessionDoc;
     deserializeJson(sessionDoc, sessionResponse);
 

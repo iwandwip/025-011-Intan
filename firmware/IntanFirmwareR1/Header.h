@@ -100,6 +100,12 @@ uint32_t lastFirebaseSync = 0;
 bool forceFirebaseSync = true;
 bool systemInitialized = false;
 
+////////// Testing Mode Variables //////////
+bool testingModeEnabled = false;
+String testRfidTag = "";
+float testWeight = 0.0;
+float testHeight = 0.0;
+
 ////////// Session Management //////////
 struct ActiveSession {
   String sessionType;

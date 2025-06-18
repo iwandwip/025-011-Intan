@@ -65,27 +65,39 @@ void initializeSensorModules() {
 }
 
 void updateSensorData() {
-  sensorManager.update([]() {
+  if (testingModeEnabled) {
+    // In testing mode, use manual values instead of sensors
     if (xSemaphoreTake(dataReadyMutex, pdMS_TO_TICKS(10)) == pdTRUE) {
-      String newRfidTag = sensorManager["rfid"].as<String>();
-      float rawWeight = sensorManager["loadcell"];
-      float rawHeight = sensorManager["ultrasonic"];
-
-      rawHeight = SENSOR_HEIGHT_POLE - rawHeight;
-      rawHeight = constrain(rawHeight, 0, SENSOR_HEIGHT_POLE);
-
-      weightFilter.addMeasurement(rawWeight);
-      rawWeight = abs(weightFilter.getFilteredValue());
-      rawWeight = rawWeight < 1.0 ? 0.0 : rawWeight;
-
-      currentRfidTag = newRfidTag;
-      currentWeight = rawWeight;
-      currentHeight = rawHeight;
+      currentRfidTag = testRfidTag;
+      currentWeight = testWeight;
+      currentHeight = testHeight;
       newSensorData = true;
-
       xSemaphoreGive(dataReadyMutex);
     }
-  });
+  } else {
+    // Normal sensor operation
+    sensorManager.update([]() {
+      if (xSemaphoreTake(dataReadyMutex, pdMS_TO_TICKS(10)) == pdTRUE) {
+        String newRfidTag = sensorManager["rfid"].as<String>();
+        float rawWeight = sensorManager["loadcell"];
+        float rawHeight = sensorManager["ultrasonic"];
+
+        rawHeight = SENSOR_HEIGHT_POLE - rawHeight;
+        rawHeight = constrain(rawHeight, 0, SENSOR_HEIGHT_POLE);
+
+        weightFilter.addMeasurement(rawWeight);
+        rawWeight = abs(weightFilter.getFilteredValue());
+        rawWeight = rawWeight < 1.0 ? 0.0 : rawWeight;
+
+        currentRfidTag = newRfidTag;
+        currentWeight = rawWeight;
+        currentHeight = rawHeight;
+        newSensorData = true;
+
+        xSemaphoreGive(dataReadyMutex);
+      }
+    });
+  }
 }
 
 void handleUserInput() {

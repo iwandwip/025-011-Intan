@@ -35,8 +35,13 @@ void displayIdleScreen() {
     return;
   }
 
-  const char* idleLines[] = { "System Ready", "Please select menu", "on your app" };
-  displayMenu.renderBoxedText(idleLines, 3);
+  if (testingModeEnabled) {
+    const char* idleLines[] = { "System Ready", "[TEST MODE]", "Use USB commands" };
+    displayMenu.renderBoxedText(idleLines, 3);
+  } else {
+    const char* idleLines[] = { "System Ready", "Please select menu", "on your app" };
+    displayMenu.renderBoxedText(idleLines, 3);
+  }
 
   if (xSemaphoreTake(dataReadyMutex, pdMS_TO_TICKS(5)) == pdTRUE) {
     if (!currentRfidTag.isEmpty()) {
@@ -102,6 +107,9 @@ void displayWeighingRFIDConfirmation() {
 
 void displayWeighingGetWeight() {
   String weightStr = String(currentWeight, 1) + " Kg";
+  if (testingModeEnabled) {
+    weightStr += " [TEST]";
+  }
   String patternInfo = "Pattern: " + getEatingPatternString(currentMeasurement.eatingPatternIndex);
   String responseInfo = "Response: " + getChildResponseString(currentMeasurement.childResponseIndex);
 
@@ -122,6 +130,9 @@ void displayWeighingGetWeight() {
 
 void displayWeighingGetHeight() {
   String heightStr = String(currentHeight, 1) + " cm";
+  if (testingModeEnabled) {
+    heightStr += " [TEST]";
+  }
   String childInfo = currentSessionUser.childName + " (" + currentSessionUser.gender + ")";
 
   const char* heightLines[] = { "Get Height", childInfo.c_str(), heightStr.c_str(), "Press OK to confirm" };
