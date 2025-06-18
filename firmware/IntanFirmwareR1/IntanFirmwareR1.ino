@@ -65,6 +65,11 @@ void updateSensorData() {
         Serial.print(currentRfidTag);
         Serial.println();
       }
+      // Serial.print("| currentWeight: ");
+      // Serial.print(currentWeight);
+      // Serial.print("| currentHeight: ");
+      // Serial.print(currentHeight);
+      // Serial.println();
     });
   }
 }

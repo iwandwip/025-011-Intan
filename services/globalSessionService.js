@@ -23,6 +23,14 @@ export const initializeSystemStatus = async () => {
         startTime: null,
         lastActivity: null,
         
+        // App-controlled weighing fields
+        appControlled: false,
+        currentStep: 'idle', // idle, rfid_detected, weighing, height, confirm
+        nextAction: '', // continue, confirm, cancel
+        realTimeWeight: 0,
+        realTimeHeight: 0,
+        rfidVerificationFailed: false,
+        
         eatingPattern: '',
         childResponse: '',
         userRfid: '',
@@ -106,6 +114,14 @@ export const endGlobalSession = async () => {
       startTime: null,
       lastActivity: null,
       
+      // Reset app-controlled weighing fields
+      appControlled: false,
+      currentStep: 'idle',
+      nextAction: '',
+      realTimeWeight: 0,
+      realTimeHeight: 0,
+      rfidVerificationFailed: false,
+      
       eatingPattern: '',
       childResponse: '',
       userRfid: '',
@@ -166,6 +182,15 @@ export const startWeighingSession = async (userId, userName, userRfid, selection
       ageYears: userProfile.ageYears,
       ageMonths: userProfile.ageMonths,
       gender: userProfile.gender,
+      
+      // App-controlled weighing initialization
+      appControlled: true,
+      currentStep: 'idle',
+      nextAction: '',
+      realTimeWeight: 0,
+      realTimeHeight: 0,
+      rfidVerificationFailed: false,
+      
       weight: 0,
       height: 0,
       imt: 0,
@@ -184,4 +209,44 @@ export const startRfidSession = async (userId, userName) => {
       rfid: '',
     }
   );
+};
+
+// App-controlled weighing functions
+export const sendWeighingAction = async (action, step = null) => {
+  try {
+    if (!db) {
+      throw new Error('Firestore is not initialized');
+    }
+
+    const systemRef = doc(db, SYSTEM_STATUS_DOC);
+    const updateData = {
+      nextAction: action,
+      lastActivity: new Date()
+    };
+
+    if (step) {
+      updateData.currentStep = step;
+    }
+
+    await updateDoc(systemRef, updateData);
+    return { success: true };
+  } catch (error) {
+    return { success: false, error: error.message };
+  }
+};
+
+export const proceedToWeighing = async () => {
+  return await sendWeighingAction('continue', 'weighing');
+};
+
+export const proceedToHeight = async () => {
+  return await sendWeighingAction('continue', 'height');
+};
+
+export const confirmMeasurements = async () => {
+  return await sendWeighingAction('confirm', 'confirm');
+};
+
+export const cancelWeighing = async () => {
+  return await sendWeighingAction('cancel', 'idle');
 };

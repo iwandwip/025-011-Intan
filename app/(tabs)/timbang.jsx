@@ -14,11 +14,16 @@ import Button from "../../components/ui/Button";
 import LoadingSpinner from "../../components/ui/LoadingSpinner";
 import DataSelectionModal from "../../components/ui/DataSelectionModal";
 import WeighingResultModal from "../../components/ui/WeighingResultModal";
+import WeighingControlModal from "../../components/ui/WeighingControlModal";
 import {
   subscribeToSystemStatus,
   startWeighingSession,
   endGlobalSession,
   initializeSystemStatus,
+  proceedToWeighing,
+  proceedToHeight,
+  confirmMeasurements,
+  cancelWeighing,
 } from "../../services/globalSessionService";
 import { addMeasurement } from "../../services/dataService";
 import { updateUserProfile } from "../../services/userService";
@@ -40,6 +45,10 @@ export default function TimbangScreen() {
   const [resultData, setResultData] = useState(null);
   const [loading, setLoading] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
+  
+  // App-controlled weighing states
+  const [weighingControlVisible, setWeighingControlVisible] = useState(false);
+  const [currentWeighingStep, setCurrentWeighingStep] = useState('idle');
 
   useEffect(() => {
     initializeSystemStatus();
@@ -53,6 +62,25 @@ export default function TimbangScreen() {
         const data = doc.data();
         setSystemStatus(data);
 
+        // Handle app-controlled weighing
+        if (
+          data.sessionType === GLOBAL_SESSION_TYPES.WEIGHING &&
+          data.currentUserId === userProfile.id &&
+          data.appControlled
+        ) {
+          handleAppControlledWeighing(data);
+        }
+
+        // Handle RFID verification failure
+        if (
+          data.sessionType === GLOBAL_SESSION_TYPES.WEIGHING &&
+          data.currentUserId === userProfile.id &&
+          data.rfidVerificationFailed
+        ) {
+          handleRFIDVerificationFailed();
+        }
+
+        // Handle measurement completion
         if (
           data.sessionType === GLOBAL_SESSION_TYPES.WEIGHING &&
           data.currentUserId === userProfile.id &&
@@ -67,6 +95,39 @@ export default function TimbangScreen() {
 
     return unsubscribe;
   }, [userProfile?.id]);
+
+  const handleAppControlledWeighing = (data) => {
+    const { currentStep } = data;
+    
+    if (currentStep === 'weighing' || currentStep === 'height' || currentStep === 'confirm') {
+      setCurrentWeighingStep(currentStep);
+      setWeighingControlVisible(true);
+    } else if (currentStep === 'processing') {
+      // Show processing state - ESP32 is calculating
+      setCurrentWeighingStep('processing');
+      setWeighingControlVisible(true);
+    } else {
+      setWeighingControlVisible(false);
+    }
+  };
+
+  const handleRFIDVerificationFailed = async () => {
+    setWeighingControlVisible(false);
+    setCurrentWeighingStep('idle');
+    
+    Alert.alert(
+      "RFID Tidak Cocok",
+      "Kartu RFID yang ditap tidak sesuai dengan akun Anda. Sesi akan direset.",
+      [
+        {
+          text: "OK",
+          onPress: async () => {
+            await endGlobalSession();
+          }
+        }
+      ]
+    );
+  };
 
   const handleWeighingCompleted = async (data) => {
     try {
@@ -143,6 +204,59 @@ export default function TimbangScreen() {
     setSelectionModalVisible(true);
   };
 
+  const handleWeighingProceed = async () => {
+    try {
+      setLoading(true);
+      
+      let result;
+      switch (currentWeighingStep) {
+        case 'weighing':
+          result = await proceedToHeight();
+          break;
+        case 'height':
+          result = await confirmMeasurements();
+          break;
+        case 'confirm':
+          result = await confirmMeasurements();
+          break;
+        default:
+          return;
+      }
+
+      if (!result.success) {
+        Alert.alert("Kesalahan", result.error);
+      }
+    } catch (error) {
+      Alert.alert("Kesalahan", "Gagal melanjutkan pengukuran");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleWeighingCancel = async () => {
+    try {
+      setLoading(true);
+      const result = await cancelWeighing();
+      
+      if (result.success) {
+        setWeighingControlVisible(false);
+        setCurrentWeighingStep('idle');
+        await endGlobalSession();
+        
+        Alert.alert(
+          "Sesi Dibatalkan", 
+          "Pengukuran telah dibatalkan dan sesi direset."
+        );
+      } else {
+        Alert.alert("Kesalahan", result.error);
+      }
+    } catch (error) {
+      Alert.alert("Kesalahan", "Gagal membatalkan pengukuran");
+    } finally {
+      setLoading(false);
+    }
+  };
+
   const handleDataSelection = async (selectionData) => {
     try {
       setLoading(true);
@@ -158,8 +272,10 @@ export default function TimbangScreen() {
         setSelectionModalVisible(false);
         Alert.alert(
           "Siap untuk Timbang",
-          "Silakan tap kartu RFID Anda pada perangkat untuk memulai pengukuran."
+          "Silakan tap kartu RFID Anda pada perangkat untuk memulai pengukuran. ESP32 akan memverifikasi RFID Anda terlebih dahulu."
         );
+        
+        // Don't auto-start weighing - wait for RFID verification from ESP32
       } else {
         Alert.alert("Kesalahan", result.error);
       }
@@ -369,6 +485,16 @@ export default function TimbangScreen() {
           setResultModalVisible(false);
           setResultData(null);
         }}
+      />
+
+      <WeighingControlModal
+        visible={weighingControlVisible}
+        currentStep={currentWeighingStep}
+        realTimeWeight={systemStatus?.realTimeWeight || 0}
+        realTimeHeight={systemStatus?.realTimeHeight || 0}
+        userProfile={userProfile}
+        onProceed={handleWeighingProceed}
+        onCancel={handleWeighingCancel}
       />
     </SafeAreaView>
   );

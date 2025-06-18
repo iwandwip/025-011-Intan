@@ -113,10 +113,14 @@ void displayWeighingRFIDConfirmation() {
     if (currentRfidTag == currentSessionUser.rfidTag) {
       currentWeighingState = WEIGHING_RFID_CONFIRM_WAIT;
       systemBuzzer.toggleInit(100, 2);
+      // Start app-controlled weighing flow
+      startAppControlledWeighing();
       currentRfidTag = "";
     } else {
       displayWeighingRFIDError();
       systemBuzzer.toggleInit(200, 3);
+      // Set RFID verification failed flag
+      setRFIDVerificationFailed();
       currentRfidTag = "";
       delay(3000);
       backToIdleState();
@@ -132,16 +136,9 @@ void displayWeighingRFIDError() {
 void displayWeighingRFIDConfirmWait() {
   String userInfo = "PENGGUNA: " + currentSessionUser.childName;
   userInfo.toUpperCase();
-  const char *confirmLines[] = { "RFID TERKONFIRMASI!", userInfo.c_str(), "TEKAN OK UNTUK", "MULAI TIMBANG" };
+  const char *confirmLines[] = { "RFID TERKONFIRMASI!", userInfo.c_str(), "MENUNGGU APLIKASI", "UNTUK LANJUT..." };
   displayMenu.renderBoxedText(confirmLines, 4);
-  if (confirmButton.isPressed()) {
-    currentWeighingState = WEIGHING_GET_WEIGHT;
-    systemBuzzer.toggleInit(100, 1);
-  }
-  if (navigateButton.isLongPressed(2000)) {
-    navigateButton.resetState();
-    backToIdleState();
-  }
+  forceFirebaseSync = true; // Force sync when RFID confirmed and waiting for app
 }
 
 void displayWeighingGetWeight() {
@@ -153,17 +150,8 @@ void displayWeighingGetWeight() {
   patternInfo.toUpperCase();
   String responseInfo = "RESPON: " + getChildResponseString(currentMeasurement.childResponseIndex);
   responseInfo.toUpperCase();
-  const char *weightLines[] = { "MENGUKUR BERAT", weightStr.c_str(), patternInfo.c_str(), "TEKAN OK KONFIRMASI" };
+  const char *weightLines[] = { "MENGUKUR BERAT", weightStr.c_str(), "KONFIRMASI DI", "APLIKASI ANDA" };
   displayMenu.renderBoxedText(weightLines, 4);
-  if (confirmButton.isPressed()) {
-    currentMeasurement.weight = currentWeight;
-    currentWeighingState = WEIGHING_GET_HEIGHT;
-    systemBuzzer.toggleInit(100, 1);
-  }
-  if (navigateButton.isLongPressed(2000)) {
-    navigateButton.resetState();
-    backToIdleState();
-  }
 }
 
 void displayWeighingGetHeight() {
@@ -173,17 +161,8 @@ void displayWeighingGetHeight() {
   }
   String childInfo = currentSessionUser.childName + " (" + currentSessionUser.gender + ")";
   childInfo.toUpperCase();
-  const char *heightLines[] = { "MENGUKUR TINGGI", childInfo.c_str(), heightStr.c_str(), "TEKAN OK KONFIRMASI" };
+  const char *heightLines[] = { "MENGUKUR TINGGI", childInfo.c_str(), heightStr.c_str(), "KONFIRMASI DI APLIKASI" };
   displayMenu.renderBoxedText(heightLines, 4);
-  if (confirmButton.isPressed()) {
-    currentMeasurement.height = currentHeight;
-    currentWeighingState = WEIGHING_VALIDATE_DATA;
-    systemBuzzer.toggleInit(100, 1);
-  }
-  if (navigateButton.isLongPressed(2000)) {
-    navigateButton.resetState();
-    currentWeighingState = WEIGHING_GET_WEIGHT;
-  }
 }
 
 void displayWeighingValidateData() {
@@ -191,31 +170,37 @@ void displayWeighingValidateData() {
   String heightInfo = "TINGGI: " + String(currentMeasurement.height, 1) + " CM";
   String nutritionStatus = getNutritionStatusFromSession();
   String statusInfo = "Status: " + nutritionStatus;
-  const char *validateLines[] = { "MENGHITUNG...", weightInfo.c_str(), heightInfo.c_str(), "TEKAN OK KIRIM" };
+  const char *validateLines[] = { "MENGHITUNG...", weightInfo.c_str(), heightInfo.c_str(), "KONFIRMASI DI APLIKASI" };
   displayMenu.renderBoxedText(validateLines, 4);
-  if (confirmButton.isPressed()) {
-    currentWeighingState = WEIGHING_SEND_DATA;
-    systemBuzzer.toggleInit(100, 1);
-  }
-  if (navigateButton.isLongPressed(2000)) {
-    navigateButton.resetState();
-    currentWeighingState = WEIGHING_GET_HEIGHT;
-  }
 }
 
+// Global variable for processing timer
+uint32_t processingStartTime = 0;
+
 void displayWeighingSendData() {
-  const char *sendingLines[] = { "MENGIRIM DATA", "KE SERVER", "MOHON TUNGGU..." };
-  displayMenu.renderBoxedText(sendingLines, 3);
-  String nutritionStatus = getNutritionStatusFromSession();
-  String eatingPattern = getEatingPatternString(currentMeasurement.eatingPatternIndex);
-  String childResponse = getChildResponseString(currentMeasurement.childResponseIndex);
-  updateGlobalSessionData(
-    currentMeasurement.weight,
-    currentMeasurement.height,
-    nutritionStatus,
-    eatingPattern,
-    childResponse);
-  currentWeighingState = WEIGHING_COMPLETE;
+  const char *sendingLines[] = { "MENGHITUNG STATUS", "GIZI DENGAN K-NN", "DAPAT DIBATALKAN", "DI APLIKASI" };
+  displayMenu.renderBoxedText(sendingLines, 4);
+  
+  // Add delay to show processing
+  if (processingStartTime == 0) {
+    processingStartTime = millis();
+    forceFirebaseSync = true; // Force sync when processing starts
+  }
+  
+  // Process for 3 seconds to show calculation
+  if (millis() - processingStartTime >= 3000) {
+    String nutritionStatus = getNutritionStatusFromSession();
+    String eatingPattern = getEatingPatternString(currentMeasurement.eatingPatternIndex);
+    String childResponse = getChildResponseString(currentMeasurement.childResponseIndex);
+    updateGlobalSessionData(
+      currentMeasurement.weight,
+      currentMeasurement.height,
+      nutritionStatus,
+      eatingPattern,
+      childResponse);
+    currentWeighingState = WEIGHING_COMPLETE;
+    processingStartTime = 0; // Reset for next time
+  }
 }
 
 void displayWeighingComplete() {
@@ -223,6 +208,7 @@ void displayWeighingComplete() {
   displayMenu.renderBoxedText(completeLines, 3);
   static uint32_t completeTimer = millis();
   if (millis() - completeTimer > 3000) {
+    forceFirebaseSync = true; // Force sync before returning to idle
     backToIdleState();
   }
 }
@@ -301,6 +287,14 @@ void backToIdleState() {
   MeasurementData emptyMeasurement;
   currentMeasurement = emptyMeasurement;
   systemBuzzer.toggleInit(100, 2);
+  // Reset any static timers
+  resetProcessingTimer();
+}
+
+void resetProcessingTimer() {
+  // Reset processing timer when session is cancelled
+  processingStartTime = 0;
+  Serial.println("| Processing timer reset due to cancellation");
 }
 
 void initializeDisplayCallback() {
