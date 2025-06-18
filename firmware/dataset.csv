@@ -1,0 +1,101 @@
+﻿Usia (tahun),Usia (bulan),Jenis Kelamin,Berat Badan (kg),Tinggi Badan (cm),IMT,Pola Makan,Respon Anak,Status Gizi
+6,5,Perempuan,29.6,110.1,24.4,Cukup,Pasif,Obesitas
+5,0,Perempuan,20.2,113.9,15.6,Kurang,Pasif,Gizi Baik
+7,0,Perempuan,25.8,110.4,21.2,Berlebih,Pasif,Obesitas
+6,6,Perempuan,28.8,113.9,22.2,Kurang,Sedang,Obesitas
+6,9,Perempuan,26.8,109.9,22.2,Cukup,Sedang,Obesitas
+6,3,Perempuan,23.2,120.8,15.9,Cukup,Pasif,Gizi Baik
+6,9,Perempuan,26.1,113.9,20.1,Berlebih,Sedang,Obesitas
+5,8,Perempuan,27.2,129.7,16.2,Kurang,Aktif,Gizi Baik
+5,11,Perempuan,32.4,126.5,20.2,Berlebih,Pasif,Obesitas
+6,7,Laki-laki,15.5,111.5,12.5,Kurang,Sedang,Gizi Buruk
+6,3,Laki-laki,15,108.1,12.8,Cukup,Pasif,Gizi Buruk
+6,4,Laki-laki,30.1,117.8,21.7,Berlebih,Sedang,Obesitas
+6,0,Perempuan,25.2,129.5,15,Berlebih,Pasif,Gizi Baik
+6,1,Laki-laki,23.7,105.5,21.3,Kurang,Aktif,Obesitas
+5,10,Perempuan,32.7,112.2,26,Cukup,Pasif,Obesitas
+7,9,Laki-laki,21.1,117,15.4,Cukup,Sedang,Gizi Baik
+6,5,Laki-laki,17.1,105.9,15.2,Kurang,Sedang,Gizi Baik
+6,11,Perempuan,16.9,120.6,11.6,Berlebih,Pasif,Gizi Buruk
+5,8,Laki-laki,23.5,100.8,23.1,Berlebih,Aktif,Obesitas
+6,9,Perempuan,17.1,121.2,11.6,Kurang,Pasif,Gizi Buruk
+6,10,Perempuan,30.7,104.7,28,Berlebih,Aktif,Obesitas
+5,5,Laki-laki,31.7,111.2,25.6,Kurang,Aktif,Obesitas
+6,5,Perempuan,14.3,127.5,8.8,Berlebih,Sedang,Gizi Buruk
+5,10,Perempuan,26.5,107.4,23,Kurang,Aktif,Obesitas
+7,0,Laki-laki,32,109,26.9,Berlebih,Sedang,Obesitas
+6,4,Perempuan,30.5,125.9,19.2,Kurang,Aktif,Obesitas
+7,6,Laki-laki,21.1,103.4,19.7,Cukup,Pasif,Obesitas
+5,11,Perempuan,16.9,129.8,10,Berlebih,Pasif,Gizi Buruk
+6,1,Laki-laki,20.5,124.4,13.2,Berlebih,Sedang,Gizi Kurang
+6,9,Perempuan,25.7,104,23.8,Berlebih,Aktif,Obesitas
+6,4,Laki-laki,20.4,127.6,12.5,Kurang,Aktif,Gizi Buruk
+5,6,Perempuan,32,111.9,25.6,Cukup,Pasif,Obesitas
+7,4,Laki-laki,31.5,107.1,27.5,Berlebih,Sedang,Obesitas
+7,4,Laki-laki,29,129,17.4,Kurang,Pasif,Overweight
+6,11,Laki-laki,26.3,102.9,24.8,Berlebih,Sedang,Obesitas
+6,4,Perempuan,14.8,110.7,12.1,Berlebih,Sedang,Gizi Buruk
+7,3,Perempuan,27.9,100.9,27.4,Kurang,Aktif,Obesitas
+6,4,Perempuan,33.1,101.7,32,Kurang,Sedang,Obesitas
+7,4,Laki-laki,23.7,118,17,Berlebih,Aktif,Overweight
+6,3,Perempuan,26.2,128.2,15.9,Berlebih,Aktif,Gizi Baik
+5,5,Laki-laki,32,118.3,22.9,Berlebih,Aktif,Obesitas
+6,11,Laki-laki,30,112.4,23.7,Berlebih,Aktif,Obesitas
+7,9,Perempuan,30.5,106.7,26.8,Cukup,Pasif,Obesitas
+5,10,Laki-laki,34.6,111.7,27.7,Berlebih,Pasif,Obesitas
+6,3,Perempuan,20.2,116.1,15,Kurang,Aktif,Gizi Baik
+6,4,Perempuan,30.4,108.9,25.6,Berlebih,Sedang,Obesitas
+5,2,Laki-laki,21.8,127.3,13.5,Kurang,Pasif,Gizi Kurang
+6,6,Laki-laki,26.2,118.5,18.7,Cukup,Pasif,Overweight
+7,2,Perempuan,33.2,124.7,21.4,Cukup,Sedang,Obesitas
+6,11,Laki-laki,32.4,114.2,24.8,Berlebih,Aktif,Obesitas
+7,2,Perempuan,25.1,123.3,16.5,Berlebih,Sedang,Gizi Baik
+7,11,Laki-laki,15.5,122.1,10.4,Berlebih,Pasif,Gizi Buruk
+5,4,Perempuan,19.2,129,11.5,Kurang,Sedang,Gizi Buruk
+7,3,Perempuan,27.9,102.6,26.5,Kurang,Pasif,Obesitas
+6,0,Laki-laki,31,100.8,30.5,Cukup,Aktif,Obesitas
+7,2,Laki-laki,30.9,103.4,28.9,Cukup,Sedang,Obesitas
+5,5,Laki-laki,29.1,127.3,18,Berlebih,Aktif,Overweight
+7,0,Perempuan,22.6,108.5,19.2,Berlebih,Pasif,Obesitas
+7,7,Laki-laki,29.3,105.2,26.5,Cukup,Sedang,Obesitas
+5,3,Perempuan,21.7,125.6,13.8,Berlebih,Aktif,Gizi Kurang
+6,3,Perempuan,33.7,107.8,29,Berlebih,Sedang,Obesitas
+5,9,Perempuan,17.2,109.4,14.4,Berlebih,Sedang,Gizi Kurang
+7,5,Laki-laki,22.7,121.5,15.4,Berlebih,Pasif,Gizi Baik
+6,6,Perempuan,15.1,122,10.1,Cukup,Pasif,Gizi Buruk
+5,10,Laki-laki,19.9,106.7,17.5,Kurang,Sedang,Overweight
+5,11,Laki-laki,27.5,123.6,18,Cukup,Sedang,Overweight
+5,0,Laki-laki,21.4,119.7,14.9,Kurang,Aktif,Gizi Baik
+6,6,Laki-laki,31.6,124.4,20.4,Cukup,Sedang,Obesitas
+7,5,Perempuan,34.5,113.3,26.9,Kurang,Aktif,Obesitas
+6,7,Perempuan,27.4,121,18.7,Berlebih,Aktif,Overweight
+6,10,Perempuan,19.6,129.3,11.7,Cukup,Aktif,Gizi Buruk
+6,10,Laki-laki,32.9,108,28.2,Berlebih,Pasif,Obesitas
+7,5,Perempuan,24.8,127.3,15.3,Cukup,Aktif,Gizi Baik
+5,2,Perempuan,25.8,117.9,18.6,Cukup,Sedang,Overweight
+7,2,Laki-laki,15.5,116.9,11.3,Kurang,Pasif,Gizi Buruk
+5,1,Laki-laki,33.5,106.5,29.5,Berlebih,Pasif,Obesitas
+7,0,Laki-laki,15.5,127,9.6,Kurang,Aktif,Gizi Buruk
+5,0,Laki-laki,14.2,107,12.4,Kurang,Pasif,Gizi Buruk
+7,9,Perempuan,33.2,127.8,20.3,Cukup,Pasif,Obesitas
+5,3,Laki-laki,25.2,116,18.7,Kurang,Pasif,Overweight
+6,0,Laki-laki,19.2,109,16.2,Kurang,Sedang,Gizi Baik
+6,4,Laki-laki,18.8,120.2,13,Kurang,Sedang,Gizi Kurang
+7,0,Laki-laki,19.4,109.3,16.2,Kurang,Sedang,Gizi Baik
+6,6,Laki-laki,29.2,121.1,19.9,Cukup,Sedang,Obesitas
+7,9,Laki-laki,33.1,103.9,30.7,Cukup,Pasif,Obesitas
+5,3,Laki-laki,19.9,108.2,17,Kurang,Sedang,Overweight
+5,9,Perempuan,26.5,123.6,17.3,Berlebih,Pasif,Overweight
+6,11,Laki-laki,20,124.1,13,Cukup,Pasif,Gizi Kurang
+6,7,Laki-laki,19.9,103.2,18.7,Cukup,Pasif,Overweight
+5,8,Perempuan,26.4,126.4,16.5,Berlebih,Pasif,Gizi Baik
+7,8,Laki-laki,28.5,108.1,24.4,Berlebih,Pasif,Obesitas
+7,8,Laki-laki,15,101.2,14.6,Berlebih,Pasif,Gizi Baik
+7,11,Laki-laki,26.2,119.9,18.2,Kurang,Sedang,Overweight
+6,9,Laki-laki,21,123.2,13.8,Cukup,Aktif,Gizi Kurang
+5,7,Laki-laki,25.2,115.3,19,Kurang,Sedang,Obesitas
+7,8,Laki-laki,17.9,123.3,11.8,Cukup,Aktif,Gizi Buruk
+6,4,Perempuan,21,126.5,13.1,Berlebih,Sedang,Gizi Buruk
+6,7,Laki-laki,25.4,120.4,17.5,Kurang,Sedang,Overweight
+5,10,Perempuan,30.2,125.6,19.1,Kurang,Sedang,Obesitas
+6,6,Laki-laki,16.3,106.5,14.4,Cukup,Pasif,Gizi Kurang

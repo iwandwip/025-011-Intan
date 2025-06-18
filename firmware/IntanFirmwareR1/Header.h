@@ -156,6 +156,9 @@ int selectedChildResponse = 0;
 const unsigned long RFID_TIMEOUT_MS = 30000; // 30 seconds timeout for RFID confirmation
 unsigned long rfidConfirmationStartTime = 0;
 
+////////// Function Declarations //////////
+float calculateIMT(float weight, float height);
+
 ////////// Sensor Configuration & Data //////////
 float SENSOR_HEIGHT_POLE = 199.0;
 volatile float currentWeight = 0.0;
