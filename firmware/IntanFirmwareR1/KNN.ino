@@ -1,5 +1,5 @@
 // KNN instance untuk klasifikasi status gizi
-// Features: [weight, height, age_years, age_months, gender, eating_pattern, child_response, imt]
+// Features (CSV order): [age_years, age_months, gender, weight, height, imt, eating_pattern, child_response]
 KNN nutritionKNN(5, 8, 100);  // k=5, 8 fitur (tambah IMT), max 100 data training
 
 void initKNNMethods() {
@@ -25,16 +25,16 @@ String getNutritionStatus(float weight, float height, int ageYears, int ageMonth
   // Calculate IMT (BMI)
   float imt = calculateIMT(weight, height);
 
-  // Prepare feature array
+  // Prepare feature array (matching CSV column order)
   float features[] = {
-    weight,                // 0: weight in kg
-    height,                // 1: height in cm
-    (float)ageYears,       // 2: age in years
-    (float)ageMonths,      // 3: age in months
-    genderNumeric,         // 4: gender (0=female, 1=male)
-    eatingPatternNumeric,  // 5: eating pattern (0=kurang, 1=cukup, 2=berlebih)
-    childResponseNumeric,  // 6: child response (0=pasif, 1=sedang, 2=aktif)
-    imt                    // 7: IMT (BMI) calculated value
+    (float)ageYears,       // 0: Usia (tahun)
+    (float)ageMonths,      // 1: Usia (bulan) 
+    genderNumeric,         // 2: Jenis Kelamin (0=perempuan, 1=laki-laki)
+    weight,                // 3: Berat Badan (kg)
+    height,                // 4: Tinggi Badan (cm)
+    imt,                   // 5: IMT (calculated)
+    eatingPatternNumeric,  // 6: Pola Makan (0=kurang, 1=cukup, 2=berlebih)
+    childResponseNumeric   // 7: Respon Anak (0=pasif, 1=sedang, 2=aktif)
   };
 
   // Get prediction
@@ -134,14 +134,14 @@ void addTrainingDataPoint(const char* label, float weight, float height, int age
   float imt = calculateIMT(weight, height);
   
   float features[] = {
-    weight,
-    height,
-    (float)ageYears,
-    (float)ageMonths,
-    (float)gender,
-    (float)eatingPattern,
-    (float)childResponse,
-    imt
+    (float)ageYears,       // 0: Usia (tahun)
+    (float)ageMonths,      // 1: Usia (bulan)
+    (float)gender,         // 2: Jenis Kelamin
+    weight,                // 3: Berat Badan (kg)
+    height,                // 4: Tinggi Badan (cm)
+    imt,                   // 5: IMT
+    (float)eatingPattern,  // 6: Pola Makan
+    (float)childResponse   // 7: Respon Anak
   };
 
   nutritionKNN.addTrainingData(label, features);
