@@ -2,20 +2,15 @@ void handleUSBCommand(const String& receivedData) {
   String data = receivedData;
   String commandHeader = serialCommunication.getStrData(receivedData, 0, "#");
   String commandValue = serialCommunication.getStrData(receivedData, 1, "#");
-
   Serial.printf("USB Command: %s\n", receivedData.c_str());
-
   if (isDigit(data[0]) || isDigit(data[1])) {
     return;
   }
-
   commandHeader.toUpperCase();
-
   if (commandHeader == "R" || commandHeader == "RESTART") {
     Serial.println("System restart requested");
     ESP.restart();
   }
-
   if (commandHeader == "HEIGHT_POLE") {
     float newHeight = commandValue.toFloat();
     if (newHeight > 0 && newHeight < 300) {
@@ -26,8 +21,6 @@ void handleUSBCommand(const String& receivedData) {
       Serial.printf("Height pole updated to: %.1f cm\n", SENSOR_HEIGHT_POLE);
     }
   }
-
-
   if (commandHeader == "STATE") {
     if (commandValue == "IDLE") {
       changeSystemState(SYSTEM_IDLE);
@@ -39,12 +32,10 @@ void handleUSBCommand(const String& receivedData) {
       changeSystemState(SYSTEM_ADMIN_MODE);
     }
   }
-
   if (commandHeader == "SYNC" || commandHeader == "FORCE_SYNC") {
     forceFirebaseSync = true;
     Serial.println("Forced Firebase sync");
   }
-
   if (commandHeader == "STATUS") {
     Serial.printf("System State: %d\n", currentSystemState);
     Serial.printf("Weighing State: %d\n", currentWeighingState);
@@ -60,16 +51,12 @@ void handleUSBCommand(const String& receivedData) {
       Serial.printf("Test Height: %.2f cm\n", testHeight);
     }
   }
-
   if (commandHeader == "CALIBRATE") {
     performLoadCellCalibration();
   }
-
   if (commandHeader == "TARE") {
     performLoadCellTare();
   }
-
-  
   if (commandHeader == "TEST_MODE") {
     if (commandValue == "ON" || commandValue == "1" || commandValue == "ENABLE") {
       testingModeEnabled = true;
@@ -88,7 +75,6 @@ void handleUSBCommand(const String& receivedData) {
       Serial.printf("Testing Mode is currently: %s\n", testingModeEnabled ? "ON" : "OFF");
     }
   }
-
   if (commandHeader == "TEST_RFID") {
     if (testingModeEnabled) {
       testRfidTag = commandValue;
@@ -97,7 +83,6 @@ void handleUSBCommand(const String& receivedData) {
       Serial.println("Error: Testing mode is not enabled. Use TEST_MODE#ON first.");
     }
   }
-
   if (commandHeader == "TEST_WEIGHT") {
     if (testingModeEnabled) {
       float newWeight = commandValue.toFloat();
@@ -111,7 +96,6 @@ void handleUSBCommand(const String& receivedData) {
       Serial.println("Error: Testing mode is not enabled. Use TEST_MODE#ON first.");
     }
   }
-
   if (commandHeader == "TEST_HEIGHT") {
     if (testingModeEnabled) {
       float newHeight = commandValue.toFloat();
@@ -125,22 +109,15 @@ void handleUSBCommand(const String& receivedData) {
       Serial.println("Error: Testing mode is not enabled. Use TEST_MODE#ON first.");
     }
   }
-
-  
   if (commandHeader == "KNN") {
-    
-    
     commandValue.replace(" ", "");
-
     int commaIndex1 = commandValue.indexOf(',');
     int commaIndex2 = commandValue.indexOf(',', commaIndex1 + 1);
     int commaIndex3 = commandValue.indexOf(',', commaIndex2 + 1);
     int commaIndex4 = commandValue.indexOf(',', commaIndex3 + 1);
     int commaIndex5 = commandValue.indexOf(',', commaIndex4 + 1);
     int commaIndex6 = commandValue.indexOf(',', commaIndex5 + 1);
-
     if (commaIndex1 != -1 && commaIndex2 != -1 && commaIndex3 != -1 && commaIndex4 != -1 && commaIndex5 != -1 && commaIndex6 != -1) {
-
       int ageYears = commandValue.substring(0, commaIndex1).toInt();
       int ageMonths = commandValue.substring(commaIndex1 + 1, commaIndex2).toInt();
       String genderInput = commandValue.substring(commaIndex2 + 1, commaIndex3);
@@ -148,8 +125,6 @@ void handleUSBCommand(const String& receivedData) {
       float height = commandValue.substring(commaIndex4 + 1, commaIndex5).toFloat();
       String eatingPatternInput = commandValue.substring(commaIndex5 + 1, commaIndex6);
       String childResponseInput = commandValue.substring(commaIndex6 + 1);
-
-      
       String genderStr = "";
       if (genderInput == "PEREMPUAN") {
         genderStr = "Perempuan";
@@ -159,7 +134,6 @@ void handleUSBCommand(const String& receivedData) {
         Serial.println("Error: Invalid gender. Use PEREMPUAN or LAKI_LAKI");
         return;
       }
-
       String eatingPatternStr = "";
       if (eatingPatternInput == "KURANG") {
         eatingPatternStr = "Kurang";
@@ -171,7 +145,6 @@ void handleUSBCommand(const String& receivedData) {
         Serial.println("Error: Invalid eating pattern. Use KURANG, CUKUP, or BERLEBIH");
         return;
       }
-
       String childResponseStr = "";
       if (childResponseInput == "PASIF") {
         childResponseStr = "Pasif";
@@ -183,11 +156,7 @@ void handleUSBCommand(const String& receivedData) {
         Serial.println("Error: Invalid child response. Use PASIF, SEDANG, or AKTIF");
         return;
       }
-
-      
       String nutritionStatus = getNutritionStatus(weight, height, ageYears, ageMonths, genderStr, eatingPatternStr, childResponseStr);
-
-      
       Serial.println("=== KNN NUTRITION STATUS PREDICTION ===");
       Serial.printf("Input: Usia=%d tahun %d bulan, Gender=%s, Berat=%.1f kg, Tinggi=%.1f cm\n", ageYears, ageMonths, genderStr.c_str(), weight, height);
       Serial.printf("       Pola Makan=%s, Respon Anak=%s\n", eatingPatternStr.c_str(), childResponseStr.c_str());
@@ -201,7 +170,6 @@ void handleUSBCommand(const String& receivedData) {
       Serial.println("Respon Anak: PASIF, SEDANG, or AKTIF");
     }
   }
-
   if (commandHeader == "HELP" || commandHeader == "?") {
     Serial.println("=== Available USB Commands ===");
     Serial.println("Basic Commands:");
