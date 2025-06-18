@@ -86,8 +86,6 @@ enum WeighingState {
   WEIGHING_COMPLETE,
 };
 
-
-// State variables (using volatile flags for thread safety)
 volatile SystemState currentSystemState = SYSTEM_STARTUP;
 volatile SystemState pendingSystemState = SYSTEM_STARTUP;
 volatile bool needDisplayUpdate = true;
@@ -153,7 +151,7 @@ int selectedEatingPattern = 0;
 int selectedChildResponse = 0;
 
 ////////// Timeout Configuration //////////
-const unsigned long RFID_TIMEOUT_MS = 30000; // 30 seconds timeout for RFID confirmation
+const unsigned long RFID_TIMEOUT_MS = 30000;
 unsigned long rfidConfirmationStartTime = 0;
 
 ////////// Enums for KNN Data Encoding //////////

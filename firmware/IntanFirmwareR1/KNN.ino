@@ -21,20 +21,20 @@ String getNutritionStatus(float weight, float height, int ageYears, int ageMonth
   Gender genderEnum = encodeGender(gender);
   PolaMakan eatingPatternEnum = encodeEatingPattern(eatingPattern);
   ResponAnak childResponseEnum = encodeChildResponse(childResponse);
-  
+
   // Calculate IMT (BMI)
   float imt = calculateIMT(weight, height);
 
   // Prepare feature array (matching CSV column order)
   float features[] = {
-    (float)ageYears,              // 0: Usia (tahun)
-    (float)ageMonths,             // 1: Usia (bulan) 
-    (float)genderEnum,            // 2: Jenis Kelamin (PEREMPUAN=0, LAKI_LAKI=1)
-    weight,                       // 3: Berat Badan (kg)
-    height,                       // 4: Tinggi Badan (cm)
-    imt,                          // 5: IMT (calculated)
-    (float)eatingPatternEnum,     // 6: Pola Makan (KURANG=0, CUKUP=1, BERLEBIH=2)
-    (float)childResponseEnum      // 7: Respon Anak (PASIF=0, SEDANG=1, AKTIF=2)
+    (float)ageYears,           // 0: Usia (tahun)
+    (float)ageMonths,          // 1: Usia (bulan)
+    (float)genderEnum,         // 2: Jenis Kelamin (PEREMPUAN=0, LAKI_LAKI=1)
+    weight,                    // 3: Berat Badan (kg)
+    height,                    // 4: Tinggi Badan (cm)
+    imt,                       // 5: IMT (calculated)
+    (float)eatingPatternEnum,  // 6: Pola Makan (KURANG=0, CUKUP=1, BERLEBIH=2)
+    (float)childResponseEnum   // 7: Respon Anak (PASIF=0, SEDANG=1, AKTIF=2)
   };
 
   // Get prediction
@@ -265,7 +265,7 @@ void addNutritionTrainingData() {
 void addTrainingDataPoint(int ageYears, int ageMonths, Gender gender, float weight, float height, PolaMakan eatingPattern, ResponAnak childResponse, const char* statusGizi) {
   // Calculate IMT for training data
   float imt = calculateIMT(weight, height);
-  
+
   float features[] = {
     (float)ageYears,       // 0: Usia (tahun)
     (float)ageMonths,      // 1: Usia (bulan)
@@ -321,7 +321,7 @@ StatusGizi encodeNutritionStatus(String status) {
 
 // Helper function to convert enum back to string
 String nutritionStatusToString(StatusGizi status) {
-  switch(status) {
+  switch (status) {
     case GIZI_BURUK: return "gizi buruk";
     case GIZI_KURANG: return "gizi kurang";
     case GIZI_BAIK: return "gizi baik";

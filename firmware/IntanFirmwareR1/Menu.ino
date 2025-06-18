@@ -62,11 +62,11 @@ void displayRFIDPairingScreen() {
     const char* detectedLines[] = { "RFID TERDETEKSI!", currentRfidTag.c_str(), "MEMPROSES..." };
     displayMenu.renderBoxedText(detectedLines, 3);
     statusLed.on();
-    
+
     Serial.println("| RFID tag detected in pairing mode, updating session");
     updateGlobalSessionRFID(currentRfidTag);
     currentRfidTag = "";
-    
+
     // Return to idle after successful pairing
     backToIdleState();
   }
@@ -108,7 +108,7 @@ void displayWeighingRFIDConfirmation() {
     rfidConfirmationStartTime = millis();
     timerInitialized = true;
   }
-  
+
   // Check for timeout
   unsigned long timeRemaining = RFID_TIMEOUT_MS - (millis() - rfidConfirmationStartTime);
   if (millis() - rfidConfirmationStartTime > RFID_TIMEOUT_MS) {
@@ -116,14 +116,14 @@ void displayWeighingRFIDConfirmation() {
     backToIdleState();
     return;
   }
-  
+
   // Display countdown
   String timeoutMsg = "TIMEOUT: " + String(timeRemaining / 1000) + "S";
   const char* confirmLines[] = { "SESI PENIMBANGAN", "TAP RFID UNTUK", "KONFIRMASI", timeoutMsg.c_str() };
   displayMenu.renderBoxedText(confirmLines, 4);
 
   if (!currentRfidTag.isEmpty()) {
-    timerInitialized = false; // Reset timer flag
+    timerInitialized = false;  // Reset timer flag
     if (currentRfidTag == currentSessionUser.rfidTag) {
       // Correct RFID - proceed to confirm wait
       currentWeighingState = WEIGHING_RFID_CONFIRM_WAIT;
@@ -132,9 +132,9 @@ void displayWeighingRFIDConfirmation() {
     } else {
       // Wrong RFID - show error and reset session
       displayWeighingRFIDError();
-      systemBuzzer.toggleInit(200, 3); // Different buzz pattern for error
+      systemBuzzer.toggleInit(200, 3);  // Different buzz pattern for error
       currentRfidTag = "";
-      
+
       // Reset session after 3 seconds
       delay(3000);
       backToIdleState();

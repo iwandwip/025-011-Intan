@@ -128,7 +128,10 @@ void handleUSBCommand(const String& receivedData) {
 
   // KNN Testing Command
   if (commandHeader == "KNN") {
-    // Parse CSV values: ageYears,ageMonths,gender,weight,height,eatingPattern,childResponse
+    // Parse CSV values: ageYears, ageMonths, gender, weight, height, eatingPattern, childResponse
+    // Remove spaces after commas for easier parsing
+    commandValue.replace(" ", "");
+
     int commaIndex1 = commandValue.indexOf(',');
     int commaIndex2 = commandValue.indexOf(',', commaIndex1 + 1);
     int commaIndex3 = commandValue.indexOf(',', commaIndex2 + 1);
@@ -136,38 +139,67 @@ void handleUSBCommand(const String& receivedData) {
     int commaIndex5 = commandValue.indexOf(',', commaIndex4 + 1);
     int commaIndex6 = commandValue.indexOf(',', commaIndex5 + 1);
 
-    if (commaIndex1 != -1 && commaIndex2 != -1 && commaIndex3 != -1 && 
-        commaIndex4 != -1 && commaIndex5 != -1 && commaIndex6 != -1) {
-      
+    if (commaIndex1 != -1 && commaIndex2 != -1 && commaIndex3 != -1 && commaIndex4 != -1 && commaIndex5 != -1 && commaIndex6 != -1) {
+
       int ageYears = commandValue.substring(0, commaIndex1).toInt();
       int ageMonths = commandValue.substring(commaIndex1 + 1, commaIndex2).toInt();
-      int gender = commandValue.substring(commaIndex2 + 1, commaIndex3).toInt();
+      String genderInput = commandValue.substring(commaIndex2 + 1, commaIndex3);
       float weight = commandValue.substring(commaIndex3 + 1, commaIndex4).toFloat();
       float height = commandValue.substring(commaIndex4 + 1, commaIndex5).toFloat();
-      int eatingPattern = commandValue.substring(commaIndex5 + 1, commaIndex6).toInt();
-      int childResponse = commandValue.substring(commaIndex6 + 1).toInt();
+      String eatingPatternInput = commandValue.substring(commaIndex5 + 1, commaIndex6);
+      String childResponseInput = commandValue.substring(commaIndex6 + 1);
 
-      // Convert numeric values to string representations
-      String genderStr = (gender == 0) ? "Perempuan" : "Laki-laki";
-      String eatingPatternStr = (eatingPattern == 0) ? "Kurang" : (eatingPattern == 1) ? "Cukup" : "Berlebih";
-      String childResponseStr = (childResponse == 0) ? "Pasif" : (childResponse == 1) ? "Sedang" : "Aktif";
+      // Convert string inputs to proper format
+      String genderStr = "";
+      if (genderInput == "PEREMPUAN") {
+        genderStr = "Perempuan";
+      } else if (genderInput == "LAKI_LAKI") {
+        genderStr = "Laki-laki";
+      } else {
+        Serial.println("Error: Invalid gender. Use PEREMPUAN or LAKI_LAKI");
+        return;
+      }
+
+      String eatingPatternStr = "";
+      if (eatingPatternInput == "KURANG") {
+        eatingPatternStr = "Kurang";
+      } else if (eatingPatternInput == "CUKUP") {
+        eatingPatternStr = "Cukup";
+      } else if (eatingPatternInput == "BERLEBIH") {
+        eatingPatternStr = "Berlebih";
+      } else {
+        Serial.println("Error: Invalid eating pattern. Use KURANG, CUKUP, or BERLEBIH");
+        return;
+      }
+
+      String childResponseStr = "";
+      if (childResponseInput == "PASIF") {
+        childResponseStr = "Pasif";
+      } else if (childResponseInput == "SEDANG") {
+        childResponseStr = "Sedang";
+      } else if (childResponseInput == "AKTIF") {
+        childResponseStr = "Aktif";
+      } else {
+        Serial.println("Error: Invalid child response. Use PASIF, SEDANG, or AKTIF");
+        return;
+      }
 
       // Call KNN prediction
       String nutritionStatus = getNutritionStatus(weight, height, ageYears, ageMonths, genderStr, eatingPatternStr, childResponseStr);
 
       // Output result
       Serial.println("=== KNN NUTRITION STATUS PREDICTION ===");
-      Serial.printf("Input: Usia=%d tahun %d bulan, Gender=%s, Berat=%.1f kg, Tinggi=%.1f cm\n", 
+      Serial.printf("Input: Usia=%d tahun %d bulan, Gender=%s, Berat=%.1f kg, Tinggi=%.1f cm\n",
                     ageYears, ageMonths, genderStr.c_str(), weight, height);
       Serial.printf("       Pola Makan=%s, Respon Anak=%s\n", eatingPatternStr.c_str(), childResponseStr.c_str());
       Serial.printf("Prediction: %s\n", nutritionStatus.c_str());
       Serial.println("====================================");
     } else {
-      Serial.println("Error: Invalid KNN format. Use: KNN#ageYears,ageMonths,gender,weight,height,eatingPattern,childResponse");
-      Serial.println("Example: KNN#6,7,1,25.4,120.4,0,1");
-      Serial.println("Gender: 0=Perempuan, 1=Laki-laki");
-      Serial.println("Pola Makan: 0=Kurang, 1=Cukup, 2=Berlebih");
-      Serial.println("Respon Anak: 0=Pasif, 1=Sedang, 2=Aktif");
+      Serial.println("Error: Invalid KNN format. Use: KNN#ageYears, ageMonths, gender, weight, height, eatingPattern, childResponse");
+      Serial.println("Example: KNN#6, 6, LAKI_LAKI, 16.3, 106.5, CUKUP, PASIF");
+      Serial.println("Gender: PEREMPUAN or LAKI_LAKI");
+      Serial.println("Pola Makan: KURANG, CUKUP, or BERLEBIH");
+      Serial.println("Respon Anak: PASIF, SEDANG, or AKTIF");
     }
   }
 
@@ -189,8 +221,8 @@ void handleUSBCommand(const String& receivedData) {
     Serial.println("  TEST_WEIGHT#<kg> - Set manual weight (testing mode only)");
     Serial.println("  TEST_HEIGHT#<cm> - Set manual height (testing mode only)");
     Serial.println("KNN Testing:");
-    Serial.println("  KNN#<ageYears,ageMonths,gender,weight,height,eatingPattern,childResponse>");
-    Serial.println("  Example: KNN#6,7,1,25.4,120.4,0,1");
+    Serial.println("  KNN#<ageYears, ageMonths, gender, weight, height, eatingPattern, childResponse>");
+    Serial.println("  Example: KNN#6, 6, LAKI_LAKI, 16.3, 106.5, CUKUP, PASIF");
     Serial.println("================================");
   }
 }
