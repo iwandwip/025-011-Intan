@@ -1,26 +1,32 @@
 void displayMenuCallback() {
-  if (xSemaphoreTake(stateMutex, pdMS_TO_TICKS(5)) == pdTRUE) {
-    switch (currentSystemState) {
-      case SYSTEM_STARTUP:
-        displayStartupScreen();
-        break;
-      case SYSTEM_IDLE:
-        displayIdleScreen();
-        break;
-      case SYSTEM_RFID_PAIRING:
-        displayRFIDPairingScreen();
-        break;
-      case SYSTEM_WEIGHING_SESSION:
-        displayWeighingScreen();
-        break;
-      case SYSTEM_QUICK_MEASURE:
-        displayQuickMeasureScreen();
-        break;
-      case SYSTEM_ADMIN_MODE:
-        displayAdminScreen();
-        break;
-    }
-    xSemaphoreGive(stateMutex);
+  // Update current state if there's a pending change
+  if (needDisplayUpdate) {
+    currentSystemState = pendingSystemState;
+    needDisplayUpdate = false;
+    Serial.print("| Display callback - state updated to: ");
+    Serial.println(currentSystemState);
+  }
+
+  // Display based on current state (no mutex needed)
+  switch (currentSystemState) {
+    case SYSTEM_STARTUP:
+      displayStartupScreen();
+      break;
+    case SYSTEM_IDLE:
+      displayIdleScreen();
+      break;
+    case SYSTEM_RFID_PAIRING:
+      displayRFIDPairingScreen();
+      break;
+    case SYSTEM_WEIGHING_SESSION:
+      displayWeighingScreen();
+      break;
+    case SYSTEM_QUICK_MEASURE:
+      displayQuickMeasureScreen();
+      break;
+    case SYSTEM_ADMIN_MODE:
+      displayAdminScreen();
+      break;
   }
 }
 
@@ -52,13 +58,11 @@ void displayIdleScreen() {
 }
 
 void displayRFIDPairingScreen() {
-  Serial.println("| displayRFIDPairingScreen() called - showing RFID pairing screen");
   const char* pairingLines[] = { "RFID Pairing Mode", "Tap your RFID card", "to pair device" };
   displayMenu.renderBoxedText(pairingLines, 3);
 
   if (xSemaphoreTake(dataReadyMutex, pdMS_TO_TICKS(5)) == pdTRUE) {
     if (!currentRfidTag.isEmpty()) {
-      Serial.println("| RFID tag detected in pairing mode");
       const char* detectedLines[] = { "RFID Detected!", currentRfidTag.c_str(), "Processing..." };
       displayMenu.renderBoxedText(detectedLines, 3);
       statusLed.on();

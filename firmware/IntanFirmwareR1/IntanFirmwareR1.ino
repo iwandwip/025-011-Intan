@@ -94,6 +94,12 @@ void updateSensorData() {
         currentHeight = rawHeight;
         newSensorData = true;
 
+        if (!currentRfidTag.isEmpty()) {
+          Serial.print("| currentRfidTag: ");
+          Serial.print(currentRfidTag);
+          Serial.println();
+        }
+
         xSemaphoreGive(dataReadyMutex);
       }
     });
@@ -116,28 +122,34 @@ void handleUserInput() {
 }
 
 void updateDisplayInterface() {
-  if (xSemaphoreTake(stateMutex, pdMS_TO_TICKS(5)) == pdTRUE) {
-    switch (currentSystemState) {
-      case SYSTEM_IDLE:
-        displayIdleScreen();
-        break;
-      case SYSTEM_RFID_PAIRING:
-        displayRFIDPairingScreen();
-        break;
-      case SYSTEM_WEIGHING_SESSION:
-        displayWeighingScreen();
-        break;
-      case SYSTEM_QUICK_MEASURE:
-        displayQuickMeasureScreen();
-        break;
-      case SYSTEM_ADMIN_MODE:
-        displayAdminScreen();
-        break;
-      default:
-        displayStartupScreen();
-        break;
-    }
-    xSemaphoreGive(stateMutex);
+  // Update current state if there's a pending change
+  if (needDisplayUpdate) {
+    currentSystemState = pendingSystemState;
+    needDisplayUpdate = false;
+    Serial.print("| State updated to: ");
+    Serial.println(currentSystemState);
+  }
+
+  // Display based on current state (no mutex needed for reading)
+  switch (currentSystemState) {
+    case SYSTEM_IDLE:
+      displayIdleScreen();
+      break;
+    case SYSTEM_RFID_PAIRING:
+      displayRFIDPairingScreen();
+      break;
+    case SYSTEM_WEIGHING_SESSION:
+      displayWeighingScreen();
+      break;
+    case SYSTEM_QUICK_MEASURE:
+      displayQuickMeasureScreen();
+      break;
+    case SYSTEM_ADMIN_MODE:
+      displayAdminScreen();
+      break;
+    default:
+      displayStartupScreen();
+      break;
   }
 }
 
@@ -168,9 +180,7 @@ String getNutritionStatusFromSession() {
 }
 
 void changeSystemState(SystemState newState) {
-  if (xSemaphoreTake(stateMutex, pdMS_TO_TICKS(100)) == pdTRUE) {
-    currentSystemState = newState;
-    Serial.printf("State changed to: %d\n", newState);
-    xSemaphoreGive(stateMutex);
-  }
+  pendingSystemState = newState;
+  needDisplayUpdate = true;
+  Serial.printf("State change requested to: %d\n", newState);
 }

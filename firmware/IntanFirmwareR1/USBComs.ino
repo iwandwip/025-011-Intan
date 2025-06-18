@@ -10,12 +10,12 @@ void handleUSBCommand(const String& receivedData) {
   }
 
   commandHeader.toUpperCase();
-  
+
   if (commandHeader == "R" || commandHeader == "RESTART") {
     Serial.println("System restart requested");
     ESP.restart();
   }
-  
+
   if (commandHeader == "HEIGHT_POLE") {
     float newHeight = commandValue.toFloat();
     if (newHeight > 0 && newHeight < 300) {
@@ -26,8 +26,8 @@ void handleUSBCommand(const String& receivedData) {
       Serial.printf("Height pole updated to: %.1f cm\n", SENSOR_HEIGHT_POLE);
     }
   }
-  
-  
+
+
   if (commandHeader == "STATE") {
     if (commandValue == "IDLE") {
       changeSystemState(SYSTEM_IDLE);
@@ -39,12 +39,12 @@ void handleUSBCommand(const String& receivedData) {
       changeSystemState(SYSTEM_ADMIN_MODE);
     }
   }
-  
+
   if (commandHeader == "SYNC" || commandHeader == "FORCE_SYNC") {
     forceFirebaseSync = true;
     Serial.println("Forced Firebase sync");
   }
-  
+
   if (commandHeader == "STATUS") {
     Serial.printf("System State: %d\n", currentSystemState);
     Serial.printf("Weighing State: %d\n", currentWeighingState);
@@ -60,15 +60,15 @@ void handleUSBCommand(const String& receivedData) {
       Serial.printf("Test Height: %.2f cm\n", testHeight);
     }
   }
-  
+
   if (commandHeader == "CALIBRATE") {
     performLoadCellCalibration();
   }
-  
+
   if (commandHeader == "TARE") {
     performLoadCellTare();
   }
-  
+
   // Testing Mode Commands
   if (commandHeader == "TEST_MODE") {
     if (commandValue == "ON" || commandValue == "1" || commandValue == "ENABLE") {
@@ -88,7 +88,7 @@ void handleUSBCommand(const String& receivedData) {
       Serial.printf("Testing Mode is currently: %s\n", testingModeEnabled ? "ON" : "OFF");
     }
   }
-  
+
   if (commandHeader == "TEST_RFID") {
     if (testingModeEnabled) {
       testRfidTag = commandValue;
@@ -97,7 +97,7 @@ void handleUSBCommand(const String& receivedData) {
       Serial.println("Error: Testing mode is not enabled. Use TEST_MODE#ON first.");
     }
   }
-  
+
   if (commandHeader == "TEST_WEIGHT") {
     if (testingModeEnabled) {
       float newWeight = commandValue.toFloat();
@@ -111,7 +111,7 @@ void handleUSBCommand(const String& receivedData) {
       Serial.println("Error: Testing mode is not enabled. Use TEST_MODE#ON first.");
     }
   }
-  
+
   if (commandHeader == "TEST_HEIGHT") {
     if (testingModeEnabled) {
       float newHeight = commandValue.toFloat();
@@ -125,7 +125,7 @@ void handleUSBCommand(const String& receivedData) {
       Serial.println("Error: Testing mode is not enabled. Use TEST_MODE#ON first.");
     }
   }
-  
+
   if (commandHeader == "HELP" || commandHeader == "?") {
     Serial.println("=== Available USB Commands ===");
     Serial.println("Basic Commands:");

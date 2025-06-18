@@ -78,35 +78,35 @@ void processGlobalSession() {
 void processSessionData(JsonDocument& sessionDoc) {
   bool isInUse = sessionDoc["fields"]["isInUse"]["booleanValue"].as<bool>();
 
-  if (xSemaphoreTake(stateMutex, pdMS_TO_TICKS(100)) == pdTRUE) {
-    if (isInUse) {
-      currentSession.isActive = true;
-      currentSession.sessionType = sessionDoc["fields"]["sessionType"]["stringValue"].as<String>();
-      currentSession.userId = sessionDoc["fields"]["currentUserId"]["stringValue"].as<String>();
-      currentSession.userName = sessionDoc["fields"]["currentUserName"]["stringValue"].as<String>();
+  if (isInUse) {
+    // Parse session data directly (no mutex needed)
+    currentSession.isActive = true;
+    currentSession.sessionType = sessionDoc["fields"]["sessionType"]["stringValue"].as<String>();
+    currentSession.userId = sessionDoc["fields"]["currentUserId"]["stringValue"].as<String>();
+    currentSession.userName = sessionDoc["fields"]["currentUserName"]["stringValue"].as<String>();
 
-      Serial.print("| Parsed sessionType: '");
-      Serial.print(currentSession.sessionType);
-      Serial.print("' length: ");
-      Serial.println(currentSession.sessionType.length());
+    Serial.print("| Parsed sessionType: '");
+    Serial.print(currentSession.sessionType);
+    Serial.print("' length: ");
+    Serial.println(currentSession.sessionType.length());
 
-      if (currentSession.sessionType == "weighing") {
-        Serial.println("| Entering weighing session");
-        handleWeighingSession(sessionDoc);
-      } else if (currentSession.sessionType == "rfid") {
-        Serial.println("| Entering RFID pairing session");
-        handleRFIDPairingSession();
-      } else {
-        Serial.print("| Unknown session type: ");
-        Serial.println(currentSession.sessionType);
-      }
+    // Handle session logic
+    if (currentSession.sessionType == "weighing") {
+      Serial.println("| Entering weighing session");
+      handleWeighingSession(sessionDoc);
+    } else if (currentSession.sessionType == "rfid") {
+      Serial.println("| Entering RFID pairing session");
+      handleRFIDPairingSession();
     } else {
-      if (currentSession.isActive) {
-        currentSession.isActive = false;
-        changeSystemState(SYSTEM_IDLE);
-      }
+      Serial.print("| Unknown session type: ");
+      Serial.println(currentSession.sessionType);
     }
-    xSemaphoreGive(stateMutex);
+  } else {
+    // Session ended
+    if (currentSession.isActive) {
+      currentSession.isActive = false;
+      changeSystemState(SYSTEM_IDLE);
+    }
   }
 }
 

@@ -90,8 +90,10 @@ enum WeighingState {
 };
 
 
-// Thread-safe state variables
+// Thread-safe state variables (using volatile flags instead of mutex)
 volatile SystemState currentSystemState = SYSTEM_STARTUP;
+volatile SystemState pendingSystemState = SYSTEM_STARTUP;
+volatile bool needDisplayUpdate = true;
 volatile WeighingState currentWeighingState = WEIGHING_IDLE;
 
 ////////// System Runtime Variables //////////
@@ -134,17 +136,17 @@ MeasurementData currentMeasurement;
 
 ////////// Selection Options //////////
 const char* EATING_PATTERN_OPTIONS[] = { "Kurang", "Cukup", "Berlebih" };
-const char* EATING_PATTERN_DESCRIPTIONS[] = { 
-  "Sehari Makan Dibawah Kategori Cukup", 
-  "Sehari Makan 3x + Snack 2x", 
-  "Sehari Makan Lebih dari Kategori Cukup" 
+const char* EATING_PATTERN_DESCRIPTIONS[] = {
+  "Sehari Makan Dibawah Kategori Cukup",
+  "Sehari Makan 3x + Snack 2x",
+  "Sehari Makan Lebih dari Kategori Cukup"
 };
 
 const char* CHILD_RESPONSE_OPTIONS[] = { "Pasif", "Sedang", "Aktif" };
-const char* CHILD_RESPONSE_DESCRIPTIONS[] = { 
-  "Anak Tidak Aktif Bergerak Cenderung Cuek dengan Sekitar", 
-  "Anak Biasa Saja Tidak Terlalu Aktif", 
-  "Anak Aktif Secara Fisik dan Cepat Tanggap" 
+const char* CHILD_RESPONSE_DESCRIPTIONS[] = {
+  "Anak Tidak Aktif Bergerak Cenderung Cuek dengan Sekitar",
+  "Anak Biasa Saja Tidak Terlalu Aktif",
+  "Anak Aktif Secara Fisik dan Cepat Tanggap"
 };
 
 const int EATING_PATTERN_COUNT = 3;
