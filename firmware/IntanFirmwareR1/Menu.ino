@@ -1,5 +1,5 @@
 void displayMenuCallback() {
-  // Update current state if there's a pending change
+  
   if (needDisplayUpdate) {
     currentSystemState = pendingSystemState;
     needDisplayUpdate = false;
@@ -7,7 +7,7 @@ void displayMenuCallback() {
     Serial.println(currentSystemState);
   }
 
-  // Display based on current state (no mutex needed)
+  
   switch (currentSystemState) {
     case SYSTEM_STARTUP:
       displayStartupScreen();
@@ -67,7 +67,7 @@ void displayRFIDPairingScreen() {
     updateGlobalSessionRFID(currentRfidTag);
     currentRfidTag = "";
 
-    // Return to idle after successful pairing
+    
     backToIdleState();
   }
 }
@@ -102,14 +102,14 @@ void displayWeighingScreen() {
 }
 
 void displayWeighingRFIDConfirmation() {
-  // Initialize timeout timer when first entering this state
+  
   static bool timerInitialized = false;
   if (!timerInitialized) {
     rfidConfirmationStartTime = millis();
     timerInitialized = true;
   }
 
-  // Check for timeout
+  
   unsigned long timeRemaining = RFID_TIMEOUT_MS - (millis() - rfidConfirmationStartTime);
   if (millis() - rfidConfirmationStartTime > RFID_TIMEOUT_MS) {
     timerInitialized = false;
@@ -117,25 +117,25 @@ void displayWeighingRFIDConfirmation() {
     return;
   }
 
-  // Display countdown
+  
   String timeoutMsg = "TIMEOUT: " + String(timeRemaining / 1000) + "S";
   const char* confirmLines[] = { "SESI PENIMBANGAN", "TAP RFID UNTUK", "KONFIRMASI", timeoutMsg.c_str() };
   displayMenu.renderBoxedText(confirmLines, 4);
 
   if (!currentRfidTag.isEmpty()) {
-    timerInitialized = false;  // Reset timer flag
+    timerInitialized = false;
     if (currentRfidTag == currentSessionUser.rfidTag) {
-      // Correct RFID - proceed to confirm wait
+      
       currentWeighingState = WEIGHING_RFID_CONFIRM_WAIT;
       systemBuzzer.toggleInit(100, 2);
       currentRfidTag = "";
     } else {
-      // Wrong RFID - show error and reset session
+      
       displayWeighingRFIDError();
-      systemBuzzer.toggleInit(200, 3);  // Different buzz pattern for error
+      systemBuzzer.toggleInit(200, 3);
       currentRfidTag = "";
 
-      // Reset session after 3 seconds
+      
       delay(3000);
       backToIdleState();
     }
@@ -216,7 +216,7 @@ void displayWeighingValidateData() {
   String weightInfo = "BERAT: " + String(currentMeasurement.weight, 1) + " KG";
   String heightInfo = "TINGGI: " + String(currentMeasurement.height, 1) + " CM";
 
-  // Use KNN for nutrition status prediction
+  
   String nutritionStatus = getNutritionStatusFromSession();
   String statusInfo = "Status: " + nutritionStatus;
 
@@ -238,7 +238,7 @@ void displayWeighingSendData() {
   const char* sendingLines[] = { "MENGIRIM DATA", "KE SERVER", "MOHON TUNGGU..." };
   displayMenu.renderBoxedText(sendingLines, 3);
 
-  // Use KNN for nutrition status prediction
+  
   String nutritionStatus = getNutritionStatusFromSession();
   String eatingPattern = getEatingPatternString(currentMeasurement.eatingPatternIndex);
   String childResponse = getChildResponseString(currentMeasurement.childResponseIndex);

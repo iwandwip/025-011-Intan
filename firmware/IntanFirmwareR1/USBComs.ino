@@ -69,7 +69,7 @@ void handleUSBCommand(const String& receivedData) {
     performLoadCellTare();
   }
 
-  // Testing Mode Commands
+  
   if (commandHeader == "TEST_MODE") {
     if (commandValue == "ON" || commandValue == "1" || commandValue == "ENABLE") {
       testingModeEnabled = true;
@@ -126,10 +126,10 @@ void handleUSBCommand(const String& receivedData) {
     }
   }
 
-  // KNN Testing Command
+  
   if (commandHeader == "KNN") {
-    // Parse CSV values: ageYears, ageMonths, gender, weight, height, eatingPattern, childResponse
-    // Remove spaces after commas for easier parsing
+    
+    
     commandValue.replace(" ", "");
 
     int commaIndex1 = commandValue.indexOf(',');
@@ -149,7 +149,7 @@ void handleUSBCommand(const String& receivedData) {
       String eatingPatternInput = commandValue.substring(commaIndex5 + 1, commaIndex6);
       String childResponseInput = commandValue.substring(commaIndex6 + 1);
 
-      // Convert string inputs to proper format
+      
       String genderStr = "";
       if (genderInput == "PEREMPUAN") {
         genderStr = "Perempuan";
@@ -184,13 +184,12 @@ void handleUSBCommand(const String& receivedData) {
         return;
       }
 
-      // Call KNN prediction
+      
       String nutritionStatus = getNutritionStatus(weight, height, ageYears, ageMonths, genderStr, eatingPatternStr, childResponseStr);
 
-      // Output result
+      
       Serial.println("=== KNN NUTRITION STATUS PREDICTION ===");
-      Serial.printf("Input: Usia=%d tahun %d bulan, Gender=%s, Berat=%.1f kg, Tinggi=%.1f cm\n",
-                    ageYears, ageMonths, genderStr.c_str(), weight, height);
+      Serial.printf("Input: Usia=%d tahun %d bulan, Gender=%s, Berat=%.1f kg, Tinggi=%.1f cm\n", ageYears, ageMonths, genderStr.c_str(), weight, height);
       Serial.printf("       Pola Makan=%s, Respon Anak=%s\n", eatingPatternStr.c_str(), childResponseStr.c_str());
       Serial.printf("Prediction: %s\n", nutritionStatus.c_str());
       Serial.println("====================================");

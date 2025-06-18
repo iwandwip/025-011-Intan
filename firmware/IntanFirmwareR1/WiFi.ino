@@ -79,7 +79,7 @@ void processSessionData(JsonDocument& sessionDoc) {
   bool isInUse = sessionDoc["fields"]["isInUse"]["booleanValue"].as<bool>();
 
   if (isInUse) {
-    // Parse session data directly (no mutex needed)
+    
     currentSession.isActive = true;
     currentSession.sessionType = sessionDoc["fields"]["sessionType"]["stringValue"].as<String>();
     currentSession.userId = sessionDoc["fields"]["currentUserId"]["stringValue"].as<String>();
@@ -90,7 +90,7 @@ void processSessionData(JsonDocument& sessionDoc) {
     Serial.print("' length: ");
     Serial.println(currentSession.sessionType.length());
 
-    // Handle session logic
+    
     if (currentSession.sessionType == "weighing") {
       Serial.println("| Entering weighing session");
       handleWeighingSession(sessionDoc);
@@ -102,7 +102,7 @@ void processSessionData(JsonDocument& sessionDoc) {
       Serial.println(currentSession.sessionType);
     }
   } else {
-    // Session ended
+    
     if (currentSession.isActive) {
       currentSession.isActive = false;
       changeSystemState(SYSTEM_IDLE);

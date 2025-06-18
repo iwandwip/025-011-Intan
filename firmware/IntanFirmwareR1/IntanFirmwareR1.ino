@@ -15,7 +15,6 @@ void setup() {
 
   initializeSensorModules();
 
-  // Initialize KNN model for nutrition status prediction
   initKNNMethods();
 
   wifiTask.initialize(wifiTaskHandler);
@@ -57,13 +56,11 @@ void initializeSensorModules() {
 
 void updateSensorData() {
   if (testingModeEnabled) {
-    // In testing mode, use manual values instead of sensors
     currentRfidTag = testRfidTag;
     currentWeight = testWeight;
     currentHeight = testHeight;
     newSensorData = true;
   } else {
-    // Normal sensor operation
     sensorManager.update([]() {
       String newRfidTag = sensorManager["rfid"].as<String>();
       float rawWeight = sensorManager["loadcell"];
@@ -103,7 +100,6 @@ void handleUserInput() {
 }
 
 void updateDisplayInterface() {
-  // Update current state if there's a pending change
   if (needDisplayUpdate) {
     currentSystemState = pendingSystemState;
     needDisplayUpdate = false;
@@ -111,7 +107,6 @@ void updateDisplayInterface() {
     Serial.println(currentSystemState);
   }
 
-  // Display based on current state (no mutex needed for reading)
   switch (currentSystemState) {
     case SYSTEM_IDLE:
       displayIdleScreen();
@@ -140,7 +135,6 @@ float calculateBMI(float weight, float height) {
   return (isinf(bmi) || isnan(bmi)) ? 0.0 : bmi;
 }
 
-// Legacy BMI function - kept for compatibility but not used
 String getBMICategory(float bmi) {
   if (bmi < 18.5) return "gizi kurang";
   else if (bmi >= 18.5 && bmi < 24.9) return "gizi baik";
@@ -148,7 +142,6 @@ String getBMICategory(float bmi) {
   else return "obesitas";
 }
 
-// New KNN-based nutrition status prediction using current session data
 String getNutritionStatusFromSession() {
   return getNutritionStatus(
     currentMeasurement.weight,
