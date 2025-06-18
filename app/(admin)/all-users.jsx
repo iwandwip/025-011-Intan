@@ -225,10 +225,10 @@ export default function AllUsers() {
                     <Text
                       style={[
                         styles.detailValue,
-                        !user.rfid && styles.notAssigned,
+                        (!user.rfid || user.rfid === '') && styles.notAssigned,
                       ]}
                     >
-                      {user.rfid 
+                      {user.rfid && user.rfid !== ''
                         ? `${user.rfid}${user.rfidNumber ? ` (No. ${user.rfidNumber})` : ''}` 
                         : "Belum dipasang"}
                     </Text>
