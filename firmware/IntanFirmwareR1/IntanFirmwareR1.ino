@@ -4,7 +4,6 @@ void setup() {
   serialCommunication.begin(&Serial, 115200);
   Serial.println("=== INTAN System Starting ===");
 
-
   devicePreferences.begin("intan", false);
   SENSOR_HEIGHT_POLE = devicePreferences.getFloat("heightPole", 199.0);
   devicePreferences.end();
