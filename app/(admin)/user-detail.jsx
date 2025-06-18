@@ -16,6 +16,7 @@ import DataTable from "../../components/ui/DataTable";
 import Button from "../../components/ui/Button";
 import EditUserModal from "../../components/ui/EditUserModal";
 import RFIDNumberModal from "../../components/ui/RFIDNumberModal";
+import RFIDPairingMethodModal from "../../components/ui/RFIDPairingMethodModal";
 import {
   getUserWithMeasurements,
   updateUserProfile,
@@ -52,6 +53,7 @@ export default function UserDetail() {
   const [systemStatus, setSystemStatus] = useState(null);
   const [rfidLoading, setRfidLoading] = useState(false);
   const [rfidNumberModalVisible, setRfidNumberModalVisible] = useState(false);
+  const [rfidMethodModalVisible, setRfidMethodModalVisible] = useState(false);
   const [pendingRfidData, setPendingRfidData] = useState(null);
 
   const loadUserDetails = async () => {
@@ -164,8 +166,13 @@ export default function UserDetail() {
       return;
     }
 
+    setRfidMethodModalVisible(true);
+  };
+
+  const handleDevicePairing = async () => {
     try {
       setRfidLoading(true);
+      setRfidMethodModalVisible(false);
       const result = await startRfidSession(userId, userDetails.name);
 
       if (result.success) {
@@ -180,6 +187,31 @@ export default function UserDetail() {
       Alert.alert("Gagal Pairing", "Terjadi kesalahan. Silakan coba lagi.");
     } finally {
       setRfidLoading(false);
+    }
+  };
+
+  const handleManualPairing = async (rfidCode, rfidNumber) => {
+    try {
+      const result = await updateUserProfile(userId, {
+        rfid: rfidCode,
+        rfidNumber: rfidNumber,
+      });
+
+      if (result.success) {
+        await loadUserDetails();
+        setRfidMethodModalVisible(false);
+        Alert.alert(
+          "RFID Berhasil Dipasang",
+          `Kartu RFID nomor ${rfidNumber} untuk ${userDetails.name} berhasil dipasang!`,
+          [{ text: "OK" }]
+        );
+      } else {
+        throw new Error(result.error || "Gagal menyimpan data RFID");
+      }
+    } catch (error) {
+      console.error("Manual RFID error:", error);
+      Alert.alert("Kesalahan", error.message || "Terjadi kesalahan saat menyimpan RFID");
+      throw error;
     }
   };
 
@@ -552,6 +584,15 @@ export default function UserDetail() {
         userId={userId}
         onConfirm={handleRfidNumberConfirm}
         onCancel={handleRfidNumberCancel}
+      />
+
+      <RFIDPairingMethodModal
+        visible={rfidMethodModalVisible}
+        userName={userDetails?.name}
+        onClose={() => setRfidMethodModalVisible(false)}
+        onDevicePairing={handleDevicePairing}
+        onManualPairing={handleManualPairing}
+        loading={rfidLoading}
       />
     </View>
   );
