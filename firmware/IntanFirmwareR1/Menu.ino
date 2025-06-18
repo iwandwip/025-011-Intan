@@ -279,7 +279,7 @@ void backToIdleState() {
     xSemaphoreGive(dataReadyMutex);
   }
 
-  UserAccount emptyUser;
+  SessionUser emptyUser;
   currentSessionUser = emptyUser;
 
   MeasurementData emptyMeasurement;

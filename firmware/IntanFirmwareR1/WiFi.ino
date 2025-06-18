@@ -127,7 +127,7 @@ void handleRFIDPairingSession() {
 void loadUserDataForSession(String userId, String rfidTag) {
   String userResponse = firestoreClient.getDocument("users/" + userId, "", true);
   JsonDocument userDoc;
-  deserializeJson(userResponse, userResponse);
+  deserializeJson(userDoc, userResponse);
 
   if (userDoc.containsKey("fields")) {
     currentSessionUser.userId = userId;
@@ -190,7 +190,7 @@ void updateGlobalSessionData(float weightValue, float heightValue, String nutrit
   completeField["booleanValue"] = true;
 
   JsonObject activityField = fields.createNestedObject("lastActivity");
-  activityField["timestampValue"] = dateTimeManager.getISOString();
+  activityField["timestampValue"] = dateTimeManager.getISO8601Time();
 
   String updateDocStr;
   serializeJson(updateDoc, updateDocStr);

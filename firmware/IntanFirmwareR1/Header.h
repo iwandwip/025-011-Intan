@@ -7,6 +7,7 @@
 #define ENABLE_MODULE_DATETIME_NTP_V2
 #define ENABLE_MODULE_FIREBASE_FIRESTORE_V2
 #define ENABLE_MODULE_SH1106_MENU
+#define ENABLE_MODULE_KNN
 
 #define ENABLE_SENSOR_MODULE
 #define ENABLE_SENSOR_MODULE_UTILITY
@@ -57,14 +58,14 @@ DigitalOut statusLed(4);
 
 
 ////////// User Account Data Structure //////////
-struct UserAccount {
+struct SessionUser {
   String userId;
   String childName;
   String rfidTag;
   String gender;
 };
 
-UserAccount currentSessionUser;
+SessionUser currentSessionUser;
 
 ////////// System State Management //////////
 enum SystemState {
