@@ -86,6 +86,17 @@ enum WeighingState {
   WEIGHING_COMPLETE,
 };
 
+// New State Machine for Event-Driven Weighing
+enum WeighingFlowState {
+  FLOW_IDLE,
+  FLOW_WAIT_RFID,        // Menunggu RFID tap
+  FLOW_WEIGHING,         // Mengirim data berat real-time
+  FLOW_HEIGHT,           // Mengirim data tinggi real-time  
+  FLOW_CALCULATING,      // Menghitung KNN dan IMT
+  FLOW_COMPLETE,         // Selesai, data terkirim
+  FLOW_ERROR             // Error state
+};
+
 volatile SystemState currentSystemState = SYSTEM_STARTUP;
 volatile SystemState pendingSystemState = SYSTEM_STARTUP;
 volatile bool needDisplayUpdate = true;
@@ -182,9 +193,41 @@ enum StatusGizi {
 
 ////////// Function Declarations //////////
 float calculateIMT(float weight, float height);
+void changeFlowState(WeighingFlowState newState);
+void handleWeighingStateMachine();
 
 ////////// Sensor Configuration & Data //////////
 float SENSOR_HEIGHT_POLE = 199.0;
 volatile float currentWeight = 0.0;
 volatile float currentHeight = 0.0;
 volatile bool newSensorData = false;
+
+////////// State Machine Variables //////////
+extern WeighingFlowState currentFlowState;
+extern String flowEvent;
+extern uint32_t lastSensorUpdate;
+extern uint32_t lastEventCheck;
+extern bool flowDataReady;
+
+////////// State Machine Data Structures //////////
+struct FlowUserData {
+  String userId;
+  String userName;
+  String userRfid;
+  String eatingPattern;
+  String childResponse;
+  String gender;
+  int ageYears;
+  int ageMonths;
+};
+
+struct FlowMeasurementData {
+  float weight;
+  float height;
+  float imt;
+  String nutritionStatus;
+  bool dataComplete;
+};
+
+extern FlowUserData flowUser;
+extern FlowMeasurementData flowMeasurement;

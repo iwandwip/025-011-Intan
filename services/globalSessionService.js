@@ -23,14 +23,13 @@ export const initializeSystemStatus = async () => {
         startTime: null,
         lastActivity: null,
         
-        // App-controlled weighing fields
-        appControlled: false,
-        currentStep: 'idle', // idle, rfid_detected, weighing, height, confirm
-        nextAction: '', // continue, confirm, cancel
+        // Event-driven weighing fields
+        weighingEvent: '', // start_weighing, continue_weight, continue_height, cancel
+        weighingStatus: 'idle', // idle, waiting_rfid, weighing, height, calculating, complete
+        currentStep: 'idle', // For app state
         realTimeWeight: 0,
         realTimeHeight: 0,
         rfidVerificationFailed: false,
-        rfidVerified: false, // Flag untuk RFID berhasil diverifikasi
         
         eatingPattern: '',
         childResponse: '',
@@ -115,10 +114,10 @@ export const endGlobalSession = async () => {
       startTime: null,
       lastActivity: null,
       
-      // Reset app-controlled weighing fields
-      appControlled: false,
+      // Reset event-driven weighing fields
+      weighingEvent: '',
+      weighingStatus: 'idle',
       currentStep: 'idle',
-      nextAction: '',
       realTimeWeight: 0,
       realTimeHeight: 0,
       rfidVerificationFailed: false,
@@ -184,10 +183,10 @@ export const startWeighingSession = async (userId, userName, userRfid, selection
       ageMonths: userProfile.ageMonths,
       gender: userProfile.gender,
       
-      // App-controlled weighing initialization
-      appControlled: true,
-      currentStep: 'idle',
-      nextAction: '',
+      // Event-driven weighing initialization  
+      weighingEvent: 'start_weighing',
+      weighingStatus: 'waiting_rfid',
+      currentStep: 'waiting_rfid',
       realTimeWeight: 0,
       realTimeHeight: 0,
       rfidVerificationFailed: false,
@@ -212,8 +211,8 @@ export const startRfidSession = async (userId, userName) => {
   );
 };
 
-// App-controlled weighing functions
-export const sendWeighingAction = async (action, step = null) => {
+// Event-driven weighing functions
+export const sendWeighingEvent = async (event) => {
   try {
     if (!db) {
       throw new Error('Firestore is not initialized');
@@ -221,13 +220,9 @@ export const sendWeighingAction = async (action, step = null) => {
 
     const systemRef = doc(db, SYSTEM_STATUS_DOC);
     const updateData = {
-      nextAction: action,
+      weighingEvent: event,
       lastActivity: new Date()
     };
-
-    if (step) {
-      updateData.currentStep = step;
-    }
 
     await updateDoc(systemRef, updateData);
     return { success: true };
@@ -236,18 +231,18 @@ export const sendWeighingAction = async (action, step = null) => {
   }
 };
 
-export const proceedToWeighing = async () => {
-  return await sendWeighingAction('continue', 'weighing');
+export const startWeighingFlow = async () => {
+  return await sendWeighingEvent('start_weighing');
 };
 
-export const proceedToHeight = async () => {
-  return await sendWeighingAction('continue', 'height');
+export const confirmWeight = async () => {
+  return await sendWeighingEvent('continue_weight');
 };
 
-export const confirmMeasurements = async () => {
-  return await sendWeighingAction('confirm', 'confirm');
+export const confirmHeight = async () => {
+  return await sendWeighingEvent('continue_height');
 };
 
-export const cancelWeighing = async () => {
-  return await sendWeighingAction('cancel', 'idle');
+export const cancelWeighingFlow = async () => {
+  return await sendWeighingEvent('cancel');
 };

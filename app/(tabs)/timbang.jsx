@@ -20,10 +20,10 @@ import {
   startWeighingSession,
   endGlobalSession,
   initializeSystemStatus,
-  proceedToWeighing,
-  proceedToHeight,
-  confirmMeasurements,
-  cancelWeighing,
+  startWeighingFlow,
+  confirmWeight,
+  confirmHeight,
+  cancelWeighingFlow,
 } from "../../services/globalSessionService";
 import { addMeasurement } from "../../services/dataService";
 import { updateUserProfile } from "../../services/userService";
@@ -68,6 +68,10 @@ export default function TimbangScreen() {
         console.log('🎮 App controlled:', data.appControlled);
         console.log('📍 Current step:', data.currentStep);
         console.log('🔄 Is in use:', data.isInUse);
+        console.log('⚖️ Weighing Status:', data.weighingStatus);
+        console.log('🎯 Weighing Event:', data.weighingEvent);
+        console.log('🔍 Raw data keys:', Object.keys(data).filter(key => key.includes('weigh')));
+        console.log('🔍 All keys:', Object.keys(data));
         
         // Highlight step changes
         if (data.currentStep && data.currentStep !== 'idle') {
@@ -84,19 +88,32 @@ export default function TimbangScreen() {
         
         setSystemStatus(data);
 
-        // Handle app-controlled weighing
+        // Handle event-driven weighing
         if (
           data.sessionType === GLOBAL_SESSION_TYPES.WEIGHING &&
-          data.currentUserId === userProfile.id &&
-          data.appControlled
+          data.currentUserId === userProfile.id
         ) {
-          console.log('✅ Conditions met for handleAppControlledWeighing');
-          handleAppControlledWeighing(data);
+          console.log('✅ Event-driven weighing session detected');
+          console.log('  - Weighing status:', data.weighingStatus);
+          console.log('  - Current step:', data.currentStep);
+          
+          if (data.weighingStatus) {
+            console.log('🎯 Processing weighing status:', data.weighingStatus);
+            handleEventDrivenWeighing(data);
+          } else if (data.currentStep === 'weighing') {
+            console.log('🎯 Fallback: currentStep is weighing, treating as weighing status');
+            handleEventDrivenWeighing({...data, weighingStatus: 'weighing'});
+          } else {
+            console.log('⚠️ No weighing status found, but weighing session active');
+            console.log('  - Available fields:', Object.keys(data));
+            console.log('  - currentStep:', data.currentStep);
+          }
         } else {
-          console.log('❌ Conditions NOT met for handleAppControlledWeighing');
+          console.log('❌ Event-driven weighing not active');
           console.log('  - Session type match:', data.sessionType === GLOBAL_SESSION_TYPES.WEIGHING);
           console.log('  - User ID match:', data.currentUserId === userProfile.id);
-          console.log('  - App controlled:', data.appControlled);
+          console.log('  - Weighing status present:', !!data.weighingStatus);
+          console.log('  - Weighing status value:', data.weighingStatus);
         }
 
         // Handle RFID verification failure
@@ -116,14 +133,22 @@ export default function TimbangScreen() {
           data.weight > 0 &&
           data.height > 0
         ) {
-          console.log('Measurement completed detected:', data);
+          console.log('✅ Measurement completed detected:', data);
+          console.log('📊 Final data:', {
+            weight: data.weight,
+            height: data.height,
+            imt: data.imt,
+            nutritionStatus: data.nutritionStatus,
+            eatingPattern: data.eatingPattern,
+            childResponse: data.childResponse
+          });
           handleWeighingCompleted(data);
         } else if (
           data.sessionType === GLOBAL_SESSION_TYPES.WEIGHING &&
           data.currentUserId === userProfile.id &&
           data.measurementComplete
         ) {
-          console.log('Measurement complete but missing weight/height:', {
+          console.log('⚠️ Measurement complete but missing weight/height:', {
             weight: data.weight,
             height: data.height,
             complete: data.measurementComplete
@@ -135,28 +160,75 @@ export default function TimbangScreen() {
     return unsubscribe;
   }, [userProfile?.id]);
 
-  const handleAppControlledWeighing = (data) => {
-    const { currentStep } = data;
+  const handleEventDrivenWeighing = (data) => {
+    const { weighingStatus, currentStep } = data;
     
-    console.log('🔄 handleAppControlledWeighing called with step:', currentStep);
-    console.log('📊 Current weighing step state:', currentWeighingStep);
-    console.log('👁️ Modal visible:', weighingControlVisible);
+    console.log('🔄 handleEventDrivenWeighing - status:', weighingStatus, 'step:', currentStep);
     
-    if (currentStep === 'weighing' || currentStep === 'height') {
-      console.log('✅ Setting weighing control visible for step:', currentStep);
-      setCurrentWeighingStep(currentStep);
+    // Special handling: If currentStep is 'weighing' but weighingStatus is not set properly
+    if (currentStep === 'weighing' && (!weighingStatus || weighingStatus === 'waiting_rfid')) {
+      console.log('🔧 FALLBACK: currentStep is weighing, force trigger modal');
+      setCurrentWeighingStep('weighing');
       setWeighingControlVisible(true);
-    } else if (currentStep === 'processing') {
-      // Show processing state - ESP32 is calculating
-      console.log('⏳ Setting processing state');
-      setCurrentWeighingStep('processing');
-      setWeighingControlVisible(true);
-    } else if (currentStep === 'idle') {
-      console.log('💤 Step is idle - hiding weighing control');
+      return;
+    }
+    
+    // Special handling: If we're in a weighing session but no weighingStatus yet,
+    // check if ESP32 might be trying to trigger weighing mode
+    if (!weighingStatus && currentStep === 'waiting_rfid' && data.isInUse) {
+      console.log('🔄 Checking if ESP32 set weighing status...');
+      
+      // Force a brief delay then check again - sometimes Firestore needs a moment
+      setTimeout(() => {
+        console.log('🔄 Checking for delayed weighing status...');
+        // The onSnapshot will trigger again if data changed
+      }, 2000);
+      
       setWeighingControlVisible(false);
-    } else {
-      console.log('❓ Unknown step, hiding weighing control:', currentStep);
-      setWeighingControlVisible(false);
+      return;
+    }
+    
+    switch (weighingStatus) {
+      case 'waiting_rfid':
+        console.log('⏳ Waiting for RFID - hiding modal');
+        setWeighingControlVisible(false);
+        break;
+        
+      case 'rfid_verified':
+      case 'weighing':
+        console.log('⚖️ Weighing mode - showing weight modal');
+        setCurrentWeighingStep('weighing');
+        setWeighingControlVisible(true);
+        break;
+        
+      case 'height':
+        console.log('📏 Height mode - showing height modal');
+        setCurrentWeighingStep('height');
+        setWeighingControlVisible(true);
+        break;
+        
+      case 'calculating':
+        console.log('🧮 Calculating - showing processing modal');
+        setCurrentWeighingStep('processing');
+        setWeighingControlVisible(true);
+        break;
+        
+      case 'measurement_complete':
+      case 'complete':
+        console.log('✅ Complete - will show results');
+        setWeighingControlVisible(false);
+        break;
+        
+      case 'rfid_failed':
+        console.log('❌ RFID failed - hiding modal and showing alert');
+        setWeighingControlVisible(false);
+        handleRFIDVerificationFailed();
+        break;
+        
+      default:
+        console.log('💤 Default state - hiding modal, status:', weighingStatus);
+        setWeighingControlVisible(false);
+        break;
     }
   };
 
@@ -260,21 +332,12 @@ export default function TimbangScreen() {
       let result;
       switch (currentWeighingStep) {
         case 'weighing':
-          console.log('Proceeding to height measurement');
-          result = await proceedToHeight();
+          console.log('Confirming weight measurement');
+          result = await confirmWeight();
           break;
         case 'height':
-          console.log('Confirming height and starting processing');
-          result = await confirmMeasurements();
-          
-          // Set timeout for processing if it gets stuck
-          setTimeout(() => {
-            if (loading) {
-              console.log('Processing timeout - stopping loading');
-              setLoading(false);
-              Alert.alert("Timeout", "ESP32 tidak merespons. Silakan coba lagi.");
-            }
-          }, 15000); // 15 second timeout
+          console.log('Confirming height measurement');
+          result = await confirmHeight();
           break;
         default:
           return;
@@ -287,17 +350,14 @@ export default function TimbangScreen() {
       console.error('Error in handleWeighingProceed:', error);
       Alert.alert("Kesalahan", "Gagal melanjutkan pengukuran");
     } finally {
-      if (currentWeighingStep !== 'height') {
-        setLoading(false);
-      }
-      // For 'height' step, loading will be cleared by handleWeighingCompleted or timeout
+      setLoading(false);
     }
   };
 
   const handleWeighingCancel = async () => {
     try {
       setLoading(true);
-      const result = await cancelWeighing();
+      const result = await cancelWeighingFlow();
       
       if (result.success) {
         setWeighingControlVisible(false);
