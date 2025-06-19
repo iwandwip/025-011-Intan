@@ -136,6 +136,7 @@ void displayWeighingRFIDConfirmWait() {
   displayMenu.renderBoxedText(confirmLines, 4);
   if (confirmButton.isReleased()) {
     confirmButton.resetState();
+    delay(500);
     currentWeighingState = WEIGHING_GET_WEIGHT;
     systemBuzzer.toggleInit(100, 1);
   }
@@ -158,6 +159,7 @@ void displayWeighingGetWeight() {
   displayMenu.renderBoxedText(weightLines, 4);
   if (confirmButton.isReleased()) {
     confirmButton.resetState();
+    delay(500);
     Serial.printf("| Weight confirmed: currentWeight=%.1f, storing to currentMeasurement\n", currentWeight);
     currentMeasurement.weight = currentWeight;
     Serial.printf("| Stored weight: currentMeasurement.weight=%.1f\n", currentMeasurement.weight);
@@ -181,6 +183,7 @@ void displayWeighingGetHeight() {
   displayMenu.renderBoxedText(heightLines, 4);
   if (confirmButton.isReleased()) {
     confirmButton.resetState();
+    delay(500);
     Serial.printf("| Height confirmed: currentHeight=%.1f, storing to currentMeasurement\n", currentHeight);
     currentMeasurement.height = currentHeight;
     Serial.printf("| Stored height: currentMeasurement.height=%.1f\n", currentMeasurement.height);
@@ -203,6 +206,7 @@ void displayWeighingValidateData() {
   displayMenu.renderBoxedText(validateLines, 4);
   if (confirmButton.isReleased()) {
     confirmButton.resetState();
+    delay(500);
     currentWeighingState = WEIGHING_SEND_DATA;
     systemBuzzer.toggleInit(100, 1);
   }
@@ -308,6 +312,7 @@ void displayQuickMeasureScreen() {
     displayMenu.renderBoxedText(measureLines, 4);
     if (confirmButton.isReleased()) {
       confirmButton.resetState();
+      delay(500);
       displayMenu.clearMenu(quickMeasureMenu, displayMenu.end());
     }
   });
@@ -331,6 +336,7 @@ void displayAdminScreen() {
   displayMenu.renderBoxedText(adminLines, 3);
   if (confirmButton.isReleased()) {
     confirmButton.resetState();
+    delay(500);
     backToIdleState();
   }
 }
