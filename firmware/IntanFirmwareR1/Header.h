@@ -49,7 +49,7 @@ DigitalIn navigateButton(36);
 
 ////////// Display & Feedback //////////
 SH1106Menu displayMenu(0x3C, 21, 22);
-DigitalOut systemBuzzer(4);
+DigitalOut systemBuzzer(2);
 DigitalOut statusLed(4);
 
 
