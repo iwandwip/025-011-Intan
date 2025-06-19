@@ -147,7 +147,7 @@ void displayWeighingRFIDConfirmWait() {
 }
 
 void displayWeighingGetWeight() {
-  String weightStr = String(currentWeight, 1) + " KG";
+  String weightStr = String(currentWeight, 2) + " KG";
   if (testingModeEnabled) {
     weightStr += " [TEST]";
   }
@@ -161,7 +161,7 @@ void displayWeighingGetWeight() {
     confirmButton.resetState();
     delay(500);
     Serial.printf("| Weight confirmed: currentWeight=%.1f, storing to currentMeasurement\n", currentWeight);
-    currentMeasurement.weight = currentWeight;
+    currentMeasurement.weight = round(currentWeight * 100) / 100.0;
     Serial.printf("| Stored weight: currentMeasurement.weight=%.1f\n", currentMeasurement.weight);
     currentWeighingState = WEIGHING_GET_HEIGHT;
     systemBuzzer.toggleInit(100, 1);
@@ -173,7 +173,7 @@ void displayWeighingGetWeight() {
 }
 
 void displayWeighingGetHeight() {
-  String heightStr = String(currentHeight, 1) + " CM";
+  String heightStr = String(currentHeight, 2) + " CM";
   if (testingModeEnabled) {
     heightStr += " [TEST]";
   }
@@ -185,7 +185,7 @@ void displayWeighingGetHeight() {
     confirmButton.resetState();
     delay(500);
     Serial.printf("| Height confirmed: currentHeight=%.1f, storing to currentMeasurement\n", currentHeight);
-    currentMeasurement.height = currentHeight;
+    currentMeasurement.height = round(currentHeight * 100) / 100.0;
     Serial.printf("| Stored height: currentMeasurement.height=%.1f\n", currentMeasurement.height);
     Serial.printf("| Current stored values: weight=%.1f, height=%.1f\n", currentMeasurement.weight, currentMeasurement.height);
     currentWeighingState = WEIGHING_VALIDATE_DATA;
@@ -234,14 +234,14 @@ void displayWeighingSendData() {
     String childResponse = getChildResponseString(currentMeasurement.childResponseIndex);
 
     Serial.println("| Attempting to send measurement data...");
-    Serial.printf("| Final check before send: weight=%.1f, height=%.1f\n", currentMeasurement.weight, currentMeasurement.height);
-    Serial.printf("| Current sensor values: currentWeight=%.1f, currentHeight=%.1f\n", currentWeight, currentHeight);
+    Serial.printf("| Final check before send: weight=%.2f, height=%.2f\n", currentMeasurement.weight, currentMeasurement.height);
+    Serial.printf("| Current sensor values: currentWeight=%.2f, currentHeight=%.2f\n", currentWeight, currentHeight);
     Serial.printf("| Nutrition: %s, Pattern: %s, Response: %s\n", nutritionStatus.c_str(), eatingPattern.c_str(), childResponse.c_str());
 
     // Double-check values before sending
     if (currentMeasurement.weight <= 0.0 || currentMeasurement.height <= 0.0) {
       Serial.println("| WARNING: Invalid measurement data detected!");
-      Serial.printf("| Attempting to use current sensor values instead: %.1f kg, %.1f cm\n", currentWeight, currentHeight);
+      Serial.printf("| Attempting to use current sensor values instead: %.2f kg, %.2f cm\n", currentWeight, currentHeight);
       if (currentWeight > 0.0 && currentHeight > 0.0) {
         updateGlobalSessionData(currentWeight, currentHeight, nutritionStatus, eatingPattern, childResponse);
       } else {

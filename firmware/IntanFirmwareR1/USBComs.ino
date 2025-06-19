@@ -159,7 +159,7 @@ void handleUSBCommand(const String &receivedData) {
       }
       String nutritionStatus = getNutritionStatus(weight, height, ageYears, ageMonths, genderStr, eatingPatternStr, childResponseStr);
       Serial.println("=== KNN NUTRITION STATUS PREDICTION ===");
-      Serial.printf("Input: Usia=%d tahun %d bulan, Gender=%s, Berat=%.1f kg, Tinggi=%.1f cm\n", ageYears, ageMonths, genderStr.c_str(), weight, height);
+      Serial.printf("Input: Usia=%d tahun %d bulan, Gender=%s, Berat=%.2f kg, Tinggi=%.2f cm\n", ageYears, ageMonths, genderStr.c_str(), weight, height);
       Serial.printf("       Pola Makan=%s, Respon Anak=%s\n", eatingPatternStr.c_str(), childResponseStr.c_str());
       Serial.printf("Prediction: %s\n", nutritionStatus.c_str());
       Serial.println("====================================");

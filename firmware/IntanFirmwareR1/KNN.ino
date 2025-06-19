@@ -29,7 +29,7 @@ String getNutritionStatus(float weight, float height, int ageYears, int ageMonth
   Serial.print("KNN Prediction: ");
   Serial.print(prediction);
   Serial.print(" (confidence: ");
-  Serial.print(confidence * 100.0);
+  Serial.print(confidence * 100.0, 2);
   Serial.println("%)");
   return String(prediction);
 }
@@ -158,7 +158,9 @@ void addTrainingDataPoint(int ageYears, int ageMonths, Gender gender, float weig
 float calculateIMT(float weight, float height) {
   if (height <= 0) return 0.0;
   float heightInMeters = height / 100.0;
-  return weight / (heightInMeters * heightInMeters);
+  float imt = weight / (heightInMeters * heightInMeters);
+  // Limit to 2 decimal places
+  return round(imt * 100) / 100.0;
 }
 
 Gender encodeGender(String gender) {

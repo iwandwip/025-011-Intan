@@ -57,8 +57,9 @@ void updateSensorData() {
       rawWeight = abs(weightFilter.getFilteredValue());
       rawWeight = rawWeight < 1.0 ? 0.0 : rawWeight;
       currentRfidTag = newRfidTag;
-      currentWeight = rawWeight;
-      currentHeight = rawHeight;
+      // Limit to 2 decimal places
+      currentWeight = round(rawWeight * 100) / 100.0;
+      currentHeight = round(rawHeight * 100) / 100.0;
       newSensorData = true;
       if (!currentRfidTag.isEmpty()) {
         Serial.print("| currentRfidTag: ");
@@ -112,7 +113,9 @@ void updateDisplayInterface() {
 float calculateBMI(float weight, float height) {
   if (height <= 0 || weight <= 0) return 0.0;
   float bmi = weight / ((height / 100) * (height / 100));
-  return (isinf(bmi) || isnan(bmi)) ? 0.0 : bmi;
+  if (isinf(bmi) || isnan(bmi)) return 0.0;
+  // Limit to 2 decimal places
+  return round(bmi * 100) / 100.0;
 }
 
 String getBMICategory(float bmi) {

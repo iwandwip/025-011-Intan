@@ -154,8 +154,8 @@ void updateGlobalSessionData(float weightValue, float heightValue, String nutrit
   // Validate data before sending
   if (weightValue <= 0.0 || heightValue <= 0.0) {
     Serial.println("| ===== DATA VALIDATION FAILED =====");
-    Serial.printf("| Invalid weight: %.1f kg (must be > 0)\n", weightValue);
-    Serial.printf("| Invalid height: %.1f cm (must be > 0)\n", heightValue);
+    Serial.printf("| Invalid weight: %.2f kg (must be > 0)\n", weightValue);
+    Serial.printf("| Invalid height: %.2f cm (must be > 0)\n", heightValue);
     Serial.println("| Aborting data send - invalid measurement values");
     Serial.println("| ===== SEND ABORTED =====");
     return;
@@ -164,8 +164,8 @@ void updateGlobalSessionData(float weightValue, float heightValue, String nutrit
   float imt = calculateIMT(weightValue, heightValue);
 
   Serial.println("| ===== SENDING FINAL MEASUREMENT DATA =====");
-  Serial.printf("| Weight: %.1f kg\n", weightValue);
-  Serial.printf("| Height: %.1f cm\n", heightValue);
+  Serial.printf("| Weight: %.2f kg\n", weightValue);
+  Serial.printf("| Height: %.2f cm\n", heightValue);
   Serial.printf("| IMT: %.2f\n", imt);
   Serial.printf("| Nutrition Status: %s\n", nutritionStatus.c_str());
   Serial.printf("| Eating Pattern: %s\n", eatingPattern.c_str());
@@ -183,11 +183,11 @@ void updateGlobalSessionData(float weightValue, float heightValue, String nutrit
   JsonDocument measurementDoc;
   JsonObject measurementFields = measurementDoc.createNestedObject("fields");
   JsonObject weightField = measurementFields.createNestedObject("weight");
-  weightField["doubleValue"] = weightValue;
+  weightField["doubleValue"] = round(weightValue * 100) / 100.0;
   JsonObject heightField = measurementFields.createNestedObject("height");
-  heightField["doubleValue"] = heightValue;
+  heightField["doubleValue"] = round(heightValue * 100) / 100.0;
   JsonObject imtField = measurementFields.createNestedObject("imt");
-  imtField["doubleValue"] = imt;
+  imtField["doubleValue"] = round(imt * 100) / 100.0;
   JsonObject nutritionField = measurementFields.createNestedObject("nutritionStatus");
   nutritionField["stringValue"] = nutritionStatus;
   JsonObject eatingField = measurementFields.createNestedObject("eatingPattern");
