@@ -11,7 +11,8 @@ void wifiTaskHandler() {
   wifiTask.setInitCoreID(1);
   wifiTask.createTask(10000, [](void *pvParameter) {
     Serial.println("WiFi Task starting on Core 1...");
-    displayMenu.connectToWiFi("TIMEOSPACE", "1234Saja", 30);
+    // displayMenu.connectToWiFi("TIMEOSPACE", "1234Saja", 30);
+    displayMenu.connectToWiFi("silenceAndSleep", "11111111", 30);
     displayMenu.showCircleLoading("Connecting WiFi", 50);
     wifiSecureClient.setInsecure();
     if (!dateTimeManager.begin()) {

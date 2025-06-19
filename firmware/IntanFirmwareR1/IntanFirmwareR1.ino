@@ -73,7 +73,7 @@ void handleUserInput() {
   MenuCursor cursor{
     .up = false,
     .down = navigateButton.isPressed(),
-    .select = confirmButton.isPressed(),
+    .select = confirmButton.isReleased(),
     .back = false,
     .show = true
   };

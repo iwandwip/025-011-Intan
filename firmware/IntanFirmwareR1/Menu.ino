@@ -134,7 +134,7 @@ void displayWeighingRFIDConfirmWait() {
   userInfo.toUpperCase();
   const char *confirmLines[] = { "RFID TERKONFIRMASI!", userInfo.c_str(), "TEKAN OK UNTUK", "MULAI TIMBANG" };
   displayMenu.renderBoxedText(confirmLines, 4);
-  if (confirmButton.isPressed()) {
+  if (confirmButton.isReleased()) {
     currentWeighingState = WEIGHING_GET_WEIGHT;
     systemBuzzer.toggleInit(100, 1);
   }
@@ -155,7 +155,7 @@ void displayWeighingGetWeight() {
   responseInfo.toUpperCase();
   const char *weightLines[] = { "MENGUKUR BERAT", weightStr.c_str(), patternInfo.c_str(), "TEKAN OK KONFIRMASI" };
   displayMenu.renderBoxedText(weightLines, 4);
-  if (confirmButton.isPressed()) {
+  if (confirmButton.isReleased()) {
     currentMeasurement.weight = currentWeight;
     currentWeighingState = WEIGHING_GET_HEIGHT;
     systemBuzzer.toggleInit(100, 1);
@@ -175,7 +175,7 @@ void displayWeighingGetHeight() {
   childInfo.toUpperCase();
   const char *heightLines[] = { "MENGUKUR TINGGI", childInfo.c_str(), heightStr.c_str(), "TEKAN OK KONFIRMASI" };
   displayMenu.renderBoxedText(heightLines, 4);
-  if (confirmButton.isPressed()) {
+  if (confirmButton.isReleased()) {
     currentMeasurement.height = currentHeight;
     currentWeighingState = WEIGHING_VALIDATE_DATA;
     systemBuzzer.toggleInit(100, 1);
@@ -193,7 +193,7 @@ void displayWeighingValidateData() {
   String statusInfo = "Status: " + nutritionStatus;
   const char *validateLines[] = { "MENGHITUNG...", weightInfo.c_str(), heightInfo.c_str(), "TEKAN OK KIRIM" };
   displayMenu.renderBoxedText(validateLines, 4);
-  if (confirmButton.isPressed()) {
+  if (confirmButton.isReleased()) {
     currentWeighingState = WEIGHING_SEND_DATA;
     systemBuzzer.toggleInit(100, 1);
   }
@@ -237,7 +237,7 @@ void displayQuickMeasureScreen() {
     sprintf(heightBuffer, "TINGGI: %6.2f CM", currentHeight);
     const char *measureLines[] = { "UKUR CEPAT", weightBuffer, heightBuffer, bmiCategory.c_str() };
     displayMenu.renderBoxedText(measureLines, 4);
-    if (confirmButton.isPressed()) {
+    if (confirmButton.isReleased()) {
       displayMenu.clearMenu(quickMeasureMenu, displayMenu.end());
     }
   });
@@ -259,7 +259,7 @@ void displayQuickMeasureScreen() {
 void displayAdminScreen() {
   const char *adminLines[] = { "MODE ADMIN", "HARDWARE SIAP", "TEKAN TOMBOL KELUAR" };
   displayMenu.renderBoxedText(adminLines, 3);
-  if (confirmButton.isPressed()) {
+  if (confirmButton.isReleased()) {
     backToIdleState();
   }
 }
