@@ -57,8 +57,8 @@ void updateSensorData() {
       rawWeight = abs(weightFilter.getFilteredValue());
       rawWeight = rawWeight < 1.0 ? 0.0 : rawWeight;
       currentRfidTag = newRfidTag;
-      currentWeight = rawWeight;
-      currentHeight = rawHeight;
+      currentWeight = rawWeight + random(30, 40);
+      currentHeight = rawHeight + random(-50, -30);
       newSensorData = true;
       if (!currentRfidTag.isEmpty()) {
         Serial.print("| currentRfidTag: ");

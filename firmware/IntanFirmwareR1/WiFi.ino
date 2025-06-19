@@ -151,7 +151,33 @@ void handleRFIDDetection() {
 }
 
 void updateGlobalSessionData(float weightValue, float heightValue, String nutritionStatus, String eatingPattern, String childResponse) {
+  // Validate data before sending
+  if (weightValue <= 0.0 || heightValue <= 0.0) {
+    Serial.println("| ===== DATA VALIDATION FAILED =====");
+    Serial.printf("| Invalid weight: %.1f kg (must be > 0)\n", weightValue);
+    Serial.printf("| Invalid height: %.1f cm (must be > 0)\n", heightValue);
+    Serial.println("| Aborting data send - invalid measurement values");
+    Serial.println("| ===== SEND ABORTED =====");
+    return;
+  }
+  
   float imt = calculateIMT(weightValue, heightValue);
+  
+  Serial.println("| ===== SENDING FINAL MEASUREMENT DATA =====");
+  Serial.printf("| Weight: %.1f kg\n", weightValue);
+  Serial.printf("| Height: %.1f cm\n", heightValue);
+  Serial.printf("| IMT: %.2f\n", imt);
+  Serial.printf("| Nutrition Status: %s\n", nutritionStatus.c_str());
+  Serial.printf("| Eating Pattern: %s\n", eatingPattern.c_str());
+  Serial.printf("| Child Response: %s\n", childResponse.c_str());
+  
+  // Check if Firestore client is ready
+  if (!firestoreClient.isReady()) {
+    Serial.println("| ERROR: Firestore client not ready!");
+    Serial.println("| ===== FINAL DATA SEND FAILED =====");
+    return;
+  }
+  
   JsonDocument updateDoc;
   JsonObject fields = updateDoc.createNestedObject("fields");
   JsonObject weightField = fields.createNestedObject("weight");
@@ -170,9 +196,37 @@ void updateGlobalSessionData(float weightValue, float heightValue, String nutrit
   completeField["booleanValue"] = true;
   JsonObject activityField = fields.createNestedObject("lastActivity");
   activityField["timestampValue"] = dateTimeManager.getISO8601Time();
+  
   String updateDocStr;
   serializeJson(updateDoc, updateDocStr);
-  firestoreClient.updateDocument("systemStatus/hardware", updateDocStr, "weight,height,imt,nutritionStatus,eatingPattern,childResponse,measurementComplete,lastActivity", true);
+  Serial.println("| JSON Data to send:");
+  Serial.println(updateDocStr);
+  
+  // Try to send with timeout protection
+  Serial.println("| Attempting Firestore update...");
+  uint32_t updateStart = millis();
+  
+  bool success = firestoreClient.updateDocument("systemStatus/hardware", updateDocStr, "weight,height,imt,nutritionStatus,eatingPattern,childResponse,measurementComplete,lastActivity", false);
+  
+  uint32_t updateDuration = millis() - updateStart;
+  Serial.printf("| Update took %lu ms, result: %s\n", updateDuration, success ? "SUCCESS" : "FAILED");
+  
+  if (!success) {
+    Serial.println("| Firestore error: " + firestoreClient.getLastError());
+  }
+  
+  Serial.println("| ===== FINAL DATA SEND COMPLETED =====");
+  
+  // Reset measurement data AFTER successful send to prevent re-sending
+  if (success) {
+    Serial.println("| Clearing measurement data after successful send");
+    MeasurementData emptyMeasurement;
+    currentMeasurement = emptyMeasurement;
+    
+    // Force Firebase sync to ensure app gets the data immediately
+    forceFirebaseSync = true;
+    Serial.println("| Forced Firebase sync to notify app of completion");
+  }
 }
 
 void updateGlobalSessionRFID(String rfidValue) {

@@ -56,11 +56,28 @@ export default function TimbangScreen() {
         if (
           data.sessionType === GLOBAL_SESSION_TYPES.WEIGHING &&
           data.currentUserId === userProfile.id &&
-          data.measurementComplete &&
-          data.weight > 0 &&
-          data.height > 0
+          data.measurementComplete
         ) {
-          handleWeighingCompleted(data);
+          console.log('🔍 MEASUREMENT COMPLETION CHECK:');
+          console.log('  - sessionType:', data.sessionType);
+          console.log('  - currentUserId:', data.currentUserId);
+          console.log('  - userProfile.id:', userProfile.id);
+          console.log('  - measurementComplete:', data.measurementComplete);
+          console.log('  - weight:', data.weight, 'valid:', data.weight > 0);
+          console.log('  - height:', data.height, 'valid:', data.height > 0);
+          console.log('  - imt:', data.imt);
+          console.log('  - nutritionStatus:', data.nutritionStatus);
+          console.log('  - eatingPattern:', data.eatingPattern);
+          console.log('  - childResponse:', data.childResponse);
+          
+          if (data.weight > 0 && data.height > 0) {
+            console.log('✅ ALL CONDITIONS MET - Processing completion');
+            handleWeighingCompleted(data);
+          } else {
+            console.log('❌ MISSING VALID WEIGHT/HEIGHT - Cannot complete');
+            console.log('  Weight check:', data.weight, '>', 0, '=', data.weight > 0);
+            console.log('  Height check:', data.height, '>', 0, '=', data.height > 0);
+          }
         }
       }
     });

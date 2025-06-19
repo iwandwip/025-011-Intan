@@ -135,6 +135,7 @@ void displayWeighingRFIDConfirmWait() {
   const char *confirmLines[] = { "RFID TERKONFIRMASI!", userInfo.c_str(), "TEKAN OK UNTUK", "MULAI TIMBANG" };
   displayMenu.renderBoxedText(confirmLines, 4);
   if (confirmButton.isReleased()) {
+    confirmButton.resetState();
     currentWeighingState = WEIGHING_GET_WEIGHT;
     systemBuzzer.toggleInit(100, 1);
   }
@@ -156,7 +157,10 @@ void displayWeighingGetWeight() {
   const char *weightLines[] = { "MENGUKUR BERAT", weightStr.c_str(), patternInfo.c_str(), "TEKAN OK KONFIRMASI" };
   displayMenu.renderBoxedText(weightLines, 4);
   if (confirmButton.isReleased()) {
+    confirmButton.resetState();
+    Serial.printf("| Weight confirmed: currentWeight=%.1f, storing to currentMeasurement\n", currentWeight);
     currentMeasurement.weight = currentWeight;
+    Serial.printf("| Stored weight: currentMeasurement.weight=%.1f\n", currentMeasurement.weight);
     currentWeighingState = WEIGHING_GET_HEIGHT;
     systemBuzzer.toggleInit(100, 1);
   }
@@ -176,7 +180,11 @@ void displayWeighingGetHeight() {
   const char *heightLines[] = { "MENGUKUR TINGGI", childInfo.c_str(), heightStr.c_str(), "TEKAN OK KONFIRMASI" };
   displayMenu.renderBoxedText(heightLines, 4);
   if (confirmButton.isReleased()) {
+    confirmButton.resetState();
+    Serial.printf("| Height confirmed: currentHeight=%.1f, storing to currentMeasurement\n", currentHeight);
     currentMeasurement.height = currentHeight;
+    Serial.printf("| Stored height: currentMeasurement.height=%.1f\n", currentMeasurement.height);
+    Serial.printf("| Current stored values: weight=%.1f, height=%.1f\n", currentMeasurement.weight, currentMeasurement.height);
     currentWeighingState = WEIGHING_VALIDATE_DATA;
     systemBuzzer.toggleInit(100, 1);
   }
@@ -194,6 +202,7 @@ void displayWeighingValidateData() {
   const char *validateLines[] = { "MENGHITUNG...", weightInfo.c_str(), heightInfo.c_str(), "TEKAN OK KIRIM" };
   displayMenu.renderBoxedText(validateLines, 4);
   if (confirmButton.isReleased()) {
+    confirmButton.resetState();
     currentWeighingState = WEIGHING_SEND_DATA;
     systemBuzzer.toggleInit(100, 1);
   }
@@ -204,25 +213,85 @@ void displayWeighingValidateData() {
 }
 
 void displayWeighingSendData() {
-  const char *sendingLines[] = { "MENGIRIM DATA", "KE SERVER", "MOHON TUNGGU..." };
-  displayMenu.renderBoxedText(sendingLines, 3);
-  String nutritionStatus = getNutritionStatusFromSession();
-  String eatingPattern = getEatingPatternString(currentMeasurement.eatingPatternIndex);
-  String childResponse = getChildResponseString(currentMeasurement.childResponseIndex);
-  updateGlobalSessionData(
-    currentMeasurement.weight,
-    currentMeasurement.height,
-    nutritionStatus,
-    eatingPattern,
-    childResponse);
-  currentWeighingState = WEIGHING_COMPLETE;
+  static bool dataSent = false;
+  static uint32_t sendStartTime = 0;
+
+  if (!dataSent) {
+    const char *sendingLines[] = { "MENGIRIM DATA", "KE SERVER", "MOHON TUNGGU..." };
+    displayMenu.renderBoxedText(sendingLines, 3);
+
+    if (sendStartTime == 0) {
+      sendStartTime = millis();
+      Serial.println("| Starting data send process...");
+    }
+
+    String nutritionStatus = getNutritionStatusFromSession();
+    String eatingPattern = getEatingPatternString(currentMeasurement.eatingPatternIndex);
+    String childResponse = getChildResponseString(currentMeasurement.childResponseIndex);
+
+    Serial.println("| Attempting to send measurement data...");
+    Serial.printf("| Final check before send: weight=%.1f, height=%.1f\n", currentMeasurement.weight, currentMeasurement.height);
+    Serial.printf("| Current sensor values: currentWeight=%.1f, currentHeight=%.1f\n", currentWeight, currentHeight);
+    Serial.printf("| Nutrition: %s, Pattern: %s, Response: %s\n", nutritionStatus.c_str(), eatingPattern.c_str(), childResponse.c_str());
+
+    // Double-check values before sending
+    if (currentMeasurement.weight <= 0.0 || currentMeasurement.height <= 0.0) {
+      Serial.println("| WARNING: Invalid measurement data detected!");
+      Serial.printf("| Attempting to use current sensor values instead: %.1f kg, %.1f cm\n", currentWeight, currentHeight);
+      if (currentWeight > 0.0 && currentHeight > 0.0) {
+        updateGlobalSessionData(currentWeight, currentHeight, nutritionStatus, eatingPattern, childResponse);
+      } else {
+        Serial.println("| ERROR: Both stored and current sensor values are invalid!");
+        const char *errorLines[] = { "DATA ERROR!", "PENGUKURAN GAGAL", "COBA LAGI" };
+        displayMenu.renderBoxedText(errorLines, 3);
+        delay(3000);
+        currentWeighingState = WEIGHING_GET_WEIGHT;
+        return;
+      }
+    } else {
+      updateGlobalSessionData(
+        currentMeasurement.weight,
+        currentMeasurement.height,
+        nutritionStatus,
+        eatingPattern,
+        childResponse);
+    }
+
+    dataSent = true;
+    Serial.println("| Data send completed, transitioning to complete state");
+    currentWeighingState = WEIGHING_COMPLETE;
+  }
+
+  // Timeout protection - if stuck for more than 15 seconds, force complete
+  if (millis() - sendStartTime > 15000) {
+    Serial.println("| TIMEOUT: Forcing completion after 15 seconds");
+    dataSent = true;
+    currentWeighingState = WEIGHING_COMPLETE;
+  }
+
+  // Reset static variables when leaving this state
+  if (currentWeighingState != WEIGHING_SEND_DATA) {
+    dataSent = false;
+    sendStartTime = 0;
+  }
 }
 
 void displayWeighingComplete() {
   const char *completeLines[] = { "PENGUKURAN", "SELESAI!", "CEK APLIKASI ANDA" };
   displayMenu.renderBoxedText(completeLines, 3);
-  static uint32_t completeTimer = millis();
+
+  static uint32_t completeTimer = 0;
+  static bool timerInitialized = false;
+
+  if (!timerInitialized) {
+    completeTimer = millis();
+    timerInitialized = true;
+    Serial.println("| Weighing complete - starting 3 second timer");
+  }
+
   if (millis() - completeTimer > 3000) {
+    Serial.println("| 3 seconds elapsed, returning to idle state");
+    timerInitialized = false;
     backToIdleState();
   }
 }
@@ -238,6 +307,7 @@ void displayQuickMeasureScreen() {
     const char *measureLines[] = { "UKUR CEPAT", weightBuffer, heightBuffer, bmiCategory.c_str() };
     displayMenu.renderBoxedText(measureLines, 4);
     if (confirmButton.isReleased()) {
+      confirmButton.resetState();
       displayMenu.clearMenu(quickMeasureMenu, displayMenu.end());
     }
   });
@@ -260,6 +330,7 @@ void displayAdminScreen() {
   const char *adminLines[] = { "MODE ADMIN", "HARDWARE SIAP", "TEKAN TOMBOL KELUAR" };
   displayMenu.renderBoxedText(adminLines, 3);
   if (confirmButton.isReleased()) {
+    confirmButton.resetState();
     backToIdleState();
   }
 }
@@ -298,8 +369,7 @@ void backToIdleState() {
   currentRfidTag = "";
   SessionUser emptyUser;
   currentSessionUser = emptyUser;
-  MeasurementData emptyMeasurement;
-  currentMeasurement = emptyMeasurement;
+  // Don't reset currentMeasurement here - it's reset in updateGlobalSessionData after successful send
   systemBuzzer.toggleInit(100, 2);
 }
 
