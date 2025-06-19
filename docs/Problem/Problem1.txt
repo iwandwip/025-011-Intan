@@ -1,8 +1,0 @@
-nah jadi sekarang itu aku ingin membuat halaman admin nya jadi nanti admin yang bisa login ke halaman admin itu cuman admin dengan email admin@gmail.com lalu nanti pada halaman Utama admin nanti halaman utamnya nya itu profil admin nya role admin itu teacher, lalu nanti ada halaman data recap nah nanti di halaman data recap nya si guru ini jadi table button/list view rekap data semua user nah nanti Ketika dipencet akan menampilkan rekap data user sesuai yang dipencet si guru ini jadi rekap datanya user itu sama seperti tampilan rekap data pada account user / student nanti di halaman situ juga tambahkan tombol Kembali ke halaman Utama juga 
-
-nah lalu misal mau seperti itu apa saja yang harus dilakukan, code apa saja yang harus dibuat dan diperbaiki
-
-berikan full code pada artifact terpisah dan untuk codenya tidak perlu kamu kasih comment" & docstring agar codenya clean dan tidak terlalu banyak
-
-dan berikan Langkah" nya file mana yang diubah
-dan untuk nama file artifact nya sesuaikan nama file nya

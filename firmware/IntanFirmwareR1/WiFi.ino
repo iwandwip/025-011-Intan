@@ -160,9 +160,9 @@ void updateGlobalSessionData(float weightValue, float heightValue, String nutrit
     Serial.println("| ===== SEND ABORTED =====");
     return;
   }
-  
+
   float imt = calculateIMT(weightValue, heightValue);
-  
+
   Serial.println("| ===== SENDING FINAL MEASUREMENT DATA =====");
   Serial.printf("| Weight: %.1f kg\n", weightValue);
   Serial.printf("| Height: %.1f cm\n", heightValue);
@@ -170,59 +170,76 @@ void updateGlobalSessionData(float weightValue, float heightValue, String nutrit
   Serial.printf("| Nutrition Status: %s\n", nutritionStatus.c_str());
   Serial.printf("| Eating Pattern: %s\n", eatingPattern.c_str());
   Serial.printf("| Child Response: %s\n", childResponse.c_str());
-  
+
   // Check if Firestore client is ready
   if (!firestoreClient.isReady()) {
     Serial.println("| ERROR: Firestore client not ready!");
     Serial.println("| ===== FINAL DATA SEND FAILED =====");
     return;
   }
-  
-  JsonDocument updateDoc;
-  JsonObject fields = updateDoc.createNestedObject("fields");
-  JsonObject weightField = fields.createNestedObject("weight");
+
+  // Step 1: Send measurement data first (like RFID pairing approach)
+  Serial.println("| Step 1: Sending measurement values...");
+  JsonDocument measurementDoc;
+  JsonObject measurementFields = measurementDoc.createNestedObject("fields");
+  JsonObject weightField = measurementFields.createNestedObject("weight");
   weightField["doubleValue"] = weightValue;
-  JsonObject heightField = fields.createNestedObject("height");
+  JsonObject heightField = measurementFields.createNestedObject("height");
   heightField["doubleValue"] = heightValue;
-  JsonObject imtField = fields.createNestedObject("imt");
+  JsonObject imtField = measurementFields.createNestedObject("imt");
   imtField["doubleValue"] = imt;
-  JsonObject nutritionField = fields.createNestedObject("nutritionStatus");
+  JsonObject nutritionField = measurementFields.createNestedObject("nutritionStatus");
   nutritionField["stringValue"] = nutritionStatus;
-  JsonObject eatingField = fields.createNestedObject("eatingPattern");
+  JsonObject eatingField = measurementFields.createNestedObject("eatingPattern");
   eatingField["stringValue"] = eatingPattern;
-  JsonObject responseField = fields.createNestedObject("childResponse");
+  JsonObject responseField = measurementFields.createNestedObject("childResponse");
   responseField["stringValue"] = childResponse;
-  JsonObject completeField = fields.createNestedObject("measurementComplete");
-  completeField["booleanValue"] = true;
-  JsonObject activityField = fields.createNestedObject("lastActivity");
-  activityField["timestampValue"] = dateTimeManager.getISO8601Time();
-  
-  String updateDocStr;
-  serializeJson(updateDoc, updateDocStr);
-  Serial.println("| JSON Data to send:");
-  Serial.println(updateDocStr);
-  
-  // Try to send with timeout protection
-  Serial.println("| Attempting Firestore update...");
-  uint32_t updateStart = millis();
-  
-  bool success = firestoreClient.updateDocument("systemStatus/hardware", updateDocStr, "weight,height,imt,nutritionStatus,eatingPattern,childResponse,measurementComplete,lastActivity", false);
-  
-  uint32_t updateDuration = millis() - updateStart;
-  Serial.printf("| Update took %lu ms, result: %s\n", updateDuration, success ? "SUCCESS" : "FAILED");
-  
-  if (!success) {
-    Serial.println("| Firestore error: " + firestoreClient.getLastError());
+
+  String measurementDocStr;
+  serializeJson(measurementDoc, measurementDocStr);
+  Serial.println("| Measurement JSON:");
+  Serial.println(measurementDocStr);
+
+  bool step1Success = firestoreClient.updateDocument("systemStatus/hardware", measurementDocStr, "weight,height,imt,nutritionStatus,eatingPattern,childResponse", true);
+  Serial.printf("| Step 1 result: %s\n", step1Success ? "SUCCESS" : "FAILED");
+
+  if (!step1Success) {
+    Serial.println("| Step 1 failed: " + firestoreClient.getLastError());
+    return;
   }
-  
+
+  // Small delay to ensure data is written
+  delay(500);
+
+  // Step 2: Set completion flag (like RFID pairing approach)
+  Serial.println("| Step 2: Setting measurementComplete flag...");
+  JsonDocument completeDoc;
+  JsonObject completeFields = completeDoc.createNestedObject("fields");
+  JsonObject completeField = completeFields.createNestedObject("measurementComplete");
+  completeField["booleanValue"] = true;
+  JsonObject activityField = completeFields.createNestedObject("lastActivity");
+  activityField["timestampValue"] = dateTimeManager.getISO8601Time();
+
+  String completeDocStr;
+  serializeJson(completeDoc, completeDocStr);
+  Serial.println("| Completion JSON:");
+  Serial.println(completeDocStr);
+
+  bool step2Success = firestoreClient.updateDocument("systemStatus/hardware", completeDocStr, "measurementComplete,lastActivity", true);
+  Serial.printf("| Step 2 result: %s\n", step2Success ? "SUCCESS" : "FAILED");
+
+  if (!step2Success) {
+    Serial.println("| Step 2 failed: " + firestoreClient.getLastError());
+  }
+
   Serial.println("| ===== FINAL DATA SEND COMPLETED =====");
-  
-  // Reset measurement data AFTER successful send to prevent re-sending
-  if (success) {
-    Serial.println("| Clearing measurement data after successful send");
+
+  // Reset measurement data AFTER successful send
+  if (step1Success && step2Success) {
+    Serial.println("| Both steps successful - clearing measurement data");
     MeasurementData emptyMeasurement;
     currentMeasurement = emptyMeasurement;
-    
+
     // Force Firebase sync to ensure app gets the data immediately
     forceFirebaseSync = true;
     Serial.println("| Forced Firebase sync to notify app of completion");
