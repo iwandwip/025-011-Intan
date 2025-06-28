@@ -23,7 +23,6 @@ import NutritionStatusHelpModal from "../../components/ui/NutritionStatusHelpMod
 import Input from "../../components/ui/Input";
 import {
   getUserMeasurements,
-  generateRandomData,
   deleteMeasurement,
   updateMeasurement,
 } from "../../services/dataService";
@@ -37,13 +36,10 @@ export default function DataRecap() {
   const [measurements, setMeasurements] = useState([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
-  const [generating, setGenerating] = useState(false);
   const [sortOrder, setSortOrder] = useState("desc");
   const [editModalVisible, setEditModalVisible] = useState(false);
   const [selectedMeasurement, setSelectedMeasurement] = useState(null);
   const [helpModalVisible, setHelpModalVisible] = useState(false);
-  const [generateModalVisible, setGenerateModalVisible] = useState(false);
-  const [generateCount, setGenerateCount] = useState("5");
 
   const loadMeasurements = async () => {
     if (!userProfile?.id) return;
@@ -68,39 +64,6 @@ export default function DataRecap() {
     setRefreshing(false);
   };
 
-  const handleGenerateData = () => {
-    if (!userProfile?.id) return;
-    setGenerateModalVisible(true);
-  };
-
-  const handleConfirmGenerate = async () => {
-    const count = parseInt(generateCount);
-    if (isNaN(count) || count <= 0 || count > 100) {
-      Alert.alert("Kesalahan", "Jumlah data harus antara 1-100");
-      return;
-    }
-
-    setGenerateModalVisible(false);
-    setGenerating(true);
-    
-    try {
-      const result = await generateRandomData(userProfile.id, userProfile, count);
-      if (result.success) {
-        Alert.alert("Berhasil", `${count} data pengukuran acak telah dibuat!`);
-        await loadMeasurements();
-      } else {
-        Alert.alert("Kesalahan", result.error);
-      }
-    } catch (error) {
-      Alert.alert(
-        "Kesalahan",
-        "Gagal membuat data. Silakan coba lagi."
-      );
-    } finally {
-      setGenerating(false);
-      setGenerateCount("5"); // Reset to default
-    }
-  };
 
   const handleSortToggle = () => {
     const newOrder = sortOrder === "desc" ? "asc" : "desc";
@@ -284,13 +247,6 @@ export default function DataRecap() {
           }
         >
           <View style={styles.actionsContainer}>
-            <Button
-              title={generating ? "Membuat..." : "Buat Data Acak"}
-              onPress={handleGenerateData}
-              style={styles.generateButton}
-              disabled={generating}
-            />
-
             <View style={styles.sortContainer}>
               <Text style={styles.sortLabel}>Urutkan berdasarkan Tanggal:</Text>
               <TouchableOpacity
@@ -317,8 +273,7 @@ export default function DataRecap() {
               <View style={styles.emptyContainer}>
                 <Text style={styles.emptyText}>Tidak ada data pengukuran</Text>
                 <Text style={styles.emptySubtext}>
-                  Buat data acak atau lakukan pengukuran untuk melihat rekaman di
-                  sini
+                  Lakukan pengukuran untuk melihat rekaman di sini
                 </Text>
               </View>
             )}
@@ -351,70 +306,6 @@ export default function DataRecap() {
         onClose={() => setHelpModalVisible(false)}
       />
 
-      {/* Modal untuk generate data acak */}
-      <Modal
-        visible={generateModalVisible}
-        animationType="slide"
-        transparent={true}
-        onRequestClose={() => setGenerateModalVisible(false)}
-      >
-        <KeyboardAvoidingView 
-          style={styles.modalOverlay}
-          behavior={Platform.OS === "ios" ? "padding" : "height"}
-        >
-          <View style={styles.modalContent}>
-            <View style={styles.modalHeader}>
-              <Text style={styles.modalTitle}>Buat Data Acak</Text>
-              <TouchableOpacity 
-                onPress={() => {
-                  setGenerateModalVisible(false);
-                  setGenerateCount("5");
-                }}
-                style={styles.modalCloseButton}
-              >
-                <Text style={styles.modalCloseText}>✕</Text>
-              </TouchableOpacity>
-            </View>
-
-            <View style={styles.modalBody}>
-              <Text style={styles.modalDescription}>
-                Masukkan jumlah data acak yang ingin dibuat
-              </Text>
-              
-              <Input
-                label="Jumlah Data"
-                placeholder="Masukkan jumlah (1-100)"
-                value={generateCount}
-                onChangeText={setGenerateCount}
-                keyboardType="numeric"
-                maxLength={3}
-              />
-
-              <Text style={styles.modalNote}>
-                Note: Data akan menggunakan usia dan jenis kelamin anak saat ini
-              </Text>
-            </View>
-
-            <View style={styles.modalFooter}>
-              <Button
-                title="Batal"
-                onPress={() => {
-                  setGenerateModalVisible(false);
-                  setGenerateCount("5");
-                }}
-                variant="outline"
-                style={styles.modalButton}
-              />
-              <Button
-                title="Buat Data"
-                onPress={handleConfirmGenerate}
-                disabled={generating}
-                style={styles.modalButton}
-              />
-            </View>
-          </View>
-        </KeyboardAvoidingView>
-      </Modal>
     </>
   );
 }
@@ -482,9 +373,6 @@ const styles = StyleSheet.create({
   actionsContainer: {
     marginBottom: 24,
   },
-  generateButton: {
-    marginBottom: 16,
-  },
   sortContainer: {
     flexDirection: "row",
     alignItems: "center",
@@ -546,78 +434,5 @@ const styles = StyleSheet.create({
     flex: 1,
     justifyContent: "center",
     alignItems: "center",
-  },
-  modalOverlay: {
-    flex: 1,
-    backgroundColor: "rgba(0, 0, 0, 0.5)",
-    justifyContent: "center",
-    alignItems: "center",
-  },
-  modalContent: {
-    backgroundColor: Colors.white,
-    borderRadius: 16,
-    width: "90%",
-    maxWidth: 400,
-    elevation: 5,
-    shadowColor: "#000",
-    shadowOffset: {
-      width: 0,
-      height: 2,
-    },
-    shadowOpacity: 0.25,
-    shadowRadius: 4,
-  },
-  modalHeader: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "center",
-    paddingHorizontal: 24,
-    paddingVertical: 20,
-    borderBottomWidth: 1,
-    borderBottomColor: Colors.gray200,
-  },
-  modalTitle: {
-    fontSize: 20,
-    fontWeight: "600",
-    color: Colors.gray900,
-  },
-  modalCloseButton: {
-    width: 32,
-    height: 32,
-    borderRadius: 16,
-    backgroundColor: Colors.gray100,
-    justifyContent: "center",
-    alignItems: "center",
-  },
-  modalCloseText: {
-    fontSize: 16,
-    color: Colors.gray600,
-    fontWeight: "600",
-  },
-  modalBody: {
-    padding: 24,
-  },
-  modalDescription: {
-    fontSize: 16,
-    color: Colors.gray700,
-    marginBottom: 20,
-  },
-  modalNote: {
-    fontSize: 14,
-    color: Colors.gray600,
-    fontStyle: "italic",
-    marginTop: 16,
-  },
-  modalFooter: {
-    flexDirection: "row",
-    paddingHorizontal: 24,
-    paddingVertical: 20,
-    borderTopWidth: 1,
-    borderTopColor: Colors.gray200,
-    gap: 12,
-  },
-  modalButton: {
-    flex: 1,
-    marginBottom: 0,
   },
 });

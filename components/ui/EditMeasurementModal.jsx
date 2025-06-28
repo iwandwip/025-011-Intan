@@ -15,24 +15,37 @@ import { Colors } from "../../constants/Colors";
 
 const EditMeasurementModal = ({ visible, measurement, onClose, onSave }) => {
   const [formData, setFormData] = useState({
+    ageYears: "",
+    ageMonths: "",
+    gender: "",
     weight: "",
     height: "",
+    eatingPattern: "",
+    childResponse: "",
     nutritionStatus: "",
   });
   const [errors, setErrors] = useState({});
   const [saving, setSaving] = useState(false);
 
-  const nutritionOptions = ["sehat", "tidak sehat", "obesitas"];
+  const nutritionOptions = ["gizi buruk", "gizi kurang", "gizi baik", "overweight", "obesitas"];
+  const genderOptions = ["male", "female"];
+  const eatingPatternOptions = ["Kurang", "Cukup", "Berlebih"];
+  const childResponseOptions = ["Pasif", "Sedang", "Aktif"];
 
   useEffect(() => {
     if (measurement) {
       setFormData({
+        ageYears: measurement.ageYears ? measurement.ageYears.toString() : "",
+        ageMonths: measurement.ageMonths ? measurement.ageMonths.toString() : "",
+        gender: measurement.gender || "",
         weight: measurement.weight
           ? measurement.weight.toString().replace(" kg", "")
           : "",
         height: measurement.height
           ? measurement.height.toString().replace(" cm", "")
           : "",
+        eatingPattern: measurement.eatingPattern || "",
+        childResponse: measurement.childResponse || "",
         nutritionStatus: measurement.nutritionStatus || "",
       });
       setErrors({});
@@ -41,6 +54,28 @@ const EditMeasurementModal = ({ visible, measurement, onClose, onSave }) => {
 
   const validateForm = () => {
     const newErrors = {};
+
+    if (
+      !formData.ageYears ||
+      isNaN(formData.ageYears) ||
+      parseInt(formData.ageYears) <= 0 ||
+      parseInt(formData.ageYears) > 15
+    ) {
+      newErrors.ageYears = "Usia tahun harus antara 1-15 tahun";
+    }
+
+    if (
+      !formData.ageMonths ||
+      isNaN(formData.ageMonths) ||
+      parseInt(formData.ageMonths) < 0 ||
+      parseInt(formData.ageMonths) > 11
+    ) {
+      newErrors.ageMonths = "Usia bulan harus antara 0-11 bulan";
+    }
+
+    if (!formData.gender) {
+      newErrors.gender = "Silakan pilih jenis kelamin";
+    }
 
     if (
       !formData.weight ||
@@ -58,6 +93,14 @@ const EditMeasurementModal = ({ visible, measurement, onClose, onSave }) => {
       newErrors.height = "Silakan masukkan tinggi badan yang valid";
     }
 
+    if (!formData.eatingPattern) {
+      newErrors.eatingPattern = "Silakan pilih pola makan";
+    }
+
+    if (!formData.childResponse) {
+      newErrors.childResponse = "Silakan pilih respon anak";
+    }
+
     if (!formData.nutritionStatus) {
       newErrors.nutritionStatus = "Silakan pilih status gizi";
     }
@@ -66,14 +109,31 @@ const EditMeasurementModal = ({ visible, measurement, onClose, onSave }) => {
     return Object.keys(newErrors).length === 0;
   };
 
+  const calculateIMT = (weight, height) => {
+    if (height <= 0 || weight <= 0) return 0;
+    const heightInMeters = height / 100;
+    const imt = weight / (heightInMeters * heightInMeters);
+    return Math.round(imt * 100) / 100;
+  };
+
   const handleSave = async () => {
     if (!validateForm()) return;
 
     setSaving(true);
     try {
+      const weight = parseFloat(formData.weight);
+      const height = parseFloat(formData.height);
+      const imt = calculateIMT(weight, height);
+      
       const updateData = {
-        weight: parseFloat(formData.weight),
-        height: parseFloat(formData.height),
+        ageYears: parseInt(formData.ageYears),
+        ageMonths: parseInt(formData.ageMonths),
+        gender: formData.gender,
+        weight: weight,
+        height: height,
+        imt: imt,
+        eatingPattern: formData.eatingPattern,
+        childResponse: formData.childResponse,
         nutritionStatus: formData.nutritionStatus,
       };
 
@@ -86,7 +146,16 @@ const EditMeasurementModal = ({ visible, measurement, onClose, onSave }) => {
   };
 
   const handleClose = () => {
-    setFormData({ weight: "", height: "", nutritionStatus: "" });
+    setFormData({
+      ageYears: "",
+      ageMonths: "",
+      gender: "",
+      weight: "",
+      height: "",
+      eatingPattern: "",
+      childResponse: "",
+      nutritionStatus: "",
+    });
     setErrors({});
     onClose();
   };
@@ -118,66 +187,154 @@ const EditMeasurementModal = ({ visible, measurement, onClose, onSave }) => {
         </View>
 
         <View style={styles.content}>
-          {measurement && (measurement.ageYears || measurement.gender) && (
-            <View style={styles.contextInfo}>
-              <Text style={styles.contextTitle}>Informasi Anak</Text>
-              <View style={styles.contextRow}>
-                {measurement.ageYears && (
-                  <View style={styles.contextItem}>
-                    <Text style={styles.contextLabel}>Usia:</Text>
-                    <Text style={styles.contextValue}>
-                      {measurement.ageYears} tahun {measurement.ageMonths || 0} bulan
-                    </Text>
-                  </View>
-                )}
-                {measurement.gender && (
-                  <View style={styles.contextItem}>
-                    <Text style={styles.contextLabel}>Jenis Kelamin:</Text>
-                    <Text style={styles.contextValue}>
-                      {measurement.gender === 'male' ? 'Laki-laki' : 'Perempuan'}
-                    </Text>
-                  </View>
-                )}
+          <View style={styles.ageContainer}>
+            <View style={styles.ageRow}>
+              <View style={styles.ageInput}>
+                <Input
+                  label="Usia (Tahun)"
+                  placeholder="0-15"
+                  value={formData.ageYears}
+                  onChangeText={(value) => updateFormData("ageYears", value)}
+                  keyboardType="numeric"
+                  error={errors.ageYears}
+                />
+              </View>
+              <View style={styles.ageInput}>
+                <Input
+                  label="Usia (Bulan)"
+                  placeholder="0-11"
+                  value={formData.ageMonths}
+                  onChangeText={(value) => updateFormData("ageMonths", value)}
+                  keyboardType="numeric"
+                  error={errors.ageMonths}
+                />
               </View>
             </View>
-          )}
+          </View>
 
-          <Input
-            label="Berat Badan (kg)"
-            placeholder="Masukkan berat badan"
-            value={formData.weight}
-            onChangeText={(value) => updateFormData("weight", value)}
-            keyboardType="numeric"
-            error={errors.weight}
-          />
+          <View style={styles.optionContainer}>
+            <Text style={styles.optionLabel}>Jenis Kelamin</Text>
+            <View style={styles.optionButtons}>
+              {genderOptions.map((option) => (
+                <TouchableOpacity
+                  key={option}
+                  style={[
+                    styles.optionButton,
+                    formData.gender === option && styles.optionButtonSelected,
+                  ]}
+                  onPress={() => updateFormData("gender", option)}
+                >
+                  <Text
+                    style={[
+                      styles.optionButtonText,
+                      formData.gender === option && styles.optionButtonTextSelected,
+                    ]}
+                  >
+                    {option === 'male' ? 'Laki-laki' : 'Perempuan'}
+                  </Text>
+                </TouchableOpacity>
+              ))}
+            </View>
+            {errors.gender && (
+              <Text style={styles.errorText}>{errors.gender}</Text>
+            )}
+          </View>
 
-          <Input
-            label="Tinggi Badan (cm)"
-            placeholder="Masukkan tinggi badan"
-            value={formData.height}
-            onChangeText={(value) => updateFormData("height", value)}
-            keyboardType="numeric"
-            error={errors.height}
-          />
+          <View style={styles.measurementRow}>
+            <View style={styles.measurementInput}>
+              <Input
+                label="Berat (kg)"
+                placeholder="Berat badan"
+                value={formData.weight}
+                onChangeText={(value) => updateFormData("weight", value)}
+                keyboardType="numeric"
+                error={errors.weight}
+              />
+            </View>
+            <View style={styles.measurementInput}>
+              <Input
+                label="Tinggi (cm)"
+                placeholder="Tinggi badan"
+                value={formData.height}
+                onChangeText={(value) => updateFormData("height", value)}
+                keyboardType="numeric"
+                error={errors.height}
+              />
+            </View>
+          </View>
 
-          <View style={styles.nutritionContainer}>
-            <Text style={styles.nutritionLabel}>Status Gizi</Text>
-            <View style={styles.nutritionOptions}>
+          <View style={styles.optionContainer}>
+            <Text style={styles.optionLabel}>Pola Makan</Text>
+            <View style={styles.optionButtons}>
+              {eatingPatternOptions.map((option) => (
+                <TouchableOpacity
+                  key={option}
+                  style={[
+                    styles.optionButton,
+                    formData.eatingPattern === option && styles.optionButtonSelected,
+                  ]}
+                  onPress={() => updateFormData("eatingPattern", option)}
+                >
+                  <Text
+                    style={[
+                      styles.optionButtonText,
+                      formData.eatingPattern === option && styles.optionButtonTextSelected,
+                    ]}
+                  >
+                    {option}
+                  </Text>
+                </TouchableOpacity>
+              ))}
+            </View>
+            {errors.eatingPattern && (
+              <Text style={styles.errorText}>{errors.eatingPattern}</Text>
+            )}
+          </View>
+
+          <View style={styles.optionContainer}>
+            <Text style={styles.optionLabel}>Respon Anak</Text>
+            <View style={styles.optionButtons}>
+              {childResponseOptions.map((option) => (
+                <TouchableOpacity
+                  key={option}
+                  style={[
+                    styles.optionButton,
+                    formData.childResponse === option && styles.optionButtonSelected,
+                  ]}
+                  onPress={() => updateFormData("childResponse", option)}
+                >
+                  <Text
+                    style={[
+                      styles.optionButtonText,
+                      formData.childResponse === option && styles.optionButtonTextSelected,
+                    ]}
+                  >
+                    {option}
+                  </Text>
+                </TouchableOpacity>
+              ))}
+            </View>
+            {errors.childResponse && (
+              <Text style={styles.errorText}>{errors.childResponse}</Text>
+            )}
+          </View>
+
+          <View style={styles.optionContainer}>
+            <Text style={styles.optionLabel}>Status Gizi</Text>
+            <View style={styles.optionButtons}>
               {nutritionOptions.map((option) => (
                 <TouchableOpacity
                   key={option}
                   style={[
-                    styles.nutritionOption,
-                    formData.nutritionStatus === option &&
-                      styles.nutritionOptionSelected,
+                    styles.optionButton,
+                    formData.nutritionStatus === option && styles.optionButtonSelected,
                   ]}
                   onPress={() => updateFormData("nutritionStatus", option)}
                 >
                   <Text
                     style={[
-                      styles.nutritionOptionText,
-                      formData.nutritionStatus === option &&
-                        styles.nutritionOptionTextSelected,
+                      styles.optionButtonText,
+                      formData.nutritionStatus === option && styles.optionButtonTextSelected,
                     ]}
                   >
                     {option}
@@ -283,21 +440,39 @@ const styles = StyleSheet.create({
     fontWeight: "500",
     color: Colors.gray900,
   },
-  nutritionContainer: {
-    marginBottom: 16,
+  ageContainer: {
+    marginBottom: 20,
   },
-  nutritionLabel: {
+  ageRow: {
+    flexDirection: "row",
+    gap: 12,
+  },
+  ageInput: {
+    flex: 1,
+  },
+  measurementRow: {
+    flexDirection: "row",
+    gap: 12,
+    marginBottom: 20,
+  },
+  measurementInput: {
+    flex: 1,
+  },
+  optionContainer: {
+    marginBottom: 20,
+  },
+  optionLabel: {
     fontSize: 14,
     fontWeight: "500",
     color: Colors.gray700,
     marginBottom: 8,
   },
-  nutritionOptions: {
+  optionButtons: {
     flexDirection: "row",
     flexWrap: "wrap",
     gap: 8,
   },
-  nutritionOption: {
+  optionButton: {
     paddingHorizontal: 16,
     paddingVertical: 8,
     borderRadius: 20,
@@ -305,16 +480,16 @@ const styles = StyleSheet.create({
     borderColor: Colors.gray300,
     backgroundColor: Colors.white,
   },
-  nutritionOptionSelected: {
+  optionButtonSelected: {
     backgroundColor: Colors.primary,
     borderColor: Colors.primary,
   },
-  nutritionOptionText: {
+  optionButtonText: {
     fontSize: 14,
     color: Colors.gray700,
     fontWeight: "500",
   },
-  nutritionOptionTextSelected: {
+  optionButtonTextSelected: {
     color: Colors.white,
   },
   errorText: {
