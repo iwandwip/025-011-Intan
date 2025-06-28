@@ -6,11 +6,21 @@ This document describes the complete data collection workflow and RFID pairing p
 
 ## System Architecture
 
+### Hybrid Firebase Architecture (Firestore + Realtime Database)
+
 ```
 ┌─────────────────┐    ┌─────────────────┐    ┌─────────────────┐
 │   Mobile App    │    │    Firebase     │    │   ESP32 IoT     │
-│ Data Collection │◄──►│  Real-time Sync │◄──►│ Sensor Reading  │
-│ RFID Pairing    │    │ Session Control │    │ RFID Detection  │
+│                 │    │                 │    │                 │
+│  Firestore ◄────┼────┤ Firestore:      │    │                 │
+│  (User Data)    │    │ • User profiles │    │                 │
+│  (History)      │    │ • History data  │    │                 │
+│                 │    │ • Admin data    │    │                 │
+│                 │    │                 │    │                 │
+│  RTDB ◄─────────┼────┤ Realtime DB:    ├────┤► RTDB ◄────────┤
+│  (Live State)   │    │ • Session state │    │  (Simple Values)│
+│  (Real-time)    │    │ • Measurements  │    │  (Event-driven) │
+│                 │    │ • Hardware sync │    │                 │
 └─────────────────┘    └─────────────────┘    └─────────────────┘
          │                       │                       │
     ┌────▼────┐             ┌────▼────┐             ┌────▼────┐
@@ -19,6 +29,20 @@ This document describes the complete data collection workflow and RFID pairing p
     │ Modals  │             │ Storage │             │ Display │
     └─────────┘             └─────────┘             └─────────┘
 ```
+
+### Why Hybrid Architecture?
+
+**Current Pain Points with Firestore-only:**
+- ESP32 must parse complex JSON documents
+- 5-second polling creates network overhead
+- Synchronous operations blocking ESP32
+- Memory-intensive JSON parsing on microcontroller
+
+**Benefits of Hybrid Approach:**
+- **Firestore**: Complex documents, user profiles, historical data, queries
+- **Realtime Database**: Simple key-value, real-time sync, ESP32-friendly
+- **Optimized Performance**: Right tool for right job
+- **Simplified ESP32 Code**: Direct value access instead of JSON parsing
 
 # Part 1: Data Collection Flow
 
@@ -143,127 +167,361 @@ useEffect(() => {
 4. **UI Update**: Shows WeighingResultModal with comprehensive results
 5. **Session Cleanup**: `endGlobalSession()` resets all session fields
 
-## 3. Firebase Data Structure
+## 3. Hybrid Firebase Data Structure
 
-### Global Session Document (`systemStatus/hardware`)
+### Firestore (Complex Documents)
 ```javascript
-{
-  // Session Control
-  isInUse: boolean,
-  sessionType: "weighing" | "rfid" | "",
-  currentUserId: string,
-  currentUserName: string,
-  startTime: timestamp,
-  lastActivity: timestamp,
-  timeout: boolean,
+// User profiles & authentication
+users/{userId} = {
+  name: "John Doe",
+  parentName: "Jane Doe", 
+  birthdate: "2018-01-01",
+  gender: "male",
+  email: "parent@example.com",
+  ageYears: 6,          // Auto-calculated
+  ageMonths: 3,         // Auto-calculated
+  rfid: "A1B2C3D4",     // Hex identifier
+  rfidNumber: "001",    // Human-readable
+  role: "user",         // user | admin
   
-  // User Session Data (for weighing)
-  eatingPattern: "kurang" | "cukup" | "berlebih",
-  childResponse: "pasif" | "sedang" | "aktif",
-  userRfid: string,
-  ageYears: number,
-  ageMonths: number,
-  gender: "male" | "female",
-  
-  // Measurement Results
-  weight: number,        // kg
-  height: number,        // cm
-  imt: number,          // BMI
-  nutritionStatus: string,
-  measurementComplete: boolean,
-  
-  // RFID Session Data
-  rfid: string          // For pairing sessions
+  // Latest measurement cache
+  latestWeighing: {
+    weight: 25.5,
+    height: 120.3,
+    imt: 16.8,
+    nutritionStatus: "gizi baik",
+    dateTime: "2024-01-01T10:00:00Z"
+  }
+}
+
+// Historical measurement data
+users/{userId}/data/{measurementId} = {
+  weight: 25.5,
+  height: 120.3,
+  imt: 16.8,
+  nutritionStatus: "gizi baik",
+  eatingPattern: "cukup",
+  childResponse: "aktif",
+  ageYears: 6,
+  ageMonths: 3,
+  gender: "male",
+  dateTime: "2024-01-01T10:00:00Z",
+  createdAt: "2024-01-01T10:00:00Z"
 }
 ```
 
-### User Profile Structure (`users/{userId}`)
+### Realtime Database (Simple Key-Value)
 ```javascript
 {
-  // Personal Information
-  name: string,
-  parentName: string,
-  birthdate: Date,
-  gender: "male" | "female",
-  email: string,
-  
-  // Calculated Fields
-  ageYears: number,      // Auto-calculated
-  ageMonths: number,     // Auto-calculated
-  
-  // RFID Integration
-  rfid: string,          // Hex identifier
-  rfidNumber: string,    // Human-readable number
-  
-  // Latest Measurement Cache
-  latestWeighing: {
-    weight: number,
-    height: number,
-    imt: number,
-    nutritionStatus: string,
-    dateTime: Date
+  "hardware": {
+    // Session coordination (replaces systemStatus/hardware)
+    "session": {
+      "active": true,
+      "type": "weighing",        // weighing | rfid | idle
+      "userId": "abc123",
+      "userName": "John Doe",
+      "userRfid": "A1B2C3D4",
+      "startTime": 1640995200,
+      "lastActivity": 1640995200,
+      
+      // Session parameters
+      "eatingPattern": "cukup",
+      "childResponse": "aktif",
+      "ageYears": 6,
+      "ageMonths": 3,
+      "gender": "male"
+    },
+    
+    // Real-time measurements (ESP32 writes here)
+    "measurements": {
+      "weight": 25.5,
+      "height": 120.3,
+      "imt": 16.8,
+      "nutritionStatus": "gizi baik",
+      "complete": false,
+      "timestamp": 1640995200
+    },
+    
+    // Hardware status
+    "status": {
+      "online": true,
+      "error": null,
+      "lastHeartbeat": 1640995200,
+      "version": "1.0.0"
+    },
+    
+    // RFID detection events
+    "rfid": {
+      "detected": "A1B2C3D4",
+      "timestamp": 1640995200,
+      "valid": true
+    }
   }
 }
 ```
 
-### Measurement Record (`users/{userId}/data/{measurementId}`)
-```javascript
-{
-  // Physical Measurements
-  weight: number,           // From load cell
-  height: number,           // From ultrasonic
-  imt: number,             // Calculated BMI
+### Data Distribution Logic
+
+**Firestore (Document-based) for:**
+- User profiles with complex nested data
+- Historical measurement records with queries
+- Admin operations and user management
+- Data that needs complex filtering/sorting
+- Authentication and role-based data
+
+**Realtime Database (Key-Value) for:**
+- Hardware session coordination
+- Real-time sensor measurements
+- Live system status and health monitoring
+- Simple state flags and timestamps
+- ESP32-friendly simple data types
+
+## ESP32 Code Simplification with RTDB
+
+### Before: Complex Firestore Operations
+```cpp
+// Current complex JSON parsing and document handling
+String response = firestoreClient.getDocument("systemStatus/hardware", "", true);
+JsonDocument doc;
+deserializeJson(doc, response);
+
+// Extract nested fields with complex parsing
+bool isInUse = doc["fields"]["isInUse"]["booleanValue"];
+String sessionType = doc["fields"]["sessionType"]["stringValue"];
+String currentUserId = doc["fields"]["currentUserId"]["stringValue"];
+float weight = doc["fields"]["weight"]["doubleValue"];
+// ... 20+ lines of JSON field extraction
+
+// Complex document updates
+JsonDocument measurementDoc;
+JsonObject fields = measurementDoc.createNestedObject("fields");
+JsonObject weightField = fields.createNestedObject("weight");
+weightField["doubleValue"] = roundedWeight;
+JsonObject heightField = fields.createNestedObject("height");
+heightField["doubleValue"] = roundedHeight;
+// ... many more nested objects
+```
+
+### After: Simple RTDB Operations
+```cpp
+// Direct value access - much simpler!
+bool sessionActive = Firebase.getBool(firebaseData, "hardware/session/active");
+String sessionType = Firebase.getString(firebaseData, "hardware/session/type");
+String userId = Firebase.getString(firebaseData, "hardware/session/userId");
+String userRfid = Firebase.getString(firebaseData, "hardware/session/userRfid");
+
+// Direct value updates
+Firebase.setFloat(firebaseData, "hardware/measurements/weight", 25.5);
+Firebase.setFloat(firebaseData, "hardware/measurements/height", 120.3);
+Firebase.setString(firebaseData, "hardware/measurements/nutritionStatus", "gizi baik");
+Firebase.setBool(firebaseData, "hardware/measurements/complete", true);
+
+// System status updates
+Firebase.setBool(firebaseData, "hardware/status/online", true);
+Firebase.setInt(firebaseData, "hardware/status/lastHeartbeat", now());
+```
+
+### Simplified ESP32 State Management
+```cpp
+enum SystemState {
+  IDLE,
+  WEIGHING_SESSION, 
+  RFID_PAIRING,
+  ERROR_STATE
+};
+
+SystemState currentState = IDLE;
+
+void updateSystemState() {
+  // Check session type from RTDB
+  String sessionType = Firebase.getString(firebaseData, "hardware/session/type");
+  bool sessionActive = Firebase.getBool(firebaseData, "hardware/session/active");
   
-  // Classification Results
-  nutritionStatus: string,  // K-NN algorithm result
+  if (!sessionActive) {
+    currentState = IDLE;
+    return;
+  }
   
-  // Session Context
-  eatingPattern: string,    // User selection
-  childResponse: string,    // User selection
+  if (sessionType == "weighing") {
+    currentState = WEIGHING_SESSION;
+    handleWeighingSession();
+  } else if (sessionType == "rfid") {
+    currentState = RFID_PAIRING;
+    handleRFIDPairing();
+  }
+}
+
+void handleWeighingSession() {
+  // Get session data directly
+  String expectedRfid = Firebase.getString(firebaseData, "hardware/session/userRfid");
+  String userName = Firebase.getString(firebaseData, "hardware/session/userName");
   
-  // User Context (at time of measurement)
-  ageYears: number,
-  ageMonths: number,
-  gender: string,
+  // Display user info
+  display.println("Weighing Session");
+  display.println("User: " + userName);
+  display.println("Tap RFID: " + expectedRfid);
   
-  // Timestamps
-  dateTime: Date,           // Measurement time
-  createdAt: Date          // Record creation
+  // Check RFID match
+  if (currentRfidTag == expectedRfid) {
+    performMeasurement();
+  }
+}
+
+void performMeasurement() {
+  // Get sensor readings
+  float weight = getWeightReading();
+  float height = getHeightReading();
+  float bmi = calculateBMI(weight, height);
+  String nutritionStatus = classifyNutrition(weight, height, bmi);
+  
+  // Update measurements in RTDB
+  Firebase.setFloat(firebaseData, "hardware/measurements/weight", weight);
+  Firebase.setFloat(firebaseData, "hardware/measurements/height", height);
+  Firebase.setFloat(firebaseData, "hardware/measurements/imt", bmi);
+  Firebase.setString(firebaseData, "hardware/measurements/nutritionStatus", nutritionStatus);
+  Firebase.setBool(firebaseData, "hardware/measurements/complete", true);
+  
+  // Update timestamp
+  Firebase.setInt(firebaseData, "hardware/measurements/timestamp", now());
 }
 ```
 
-## 4. Data Flow Services
+## 4. Hybrid Data Flow Services
 
-### globalSessionService.js
-**Purpose**: Manages shared ESP32 hardware access
+### globalSessionService.js (Updated for Hybrid)
+**Purpose**: Manages shared ESP32 hardware access using RTDB
 
 **Key Functions:**
 ```javascript
-// Session Management
-initializeSystemStatus()     // Initialize Firebase document
-startWeighingSession(userId, data)  // Create weighing session
-startRfidSession(userId)     // Create RFID pairing session
-endGlobalSession()          // Cleanup session
+// Session Management (now uses RTDB)
+initializeRTDBSession()              // Initialize RTDB hardware structure  
+startWeighingSession(userId, data)   // Create weighing session in RTDB
+startRfidSession(userId)             // Create RFID pairing session in RTDB
+endGlobalSession()                   // Cleanup RTDB session
 
-// Monitoring
-subscribeToSystemStatus(callback)   // Real-time status updates
-isSessionAvailable()        // Check hardware availability
-isMySession(userId)         // Validate session ownership
+// Monitoring (RTDB listeners)
+subscribeToHardwareSession(callback) // Real-time RTDB session updates
+subscribeToMeasurements(callback)    // Real-time measurement updates
+subscribeToRFIDEvents(callback)      // Real-time RFID detection events
+
+// Session Control
+isSessionAvailable()                 // Check RTDB hardware/session/active
+isMySession(userId)                  // Validate session ownership
 ```
 
-### dataService.js
-**Purpose**: CRUD operations for measurement data
+### React Native RTDB Integration
+```javascript
+// services/rtdbService.js (new service)
+import { getDatabase, ref, onValue, set, remove } from 'firebase/database';
+
+const rtdb = getDatabase();
+
+export const subscribeToHardwareSession = (callback) => {
+  const sessionRef = ref(rtdb, 'hardware/session');
+  return onValue(sessionRef, (snapshot) => {
+    const data = snapshot.val();
+    callback(data);
+  });
+};
+
+export const startWeighingSession = async (userId, sessionData) => {
+  const sessionRef = ref(rtdb, 'hardware/session');
+  await set(sessionRef, {
+    active: true,
+    type: 'weighing',
+    userId: userId,
+    userName: sessionData.userName,
+    userRfid: sessionData.userRfid,
+    startTime: Date.now(),
+    lastActivity: Date.now(),
+    eatingPattern: sessionData.eatingPattern,
+    childResponse: sessionData.childResponse,
+    ageYears: sessionData.ageYears,
+    ageMonths: sessionData.ageMonths,
+    gender: sessionData.gender
+  });
+};
+
+export const subscribeToMeasurements = (callback) => {
+  const measureRef = ref(rtdb, 'hardware/measurements');
+  return onValue(measureRef, (snapshot) => {
+    const data = snapshot.val();
+    if (data && data.complete) {
+      callback(data);
+    }
+  });
+};
+```
+
+### dataService.js (Enhanced for Hybrid)
+**Purpose**: CRUD operations for measurement data in Firestore
 
 **Key Functions:**
 ```javascript
-// Data Operations
-addMeasurement(userId, data)        // Store new measurement
-getUserMeasurements(userId)         // Retrieve user history
-updateMeasurement(userId, id, data) // Edit measurement
-deleteMeasurement(userId, id)       // Remove measurement
+// Measurement Operations (Firestore)
+addMeasurement(userId, data)        // Store measurement in Firestore
+getUserMeasurements(userId)         // Retrieve user history from Firestore
+updateMeasurement(userId, id, data) // Edit measurement in Firestore
+deleteMeasurement(userId, id)       // Remove measurement from Firestore
+
+// Data Bridge Functions (RTDB → Firestore)
+saveMeasurementFromRTDB(rtdbData)   // Convert RTDB measurement to Firestore
+syncLatestWeighing(userId, data)    // Update user profile with latest measurement
 
 // Utilities
 generateRandomData(count)           // Testing data generation
+```
+
+**Hybrid Data Flow:**
+```javascript
+// Enhanced addMeasurement for hybrid architecture
+export const addMeasurement = async (userId, measurementData) => {
+  try {
+    // 1. Add to Firestore measurement history
+    const userDataRef = collection(db, `users/${userId}/data`);
+    const docRef = await addDoc(userDataRef, {
+      ...measurementData,
+      createdAt: new Date()
+    });
+    
+    // 2. Update user profile's latestWeighing cache
+    await updateUserProfile(userId, {
+      latestWeighing: {
+        weight: measurementData.weight,
+        height: measurementData.height,
+        imt: measurementData.imt,
+        nutritionStatus: measurementData.nutritionStatus,
+        dateTime: measurementData.dateTime
+      }
+    });
+    
+    // 3. Clear RTDB measurement data after successful save
+    await clearRTDBMeasurements();
+    
+    return docRef.id;
+  } catch (error) {
+    console.error('Error adding measurement:', error);
+    throw error;
+  }
+};
+
+// New function to bridge RTDB → Firestore
+export const saveMeasurementFromRTDB = async (userId, rtdbMeasurement) => {
+  const measurementData = {
+    weight: rtdbMeasurement.weight,
+    height: rtdbMeasurement.height,
+    imt: rtdbMeasurement.imt,
+    nutritionStatus: rtdbMeasurement.nutritionStatus,
+    eatingPattern: rtdbMeasurement.eatingPattern,
+    childResponse: rtdbMeasurement.childResponse,
+    ageYears: rtdbMeasurement.ageYears,
+    ageMonths: rtdbMeasurement.ageMonths,
+    gender: rtdbMeasurement.gender,
+    dateTime: new Date(rtdbMeasurement.timestamp)
+  };
+  
+  return await addMeasurement(userId, measurementData);
+};
 ```
 
 ### userService.js
@@ -678,24 +936,133 @@ return () => unsubscribe();
 - **Audit Logging**: Firebase tracks all system changes
 - **Role-based Access**: Admin vs user permissions
 
-## 17. Future Enhancements
+## 17. Migration Strategy to Hybrid Architecture
+
+### Phase 1: Setup RTDB Structure
+1. **Initialize RTDB**: Create hardware session structure
+2. **Configure Security Rules**: Set up RTDB access controls
+3. **Create rtdbService.js**: New service for RTDB operations
+4. **Test Basic Operations**: Verify RTDB read/write functionality
+
+### Phase 2: Migrate Session Management
+1. **Update globalSessionService.js**: Switch to RTDB for session coordination
+2. **Modify ESP32 Code**: Replace Firestore calls with RTDB operations
+3. **Update Mobile App**: Switch to RTDB listeners for session status
+4. **Parallel Testing**: Run both systems temporarily for validation
+
+### Phase 3: Optimize ESP32 Integration
+1. **Simplify ESP32 Code**: Remove complex JSON parsing
+2. **Add Event-Driven Updates**: Use RTDB stream events instead of polling
+3. **Improve Error Handling**: Simpler error states with RTDB
+4. **Performance Testing**: Measure improvements in response time and memory usage
+
+### Phase 4: Data Bridge Implementation
+1. **RTDB → Firestore Bridge**: Automatic data syncing
+2. **Cleanup RTDB**: Clear temporary data after Firestore save
+3. **Maintain Data Consistency**: Ensure both databases stay in sync
+4. **Monitoring**: Add logging for hybrid operations
+
+## 18. Benefits of Hybrid Architecture
+
+### ESP32 Performance Improvements
+- **90% Code Reduction**: From 20+ lines JSON parsing to single function calls
+- **Memory Efficiency**: No more large JSON document parsing
+- **Real-time Updates**: Event-driven instead of 5-second polling
+- **Simplified Debugging**: Direct value access instead of nested objects
+
+### Development Experience
+- **Easier ESP32 Code**: Firebase.setFloat() vs complex document building
+- **Faster Development**: Less boilerplate code for hardware integration
+- **Better Error Handling**: Simple boolean/string responses vs JSON parsing errors
+- **Cleaner Architecture**: Right tool for right job principle
+
+### System Performance
+- **Reduced Network Traffic**: Smaller RTDB payloads vs large Firestore documents
+- **Lower Latency**: Direct key-value access vs REST API overhead
+- **Better Scalability**: RTDB handles high-frequency updates efficiently
+- **Improved Reliability**: Simpler operations = fewer failure points
+
+### Cost Optimization
+- **RTDB Cost**: Pay for bandwidth, good for frequent small updates
+- **Firestore Cost**: Pay per operation, good for complex queries
+- **Optimal Usage**: Use each database for its strengths
+- **Reduced Firebase Calls**: Fewer Firestore operations = lower costs
+
+## 19. Implementation Code Examples
+
+### Updated timbang.jsx (React Native)
+```javascript
+// Replace Firestore listener with RTDB
+useEffect(() => {
+  // Subscribe to RTDB measurements
+  const unsubscribe = subscribeToMeasurements((measurement) => {
+    if (measurement && measurement.complete) {
+      handleMeasurementComplete(measurement);
+    }
+  });
+  
+  return unsubscribe;
+}, []);
+
+const handleMeasurementComplete = async (rtdbMeasurement) => {
+  try {
+    // Save to Firestore for permanent storage
+    await saveMeasurementFromRTDB(currentUser.uid, rtdbMeasurement);
+    
+    // Show results modal
+    setResultData(rtdbMeasurement);
+    setResultModalVisible(true);
+    
+    // End session
+    await endGlobalSession();
+  } catch (error) {
+    Alert.alert('Error', 'Failed to save measurement data');
+  }
+};
+```
+
+### Updated ESP32 Main Loop
+```cpp
+void loop() {
+  // Check for RTDB session updates (event-driven)
+  if (Firebase.readStream(firebaseData, "hardware/session")) {
+    if (firebaseData.streamAvailable()) {
+      updateSystemState();
+    }
+  }
+  
+  // Update sensor data
+  updateSensorData();
+  
+  // Process current state
+  processCurrentState();
+  
+  // Update display
+  displayCurrentScreen();
+  
+  // Heartbeat
+  if (millis() - lastHeartbeat > 30000) {
+    Firebase.setInt(firebaseData, "hardware/status/lastHeartbeat", millis());
+    lastHeartbeat = millis();
+  }
+}
+```
+
+## 20. Future Enhancements
 
 ### Planned Improvements
-- **Session Timeout Enforcement**: Automatic cleanup after timeout
-- **Batch Data Export**: CSV/Excel export capabilities
-- **Advanced Analytics**: Trend analysis and growth charts
-- **Offline Support**: Local data caching and sync
-- **Multi-language**: Internationalization support
-- **Multiple Devices**: Support for multiple ESP32 units
-- **NFC Support**: Add Near Field Communication capability
-- **QR Code Alternative**: QR code backup for RFID functionality
+- **Session Timeout Enforcement**: RTDB-based automatic cleanup
+- **Multi-device Support**: Multiple ESP32 units with RTDB coordination
+- **Advanced Analytics**: Real-time dashboard with RTDB streaming
+- **Offline Support**: RTDB offline capabilities for mobile app
+- **Edge Computing**: Local processing with cloud sync via RTDB
 
 ### Integration Possibilities
-- **Student ID Systems**: Integration with school ID cards
-- **Health Records**: Integration with electronic health record systems
-- **Parent Access**: Parent mobile app with child management
-- **Analytics Dashboard**: Real-time monitoring and insights
+- **Real-time Dashboard**: Live monitoring of all hardware units
+- **IoT Fleet Management**: Multiple devices coordinated via RTDB
+- **Edge Analytics**: Process data locally, sync insights via RTDB
+- **Mobile Notifications**: Push notifications based on RTDB events
 
 ---
 
-This comprehensive documentation covers both the data collection workflow and RFID pairing process in the Intan child nutrition monitoring system. The architecture demonstrates sophisticated integration between mobile app, cloud database, and IoT hardware for automated health data collection and user identification management.
+This hybrid architecture represents a significant evolution of the Intan child nutrition monitoring system, providing optimal performance for both ESP32 hardware and mobile applications while maintaining data integrity and rich query capabilities where needed. The combination of Firestore's document model for complex data and RTDB's simplicity for real-time operations creates a robust, scalable, and maintainable system.
