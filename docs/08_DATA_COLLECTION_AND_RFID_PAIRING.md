@@ -210,55 +210,58 @@ users/{userId}/data/{measurementId} = {
 }
 ```
 
-### Realtime Database (Simple Key-Value)
+### Realtime Database (Mode-based Structure)
 ```javascript
 {
-  "hardware": {
-    // Session coordination (replaces systemStatus/hardware)
-    "session": {
-      "active": true,
-      "type": "weighing",        // weighing | rfid | idle
-      "userId": "abc123",
-      "userName": "John Doe",
-      "userRfid": "A1B2C3D4",
-      "startTime": 1640995200,
-      "lastActivity": 1640995200,
-      
-      // Session parameters
-      "eatingPattern": "cukup",
-      "childResponse": "aktif",
-      "ageYears": 6,
-      "ageMonths": 3,
-      "gender": "male"
+  // Global system mode - single source of truth
+  "mode": "idle",  // "idle" | "pairing" | "weighing"
+  
+  // RFID Pairing Mode
+  "pairing_mode": "",  // RFID code when detected, empty when idle
+  
+  // Weighing Mode with get/set pattern
+  "weighing_mode": {
+    // Data FROM app TO ESP32
+    "get": {
+      "pola_makan": "",     // "kurang" | "cukup" | "berlebih"  
+      "respon_anak": "",    // "pasif" | "sedang" | "aktif"
+      "usia_th": "",        // "7"
+      "usia_bl": "",        // "11" 
+      "gender": "",         // "L" | "P"
     },
     
-    // Real-time measurements (ESP32 writes here)
-    "measurements": {
-      "weight": 25.5,
-      "height": 120.3,
-      "imt": 16.8,
-      "nutritionStatus": "gizi baik",
-      "complete": false,
-      "timestamp": 1640995200
-    },
-    
-    // Hardware status
-    "status": {
-      "online": true,
-      "error": null,
-      "lastHeartbeat": 1640995200,
-      "version": "1.0.0"
-    },
-    
-    // RFID detection events
-    "rfid": {
-      "detected": "A1B2C3D4",
-      "timestamp": 1640995200,
-      "valid": true
+    // Data FROM ESP32 TO app  
+    "set": {
+      "pola_makan": "",     // Echo back from get
+      "respon_anak": "",    // Echo back from get
+      "usia_th": "",        // Echo back from get
+      "usia_bl": "",        // Echo back from get
+      "gender": "",         // Echo back from get
+      "berat": "",          // "56.3" - measured by ESP32
+      "tinggi": "",         // "193" - measured by ESP32
+      "imt": "",            // "15.1" - calculated by ESP32
+      "status_gizi": ""     // "obesitas" - KNN result by ESP32
     }
   }
 }
 ```
+
+### Mode-based Flow Benefits
+
+**🎯 Clear State Management:**
+- Single `mode` field controls entire system state
+- No complex session coordination needed
+- ESP32 simply listens to mode changes
+
+**🔄 Clean Data Flow:**
+- `get` = App → ESP32 (input parameters)
+- `set` = ESP32 → App (measurement results)
+- Auto-cleanup after processing
+
+**⚡ ESP32 Simplification:**
+- No JSON parsing - direct string access
+- Mode-based state machine
+- Predictable execution flow
 
 ### Data Distribution Logic
 
@@ -276,180 +279,343 @@ users/{userId}/data/{measurementId} = {
 - Simple state flags and timestamps
 - ESP32-friendly simple data types
 
-## ESP32 Code Simplification with RTDB
+## Mode-based ESP32 Implementation
 
-### Before: Complex Firestore Operations
+### Ultra-Simple Mode-based State Management
 ```cpp
-// Current complex JSON parsing and document handling
-String response = firestoreClient.getDocument("systemStatus/hardware", "", true);
-JsonDocument doc;
-deserializeJson(doc, response);
+String currentMode = "idle";
 
-// Extract nested fields with complex parsing
-bool isInUse = doc["fields"]["isInUse"]["booleanValue"];
-String sessionType = doc["fields"]["sessionType"]["stringValue"];
-String currentUserId = doc["fields"]["currentUserId"]["stringValue"];
-float weight = doc["fields"]["weight"]["doubleValue"];
-// ... 20+ lines of JSON field extraction
-
-// Complex document updates
-JsonDocument measurementDoc;
-JsonObject fields = measurementDoc.createNestedObject("fields");
-JsonObject weightField = fields.createNestedObject("weight");
-weightField["doubleValue"] = roundedWeight;
-JsonObject heightField = fields.createNestedObject("height");
-heightField["doubleValue"] = roundedHeight;
-// ... many more nested objects
-```
-
-### After: Simple RTDB Operations
-```cpp
-// Direct value access - much simpler!
-bool sessionActive = Firebase.getBool(firebaseData, "hardware/session/active");
-String sessionType = Firebase.getString(firebaseData, "hardware/session/type");
-String userId = Firebase.getString(firebaseData, "hardware/session/userId");
-String userRfid = Firebase.getString(firebaseData, "hardware/session/userRfid");
-
-// Direct value updates
-Firebase.setFloat(firebaseData, "hardware/measurements/weight", 25.5);
-Firebase.setFloat(firebaseData, "hardware/measurements/height", 120.3);
-Firebase.setString(firebaseData, "hardware/measurements/nutritionStatus", "gizi baik");
-Firebase.setBool(firebaseData, "hardware/measurements/complete", true);
-
-// System status updates
-Firebase.setBool(firebaseData, "hardware/status/online", true);
-Firebase.setInt(firebaseData, "hardware/status/lastHeartbeat", now());
-```
-
-### Simplified ESP32 State Management
-```cpp
-enum SystemState {
-  IDLE,
-  WEIGHING_SESSION, 
-  RFID_PAIRING,
-  ERROR_STATE
-};
-
-SystemState currentState = IDLE;
-
-void updateSystemState() {
-  // Check session type from RTDB
-  String sessionType = Firebase.getString(firebaseData, "hardware/session/type");
-  bool sessionActive = Firebase.getBool(firebaseData, "hardware/session/active");
+void loop() {
+  // Listen to mode changes - single point of control
+  currentMode = Firebase.getString(firebaseData, "mode");
   
-  if (!sessionActive) {
-    currentState = IDLE;
-    return;
+  // Mode-based state machine
+  if (currentMode == "idle") {
+    handleIdleMode();
+  } else if (currentMode == "pairing") {
+    handlePairingMode();  
+  } else if (currentMode == "weighing") {
+    handleWeighingMode();
   }
   
-  if (sessionType == "weighing") {
-    currentState = WEIGHING_SESSION;
-    handleWeighingSession();
-  } else if (sessionType == "rfid") {
-    currentState = RFID_PAIRING;
-    handleRFIDPairing();
+  delay(1000); // Check every second - no more 5-second polling!
+}
+
+void handleIdleMode() {
+  display.clearDisplay();
+  display.setCursor(0, 0);
+  display.println("System Ready");
+  display.println("Waiting for session...");
+  display.display();
+}
+
+void handlePairingMode() {
+  display.clearDisplay();
+  display.setCursor(0, 0);
+  display.println("RFID Pairing Mode");
+  display.println("Tap your card...");
+  display.display();
+  
+  // Simple RFID detection
+  String rfidCode = getRFIDReading();
+  if (!rfidCode.isEmpty()) {
+    // Direct path update - no JSON building!
+    Firebase.setString(firebaseData, "pairing_mode", rfidCode);
+    
+    display.clearDisplay();
+    display.println("Card detected!");
+    display.println(rfidCode);
+    display.display();
+    delay(2000);
   }
 }
 
-void handleWeighingSession() {
-  // Get session data directly
-  String expectedRfid = Firebase.getString(firebaseData, "hardware/session/userRfid");
-  String userName = Firebase.getString(firebaseData, "hardware/session/userName");
+void handleWeighingMode() {
+  // Read session parameters from app - direct string access!
+  String polaMakan = Firebase.getString(firebaseData, "weighing_mode/get/pola_makan");
+  String responAnak = Firebase.getString(firebaseData, "weighing_mode/get/respon_anak");
+  String usiaTh = Firebase.getString(firebaseData, "weighing_mode/get/usia_th");
+  String usiaBl = Firebase.getString(firebaseData, "weighing_mode/get/usia_bl");
+  String gender = Firebase.getString(firebaseData, "weighing_mode/get/gender");
   
-  // Display user info
+  // Display session info
+  display.clearDisplay();
+  display.setCursor(0, 0);
   display.println("Weighing Session");
-  display.println("User: " + userName);
-  display.println("Tap RFID: " + expectedRfid);
+  display.println("User: " + usiaTh + "th " + usiaBl + "bl");
+  display.println("Gender: " + gender);
+  display.display();
   
-  // Check RFID match
-  if (currentRfidTag == expectedRfid) {
-    performMeasurement();
-  }
-}
-
-void performMeasurement() {
-  // Get sensor readings
+  // Perform measurements
   float weight = getWeightReading();
   float height = getHeightReading();
-  float bmi = calculateBMI(weight, height);
-  String nutritionStatus = classifyNutrition(weight, height, bmi);
+  float imt = calculateIMT(weight, height);
+  String statusGizi = calculateKNN(weight, height, usiaTh.toInt(), usiaBl.toInt(), 
+                                   gender, polaMakan, responAnak);
   
-  // Update measurements in RTDB
-  Firebase.setFloat(firebaseData, "hardware/measurements/weight", weight);
-  Firebase.setFloat(firebaseData, "hardware/measurements/height", height);
-  Firebase.setFloat(firebaseData, "hardware/measurements/imt", bmi);
-  Firebase.setString(firebaseData, "hardware/measurements/nutritionStatus", nutritionStatus);
-  Firebase.setBool(firebaseData, "hardware/measurements/complete", true);
+  // Send results - simple direct updates!
+  Firebase.setString(firebaseData, "weighing_mode/set/pola_makan", polaMakan);
+  Firebase.setString(firebaseData, "weighing_mode/set/respon_anak", responAnak);
+  Firebase.setString(firebaseData, "weighing_mode/set/usia_th", usiaTh);
+  Firebase.setString(firebaseData, "weighing_mode/set/usia_bl", usiaBl);
+  Firebase.setString(firebaseData, "weighing_mode/set/gender", gender);
+  Firebase.setString(firebaseData, "weighing_mode/set/berat", String(weight, 1));
+  Firebase.setString(firebaseData, "weighing_mode/set/tinggi", String(height, 1));
+  Firebase.setString(firebaseData, "weighing_mode/set/imt", String(imt, 1));
+  Firebase.setString(firebaseData, "weighing_mode/set/status_gizi", statusGizi);
   
-  // Update timestamp
-  Firebase.setInt(firebaseData, "hardware/measurements/timestamp", now());
+  display.clearDisplay();
+  display.println("Measurement Complete!");
+  display.println("Weight: " + String(weight, 1) + " kg");
+  display.println("Height: " + String(height, 1) + " cm");
+  display.println("Status: " + statusGizi);
+  display.display();
 }
+```
+
+### Code Comparison: Before vs After
+
+**Before (Complex Firestore):**
+- 50+ lines of JSON parsing code
+- Complex nested object building
+- Error-prone field extraction
+- High memory usage
+- 5-second polling overhead
+
+**After (Mode-based RTDB):**
+- 15 lines of simple string operations
+- Direct path-based access
+- Predictable execution flow
+- Minimal memory footprint
+- 1-second responsive checking
+
+### Flow Diagrams
+
+#### RFID Pairing Flow:
+```
+App: mode = "pairing", pairing_mode = ""
+  ↓
+ESP32: Detect mode == "pairing" → Start RFID scanning  
+  ↓
+ESP32: RFID detected → pairing_mode = "895729FS1"
+  ↓
+App: Detect pairing_mode ≠ "" → Save to Firestore → Clear data
+  ↓
+App: pairing_mode = "", mode = "idle"
+```
+
+#### Weighing Flow:
+```
+App: User input → Set weighing_mode/get/* → mode = "weighing"
+  ↓
+ESP32: Detect mode == "weighing" → Read weighing_mode/get/*
+  ↓
+ESP32: Measure & Calculate → Set weighing_mode/set/*
+  ↓
+App: Detect weighing_mode/set/* filled → Save to Firestore → Clear all
+  ↓
+App: mode = "idle"
 ```
 
 ## 4. Hybrid Data Flow Services
 
-### globalSessionService.js (Updated for Hybrid)
-**Purpose**: Manages shared ESP32 hardware access using RTDB
+### rtdbModeService.js (New Mode-based Service)
+**Purpose**: Manages mode-based ESP32 coordination using RTDB
 
-**Key Functions:**
 ```javascript
-// Session Management (now uses RTDB)
-initializeRTDBSession()              // Initialize RTDB hardware structure  
-startWeighingSession(userId, data)   // Create weighing session in RTDB
-startRfidSession(userId)             // Create RFID pairing session in RTDB
-endGlobalSession()                   // Cleanup RTDB session
-
-// Monitoring (RTDB listeners)
-subscribeToHardwareSession(callback) // Real-time RTDB session updates
-subscribeToMeasurements(callback)    // Real-time measurement updates
-subscribeToRFIDEvents(callback)      // Real-time RFID detection events
-
-// Session Control
-isSessionAvailable()                 // Check RTDB hardware/session/active
-isMySession(userId)                  // Validate session ownership
-```
-
-### React Native RTDB Integration
-```javascript
-// services/rtdbService.js (new service)
-import { getDatabase, ref, onValue, set, remove } from 'firebase/database';
+// services/rtdbModeService.js
+import { getDatabase, ref, onValue, set } from 'firebase/database';
 
 const rtdb = getDatabase();
 
-export const subscribeToHardwareSession = (callback) => {
-  const sessionRef = ref(rtdb, 'hardware/session');
-  return onValue(sessionRef, (snapshot) => {
-    const data = snapshot.val();
-    callback(data);
+// ======================
+// MODE MANAGEMENT
+// ======================
+export const setMode = async (mode) => {
+  await set(ref(rtdb, 'mode'), mode);
+};
+
+export const getMode = async () => {
+  const snapshot = await get(ref(rtdb, 'mode'));
+  return snapshot.val() || 'idle';
+};
+
+export const subscribeToMode = (callback) => {
+  return onValue(ref(rtdb, 'mode'), (snapshot) => {
+    callback(snapshot.val());
   });
 };
 
-export const startWeighingSession = async (userId, sessionData) => {
-  const sessionRef = ref(rtdb, 'hardware/session');
-  await set(sessionRef, {
-    active: true,
-    type: 'weighing',
-    userId: userId,
-    userName: sessionData.userName,
-    userRfid: sessionData.userRfid,
-    startTime: Date.now(),
-    lastActivity: Date.now(),
-    eatingPattern: sessionData.eatingPattern,
-    childResponse: sessionData.childResponse,
-    ageYears: sessionData.ageYears,
-    ageMonths: sessionData.ageMonths,
-    gender: sessionData.gender
-  });
+// ======================
+// RFID PAIRING
+// ======================
+export const startRFIDPairing = async () => {
+  await set(ref(rtdb, 'mode'), 'pairing');
+  await set(ref(rtdb, 'pairing_mode'), '');
 };
 
-export const subscribeToMeasurements = (callback) => {
-  const measureRef = ref(rtdb, 'hardware/measurements');
-  return onValue(measureRef, (snapshot) => {
-    const data = snapshot.val();
-    if (data && data.complete) {
-      callback(data);
+export const subscribeToRFIDDetection = (callback) => {
+  return onValue(ref(rtdb, 'pairing_mode'), (snapshot) => {
+    const rfidCode = snapshot.val();
+    if (rfidCode && rfidCode !== '') {
+      callback(rfidCode);
     }
   });
+};
+
+export const completePairingSession = async () => {
+  await set(ref(rtdb, 'pairing_mode'), '');
+  await set(ref(rtdb, 'mode'), 'idle');
+};
+
+// ======================
+// WEIGHING SESSION  
+// ======================
+export const startWeighingSession = async (sessionData) => {
+  // Set mode first
+  await set(ref(rtdb, 'mode'), 'weighing');
+  
+  // Set input parameters for ESP32
+  await set(ref(rtdb, 'weighing_mode/get'), {
+    pola_makan: sessionData.polaMakan,
+    respon_anak: sessionData.responAnak,
+    usia_th: sessionData.usiaTh.toString(),
+    usia_bl: sessionData.usiaBl.toString(),
+    gender: sessionData.gender
+  });
+  
+  // Clear results from previous session
+  await set(ref(rtdb, 'weighing_mode/set'), {
+    pola_makan: '',
+    respon_anak: '',
+    usia_th: '',
+    usia_bl: '',
+    gender: '',
+    berat: '',
+    tinggi: '',
+    imt: '',
+    status_gizi: ''
+  });
+};
+
+export const subscribeToWeighingResults = (callback) => {
+  return onValue(ref(rtdb, 'weighing_mode/set'), (snapshot) => {
+    const results = snapshot.val();
+    if (results && results.berat && results.tinggi && results.status_gizi) {
+      callback(results);
+    }
+  });
+};
+
+export const completeWeighingSession = async () => {
+  // Clear all weighing data
+  await set(ref(rtdb, 'weighing_mode'), {
+    get: {
+      pola_makan: '',
+      respon_anak: '',
+      usia_th: '',
+      usia_bl: '',
+      gender: ''
+    },
+    set: {
+      pola_makan: '',
+      respon_anak: '',
+      usia_th: '',
+      usia_bl: '',
+      gender: '',
+      berat: '',
+      tinggi: '',
+      imt: '',
+      status_gizi: ''
+    }
+  });
+  
+  // Return to idle mode
+  await set(ref(rtdb, 'mode'), 'idle');
+};
+
+// ======================
+// UTILITY FUNCTIONS
+// ======================
+export const isSystemIdle = async () => {
+  const mode = await getMode();
+  return mode === 'idle';
+};
+
+export const resetToIdle = async () => {
+  await set(ref(rtdb, 'mode'), 'idle');
+  await set(ref(rtdb, 'pairing_mode'), '');
+  await completeWeighingSession();
+};
+```
+
+### React Native Component Integration
+```javascript
+// Example: timbang.jsx (updated for mode-based)
+import { startWeighingSession, subscribeToWeighingResults, completeWeighingSession } from '../services/rtdbModeService';
+
+const TimbangScreen = () => {
+  const [weighingResults, setWeighingResults] = useState(null);
+  
+  // Subscribe to weighing results
+  useEffect(() => {
+    const unsubscribe = subscribeToWeighingResults((results) => {
+      setWeighingResults(results);
+      handleWeighingComplete(results);
+    });
+    
+    return unsubscribe;
+  }, []);
+  
+  const handleStartWeighing = async (sessionData) => {
+    try {
+      await startWeighingSession({
+        polaMakan: sessionData.eatingPattern,
+        responAnak: sessionData.childResponse,
+        usiaTh: userProfile.ageYears,
+        usiaBl: userProfile.ageMonths,
+        gender: userProfile.gender === 'male' ? 'L' : 'P'
+      });
+      
+      setSelectionModalVisible(false);
+      setLoading(true);
+    } catch (error) {
+      Alert.alert('Error', 'Failed to start weighing session');
+    }
+  };
+  
+  const handleWeighingComplete = async (results) => {
+    try {
+      // Save to Firestore
+      const measurementData = {
+        weight: parseFloat(results.berat),
+        height: parseFloat(results.tinggi),
+        imt: parseFloat(results.imt),
+        nutritionStatus: results.status_gizi,
+        eatingPattern: results.pola_makan,
+        childResponse: results.respon_anak,
+        ageYears: parseInt(results.usia_th),
+        ageMonths: parseInt(results.usia_bl),
+        gender: results.gender === 'L' ? 'male' : 'female',
+        dateTime: new Date()
+      };
+      
+      await addMeasurement(currentUser.uid, measurementData);
+      
+      // Show results modal
+      setResultData(measurementData);
+      setResultModalVisible(true);
+      
+      // Complete session and cleanup
+      await completeWeighingSession();
+      setLoading(false);
+      
+    } catch (error) {
+      Alert.alert('Error', 'Failed to save measurement');
+    }
+  };
+  
+  // ... rest of component
 };
 ```
 
