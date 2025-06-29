@@ -28,6 +28,7 @@
 const char *NTP_SERVER = "pool.ntp.org";
 const long GMT_OFFSET_SEC = 7 * 3600;  // Offset for WIB (UTC+7)
 const int DAYLIGHT_OFFSET_SEC = 0;
+KNN nutritionKNN(5, 8, 120);
 
 ////////// Core System Objects //////////
 DateTimeNTPV2 dateTimeManager(NTP_SERVER, GMT_OFFSET_SEC, DAYLIGHT_OFFSET_SEC);

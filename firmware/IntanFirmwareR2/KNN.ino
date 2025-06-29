@@ -1,3 +1,5 @@
+KNN nutritionKNN(5, 8, 120);
+
 void initKNNMethods() {
   Serial.println("Initializing KNN Nutrition Status Model...");
   nutritionKNN.setDistanceMetric(EUCLIDEAN);
