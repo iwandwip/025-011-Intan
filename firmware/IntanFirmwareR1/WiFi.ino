@@ -11,276 +11,186 @@ void wifiTaskHandler() {
   wifiTask.setInitCoreID(1);
   wifiTask.createTask(10000, [](void *pvParameter) {
     Serial.println("WiFi Task starting on Core 1...");
-    // displayMenu.connectToWiFi("TIMEOSPACE", "1234Saja", 30);
-    // displayMenu.connectToWiFi("silenceAndSleep", "11111111", 30);
+    
+    // Connect to WiFi
     displayMenu.connectToWiFi("arin", "ab333333", 30);
     displayMenu.showCircleLoading("Connecting WiFi", 50);
     wifiSecureClient.setInsecure();
+    
+    // Initialize NTP
     if (!dateTimeManager.begin()) {
       Serial.println("Failed to initialize NTP Client!");
     }
-    if (!firestoreClient.begin(FIREBASE_API_KEY, FIREBASE_USER_EMAIL, FIREBASE_USER_PASSWORD, FIREBASE_PROJECT_ID)) {
-      Serial.println("Firebase Firestore Error: " + firestoreClient.getLastError());
-      while (1) { delay(1000); }
+    
+    // Initialize RTDB for mode-based system (REQUIRED)
+    if (!rtdbClient.begin(rtdbWifiClient, FIREBASE_DATABASE_URL, FIREBASE_API_KEY, FIREBASE_USER_EMAIL, FIREBASE_USER_PASSWORD)) {
+      Serial.println("CRITICAL ERROR: Firebase RTDB initialization failed!");
+      Serial.println("Error: " + rtdbClient.getError());
+      Serial.println("System cannot continue without RTDB - HALTING");
+      while (1) { delay(1000); } // HALT system if RTDB fails
     }
-    Serial.println("Firebase initialization successful");
+    Serial.println("Firebase RTDB initialization successful - Mode-based system active");
+    
+    // Initialize RTDB to idle mode
+    rtdbClient.set("mode", "idle");
+    currentRTDBMode = "idle";
+    
+    // Disable watchdog timers
     disableLoopWDT();
     disableCore0WDT();
     disableCore1WDT();
+    
+    // Signal system ready
     systemBuzzer.toggleInit(100, 2);
     changeSystemState(SYSTEM_IDLE);
     systemInitialized = true;
+    
+    // Main WiFi task loop
     for (;;) {
-      firestoreClient.loop();
-      updateDateTime();
-      processGlobalSession();
+      // Update RTDB
+      rtdbClient.loop();
+      
+      // Update date/time
+      static uint32_t lastDateTimeUpdate = 0;
+      if (millis() - lastDateTimeUpdate >= 1000 && dateTimeManager.update()) {
+        lastDateTimeUpdate = millis();
+      }
+      
+      // Check for RTDB mode changes
+      if (rtdbClient.ready()) {
+        String newMode = rtdbClient.getString("mode");
+        
+        if (!newMode.isEmpty() && newMode != currentRTDBMode) {
+          Serial.println("RTDB Mode change: " + currentRTDBMode + " -> " + newMode);
+          currentRTDBMode = newMode;
+          
+          // Handle mode change
+          if (newMode == "idle") {
+            // Switch to idle mode
+            if (currentSession.isActive) {
+              currentSession.isActive = false;
+            }
+            changeSystemState(SYSTEM_IDLE);
+          } 
+          else if (newMode == "pairing") {
+            // Switch to RFID pairing mode
+            Serial.println("Mode-based RFID pairing started");
+            changeSystemState(SYSTEM_RFID_PAIRING);
+          }
+          else if (newMode == "weighing") {
+            // Switch to weighing mode
+            Serial.println("Mode-based weighing session started");
+            
+            // Load weighing parameters from RTDB
+            String polaMakan = rtdbClient.getString("weighing_mode/get/pola_makan");
+            String responAnak = rtdbClient.getString("weighing_mode/get/respon_anak");
+            String usiaTh = rtdbClient.getString("weighing_mode/get/usia_th");
+            String usiaBl = rtdbClient.getString("weighing_mode/get/usia_bl");
+            String gender = rtdbClient.getString("weighing_mode/get/gender");
+            
+            // Set session data
+            currentSession.isActive = true;
+            currentSession.sessionType = "weighing";
+            currentSession.eatingPattern = polaMakan;
+            currentSession.childResponse = responAnak;
+            currentSession.gender = gender;
+            currentSession.ageYears = usiaTh.toInt();
+            currentSession.ageMonths = usiaBl.toInt();
+            currentSession.measurementComplete = false;
+            
+            // Set measurement indices
+            if (polaMakan == "Kurang") currentMeasurement.eatingPatternIndex = 0;
+            else if (polaMakan == "Cukup") currentMeasurement.eatingPatternIndex = 1;
+            else if (polaMakan == "Berlebih") currentMeasurement.eatingPatternIndex = 2;
+            else currentMeasurement.eatingPatternIndex = 0;
+            
+            if (responAnak == "Pasif") currentMeasurement.childResponseIndex = 0;
+            else if (responAnak == "Sedang") currentMeasurement.childResponseIndex = 1;
+            else if (responAnak == "Aktif") currentMeasurement.childResponseIndex = 2;
+            else currentMeasurement.childResponseIndex = 0;
+            
+            Serial.println("Mode-based weighing data loaded:");
+            Serial.println("  Pola Makan: " + polaMakan);
+            Serial.println("  Respon Anak: " + responAnak);
+            Serial.println("  Usia: " + usiaTh + "th " + usiaBl + "bl");
+            Serial.println("  Gender: " + gender);
+            
+            changeSystemState(SYSTEM_WEIGHING_SESSION);
+          }
+        }
+        
+        // Handle RFID detection for mode-based system
+        if (!currentRfidTag.isEmpty()) {
+          if (currentRTDBMode == "pairing") {
+            // RFID Pairing mode - send detected RFID
+            Serial.println("Mode-based RFID pairing: " + currentRfidTag);
+            rtdbClient.set("pairing_mode", currentRfidTag);
+            systemBuzzer.toggleInit(100, 2);
+            currentRfidTag = "";
+          } 
+          else if (currentRTDBMode == "weighing") {
+            // Weighing mode - validate RFID and proceed
+            Serial.println("Mode-based weighing RFID validation: " + currentRfidTag);
+            systemBuzzer.toggleInit(100, 3);
+            currentRfidTag = "";
+          }
+          else if (currentRTDBMode == "idle") {
+            // Idle mode - check for admin card
+            if (currentRfidTag == "ADMIN_CARD") {
+              changeSystemState(SYSTEM_ADMIN_MODE);
+              systemBuzzer.toggleInit(100, 3);
+            }
+            currentRfidTag = "";
+          }
+        }
+      }
+      
       vTaskDelay(pdMS_TO_TICKS(100));
     }
   });
 }
 
-void updateDateTime() {
-  static uint32_t lastUpdate = 0;
-  if (millis() - lastUpdate >= 1000 && dateTimeManager.update()) {
-    lastUpdate = millis();
-  }
-}
+// External function implementations that are called from other files
 
-void processGlobalSession() {
-  if (!firestoreClient.isReady()) return;
-  static uint32_t lastSync = 0;
-  if (millis() - lastSync >= 5000 || forceFirebaseSync) {
-    forceFirebaseSync = false;
-    lastSync = millis();
-    String sessionResponse = firestoreClient.getDocument("systemStatus/hardware", "", true);
-    JsonDocument sessionDoc;
-    deserializeJson(sessionDoc, sessionResponse);
-    if (!sessionDoc.containsKey("fields")) {
-      return;
-    }
-    processSessionData(sessionDoc);
-    if (!currentSession.isActive) {
-      handleRFIDDetection();
-    }
-  }
-}
 
-void processSessionData(JsonDocument &sessionDoc) {
-  bool isInUse = sessionDoc["fields"]["isInUse"]["booleanValue"].as<bool>();
-  if (isInUse) {
-    currentSession.isActive = true;
-    currentSession.sessionType = sessionDoc["fields"]["sessionType"]["stringValue"].as<String>();
-    currentSession.userId = sessionDoc["fields"]["currentUserId"]["stringValue"].as<String>();
-    currentSession.userName = sessionDoc["fields"]["currentUserName"]["stringValue"].as<String>();
-    Serial.print("| Parsed sessionType: '");
-    Serial.print(currentSession.sessionType);
-    Serial.print("' length: ");
-    Serial.println(currentSession.sessionType.length());
-    if (currentSession.sessionType == "weighing") {
-      Serial.println("| Entering weighing session");
-      handleWeighingSession(sessionDoc);
-    } else if (currentSession.sessionType == "rfid") {
-      Serial.println("| Entering RFID pairing session");
-      handleRFIDPairingSession();
-    } else {
-      Serial.print("| Unknown session type: ");
-      Serial.println(currentSession.sessionType);
-    }
-  } else {
-    if (currentSession.isActive) {
-      currentSession.isActive = false;
-      changeSystemState(SYSTEM_IDLE);
-    }
-  }
-}
 
-void handleWeighingSession(JsonDocument &sessionDoc) {
-  String userRfid = sessionDoc["fields"]["userRfid"]["stringValue"].as<String>();
-  currentSession.eatingPattern = sessionDoc["fields"]["eatingPattern"]["stringValue"].as<String>();
-  currentSession.childResponse = sessionDoc["fields"]["childResponse"]["stringValue"].as<String>();
-  currentSession.gender = sessionDoc["fields"]["gender"]["stringValue"].as<String>();
-  currentSession.ageYears = sessionDoc["fields"]["ageYears"]["integerValue"].as<int>();
-  currentSession.ageMonths = sessionDoc["fields"]["ageMonths"]["integerValue"].as<int>();
-  currentSession.measurementComplete = sessionDoc["fields"]["measurementComplete"]["booleanValue"].as<bool>();
-  if (!currentSession.measurementComplete) {
-    loadUserDataForSession(currentSession.userId, userRfid);
-    changeSystemState(SYSTEM_WEIGHING_SESSION);
-  }
-}
-
-void handleRFIDPairingSession() {
-  Serial.println("| handleRFIDPairingSession() called - changing to SYSTEM_RFID_PAIRING");
-  changeSystemState(SYSTEM_RFID_PAIRING);
-}
-
-void loadUserDataForSession(String userId, String rfidTag) {
-  String userResponse = firestoreClient.getDocument("users/" + userId, "", true);
-  JsonDocument userDoc;
-  deserializeJson(userDoc, userResponse);
-  if (userDoc.containsKey("fields")) {
-    currentSessionUser.userId = userId;
-    currentSessionUser.childName = userDoc["fields"]["name"]["stringValue"].as<String>();
-    currentSessionUser.gender = currentSession.gender;
-    currentSessionUser.ageYears = currentSession.ageYears;
-    currentSessionUser.ageMonths = currentSession.ageMonths;
-    currentSessionUser.rfidTag = rfidTag;
-    currentMeasurement.eatingPatternIndex = getEatingPatternIndex(currentSession.eatingPattern);
-    currentMeasurement.childResponseIndex = getChildResponseIndex(currentSession.childResponse);
-  }
-}
-
-void handleRFIDDetection() {
-  if (!currentRfidTag.isEmpty()) {
-    String usersResponse = firestoreClient.getDocument("users", "", true);
-    JsonDocument usersDoc;
-    deserializeJson(usersDoc, usersResponse);
-    for (JsonVariant user : usersDoc["documents"].as<JsonArray>()) {
-      String userRfid = user["fields"]["rfid"]["stringValue"].as<String>();
-      String userEmail = user["fields"]["email"]["stringValue"].as<String>();
-      if (userRfid == currentRfidTag) {
-        if (userEmail == "admin@gmail.com") {
-          changeSystemState(SYSTEM_ADMIN_MODE);
-        } else {
-          changeSystemState(SYSTEM_QUICK_MEASURE);
-        }
-        systemBuzzer.toggleInit(100, 3);
-        currentRfidTag = "";
-        break;
-      }
-    }
-  }
-}
-
-void updateGlobalSessionData(float weightValue, float heightValue, String nutritionStatus, String eatingPattern, String childResponse) {
-  // Validate data before sending
-  if (weightValue <= 0.0 || heightValue <= 0.0) {
-    Serial.println("| ===== DATA VALIDATION FAILED =====");
-    Serial.printf("| Invalid weight: %.2f kg (must be > 0)\n", weightValue);
-    Serial.printf("| Invalid height: %.2f cm (must be > 0)\n", heightValue);
-    Serial.println("| Aborting data send - invalid measurement values");
-    Serial.println("| ===== SEND ABORTED =====");
+void sendModeBasedWeighingResultsWiFi(float weight, float height, String nutritionStatus) {
+  if (!rtdbClient.ready()) {
+    Serial.println("RTDB not ready for sending results");
     return;
   }
+  
+  float imt = calculateIMT(weight, height);
+  
+  Serial.println("Sending mode-based weighing results...");
+  
+  // Send results using direct RTDB updates
+  rtdbClient.set("weighing_mode/set/pola_makan", currentSession.eatingPattern);
+  rtdbClient.set("weighing_mode/set/respon_anak", currentSession.childResponse);
+  rtdbClient.set("weighing_mode/set/usia_th", String(currentSession.ageYears));
+  rtdbClient.set("weighing_mode/set/usia_bl", String(currentSession.ageMonths));
+  rtdbClient.set("weighing_mode/set/gender", currentSession.gender);
+  rtdbClient.set("weighing_mode/set/berat", String(weight, 1));
+  rtdbClient.set("weighing_mode/set/tinggi", String(height, 1));
+  rtdbClient.set("weighing_mode/set/imt", String(imt, 1));
+  rtdbClient.set("weighing_mode/set/status_gizi", nutritionStatus);
+  
+  Serial.println("Mode-based results sent successfully");
+  
+  // Reset measurement data
+  currentMeasurement.weight = 0.0;
+  currentMeasurement.height = 0.0;
+}
 
-  float imt = calculateIMT(weightValue, heightValue);
-
-  Serial.println("| ===== SENDING FINAL MEASUREMENT DATA =====");
-  Serial.printf("| Weight: %.2f kg\n", weightValue);
-  Serial.printf("| Height: %.2f cm\n", heightValue);
-  Serial.printf("| IMT: %.2f\n", imt);
-  Serial.printf("| Nutrition Status: %s\n", nutritionStatus.c_str());
-  Serial.printf("| Eating Pattern: %s\n", eatingPattern.c_str());
-  Serial.printf("| Child Response: %s\n", childResponse.c_str());
-
-  // Check if Firestore client is ready
-  if (!firestoreClient.isReady()) {
-    Serial.println("| ERROR: Firestore client not ready!");
-    Serial.println("| ===== FINAL DATA SEND FAILED =====");
+void sendModeBasedRFIDDetectionWiFi(String rfidCode) {
+  if (!rtdbClient.ready()) {
+    Serial.println("RTDB not ready for RFID detection");
     return;
   }
-
-  // Step 1: Send measurement data first (like RFID pairing approach)
-  Serial.println("| Step 1: Sending measurement values...");
-  JsonDocument measurementDoc;
-  JsonObject measurementFields = measurementDoc.createNestedObject("fields");
-  JsonObject weightField = measurementFields.createNestedObject("weight");
-  weightField["doubleValue"] = round(weightValue * 100) / 100.0;
-  JsonObject heightField = measurementFields.createNestedObject("height");
-  heightField["doubleValue"] = round(heightValue * 100) / 100.0;
-  JsonObject imtField = measurementFields.createNestedObject("imt");
-  imtField["doubleValue"] = round(imt * 100) / 100.0;
-  JsonObject nutritionField = measurementFields.createNestedObject("nutritionStatus");
-  nutritionField["stringValue"] = nutritionStatus;
-  JsonObject eatingField = measurementFields.createNestedObject("eatingPattern");
-  eatingField["stringValue"] = eatingPattern;
-  JsonObject responseField = measurementFields.createNestedObject("childResponse");
-  responseField["stringValue"] = childResponse;
-
-  String measurementDocStr;
-  serializeJson(measurementDoc, measurementDocStr);
-  Serial.println("| Measurement JSON:");
-  Serial.println(measurementDocStr);
-
-  bool step1Success = firestoreClient.updateDocument("systemStatus/hardware", measurementDocStr, "weight,height,imt,nutritionStatus,eatingPattern,childResponse", true);
-  Serial.printf("| Step 1 result: %s\n", step1Success ? "SUCCESS" : "FAILED");
-
-  if (!step1Success) {
-    Serial.println("| Step 1 failed: " + firestoreClient.getLastError());
-    return;
-  }
-
-  // Small delay to ensure data is written
-  delay(500);
-
-  // Step 2: Set completion flag (like RFID pairing approach)
-  Serial.println("| Step 2: Setting measurementComplete flag...");
-  JsonDocument completeDoc;
-  JsonObject completeFields = completeDoc.createNestedObject("fields");
-  JsonObject completeField = completeFields.createNestedObject("measurementComplete");
-  completeField["booleanValue"] = true;
-  JsonObject activityField = completeFields.createNestedObject("lastActivity");
-  activityField["timestampValue"] = dateTimeManager.getISO8601Time();
-
-  String completeDocStr;
-  serializeJson(completeDoc, completeDocStr);
-  Serial.println("| Completion JSON:");
-  Serial.println(completeDocStr);
-
-  bool step2Success = firestoreClient.updateDocument("systemStatus/hardware", completeDocStr, "measurementComplete,lastActivity", true);
-  Serial.printf("| Step 2 result: %s\n", step2Success ? "SUCCESS" : "FAILED");
-
-  if (!step2Success) {
-    Serial.println("| Step 2 failed: " + firestoreClient.getLastError());
-  }
-
-  Serial.println("| ===== FINAL DATA SEND COMPLETED =====");
-
-  // Reset measurement data AFTER successful send
-  if (step1Success && step2Success) {
-    Serial.println("| Both steps successful - clearing measurement data");
-    MeasurementData emptyMeasurement;
-    currentMeasurement = emptyMeasurement;
-
-    // Force Firebase sync to ensure app gets the data immediately
-    forceFirebaseSync = true;
-    Serial.println("| Forced Firebase sync to notify app of completion");
-  }
+  
+  Serial.println("Sending mode-based RFID detection: " + rfidCode);
+  rtdbClient.set("pairing_mode", rfidCode);
+  
+  // System will return to idle when app completes the pairing
 }
 
-void updateGlobalSessionRFID(String rfidValue) {
-  JsonDocument updateDoc;
-  JsonObject fields = updateDoc.createNestedObject("fields");
-  JsonObject rfidField = fields.createNestedObject("rfid");
-  rfidField["stringValue"] = rfidValue;
-  String updateDocStr;
-  serializeJson(updateDoc, updateDocStr);
-  firestoreClient.updateDocument("systemStatus/hardware", updateDocStr, "rfid", true);
-}
-
-int getEatingPatternIndex(String pattern) {
-  if (pattern == "Kurang") return 0;
-  if (pattern == "Cukup") return 1;
-  if (pattern == "Berlebih") return 2;
-  return 0;
-}
-
-int getChildResponseIndex(String response) {
-  if (response == "Pasif") return 0;
-  if (response == "Sedang") return 1;
-  if (response == "Aktif") return 2;
-  return 0;
-}
-
-String getEatingPatternString(int index) {
-  if (index == 0) return "Kurang";
-  if (index == 1) return "Cukup";
-  if (index == 2) return "Berlebih";
-  return "Kurang";
-}
-
-String getChildResponseString(int index) {
-  if (index == 0) return "Pasif";
-  if (index == 1) return "Sedang";
-  if (index == 2) return "Aktif";
-  return "Pasif";
-}

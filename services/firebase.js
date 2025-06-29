@@ -1,11 +1,13 @@
 import { initializeApp, getApps } from 'firebase/app';
 import { getAuth, initializeAuth, getReactNativePersistence } from 'firebase/auth';
 import { getFirestore } from 'firebase/firestore';
+import { getDatabase } from 'firebase/database';
 import ReactNativeAsyncStorage from '@react-native-async-storage/async-storage';
 
 const firebaseConfig = {
   apiKey: "AIzaSyDxodg_DD4n-DTdKqrMEJJX3bQHJyG3sKU",
   authDomain: "intan-680a4.firebaseapp.com",
+  databaseURL: "https://intan-680a4-default-rtdb.firebaseio.com/",
   projectId: "intan-680a4",
   storageBucket: "intan-680a4.firebasestorage.app",
   messagingSenderId: "177772813515",
@@ -16,6 +18,7 @@ const firebaseConfig = {
 let app;
 let auth;
 let db;
+let rtdb;
 
 try {
   if (getApps().length === 0) {
@@ -42,4 +45,10 @@ try {
   console.error('Firestore initialization error:', error);
 }
 
-export { auth, db, app };
+try {
+  rtdb = getDatabase(app);
+} catch (error) {
+  console.error('Realtime Database initialization error:', error);
+}
+
+export { auth, db, rtdb, app };

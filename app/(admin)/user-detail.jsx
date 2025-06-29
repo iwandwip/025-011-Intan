@@ -24,17 +24,13 @@ import {
 } from "../../services/adminService";
 import { removeUserRFID } from "../../services/userService";
 import {
-  subscribeToSystemStatus,
-  startRfidSession,
-  endGlobalSession,
-  initializeSystemStatus,
-} from "../../services/globalSessionService";
-import {
-  GLOBAL_SESSION_TYPES,
-  getSessionStatusMessage,
-  isSessionAvailable,
-  isMySession,
-} from "../../utils/globalStates";
+  startRFIDPairing,
+  subscribeToRFIDDetection,
+  completeRFIDPairing,
+  resetToIdle,
+  subscribeToSystemState,
+  isSystemIdle
+} from "../../services/rtdbModeService";
 import { formatAge } from "../../utils/ageCalculator";
 import { Colors } from "../../constants/Colors";
 
@@ -50,7 +46,7 @@ export default function UserDetail() {
   const [sortOrder, setSortOrder] = useState("desc");
   const [editModalVisible, setEditModalVisible] = useState(false);
   const [deleting, setDeleting] = useState(false);
-  const [systemStatus, setSystemStatus] = useState(null);
+  const [systemState, setSystemState] = useState({ mode: 'idle' });
   const [rfidLoading, setRfidLoading] = useState(false);
   const [rfidNumberModalVisible, setRfidNumberModalVisible] = useState(false);
   const [rfidMethodModalVisible, setRfidMethodModalVisible] = useState(false);
@@ -158,11 +154,17 @@ export default function UserDetail() {
   };
 
   const handleRfidPairing = async () => {
-    if (!isSessionAvailable(systemStatus)) {
-      Alert.alert(
-        "Alat Sedang Digunakan",
-        getSessionStatusMessage(systemStatus)
-      );
+    try {
+      const systemIdle = await isSystemIdle();
+      if (!systemIdle) {
+        Alert.alert(
+          "Alat Sedang Digunakan",
+          "Hardware sedang digunakan oleh pengguna lain. Silakan coba lagi nanti."
+        );
+        return;
+      }
+    } catch (error) {
+      Alert.alert("Kesalahan", "Gagal memeriksa status sistem");
       return;
     }
 
@@ -173,7 +175,7 @@ export default function UserDetail() {
     try {
       setRfidLoading(true);
       setRfidMethodModalVisible(false);
-      const result = await startRfidSession(userId, userDetails.name);
+      const result = await startRFIDPairing();
 
       if (result.success) {
         Alert.alert(
@@ -269,7 +271,7 @@ export default function UserDetail() {
 
       if (result.success) {
         await loadUserDetails();
-        await endGlobalSession();
+        await completeRFIDPairing();
         setRfidNumberModalVisible(false);
         setPendingRfidData(null);
 
@@ -289,7 +291,7 @@ export default function UserDetail() {
 
   const handleRfidNumberCancel = async () => {
     try {
-      await endGlobalSession();
+      await resetToIdle();
       setRfidNumberModalVisible(false);
       setPendingRfidData(null);
       Alert.alert("Dibatalkan", "Pairing RFID telah dibatalkan");
@@ -301,7 +303,7 @@ export default function UserDetail() {
 
   const handleCancelRfidPairing = async () => {
     try {
-      await endGlobalSession();
+      await resetToIdle();
       Alert.alert("Dibatalkan", "Pairing RFID telah dibatalkan");
     } catch (error) {
       console.error("Cancel RFID error:", error);
@@ -310,14 +312,11 @@ export default function UserDetail() {
   };
 
   const isRfidPairing = () => {
-    return (
-      systemStatus?.sessionType === GLOBAL_SESSION_TYPES.RFID &&
-      isMySession(systemStatus, userId)
-    );
+    return systemState.mode === 'pairing';
   };
 
   const canStartRfidPairing = () => {
-    return isSessionAvailable(systemStatus) && !rfidLoading && !loading;
+    return systemState.mode === 'idle' && !rfidLoading && !loading;
   };
 
   const hasRfid = () => {
@@ -328,30 +327,28 @@ export default function UserDetail() {
     if (userId) {
       loadUserDetails();
     }
-    initializeSystemStatus();
   }, [userId]);
 
   useEffect(() => {
     if (!userId) return;
 
-    const unsubscribe = subscribeToSystemStatus((doc) => {
-      if (doc.exists()) {
-        const data = doc.data();
-        setSystemStatus(data);
+    // Subscribe to system state
+    const unsubscribeState = subscribeToSystemState((state) => {
+      setSystemState(state);
+    });
 
-        if (
-          data.sessionType === GLOBAL_SESSION_TYPES.RFID &&
-          data.currentUserId === userId &&
-          data.rfid &&
-          data.rfid.trim() !== ""
-        ) {
-          handleRfidSuccess(data.rfid);
-        }
+    // Subscribe to RFID detection during pairing
+    const unsubscribeRFID = subscribeToRFIDDetection((rfidCode) => {
+      if (rfidCode && systemState.mode === 'pairing') {
+        handleRfidSuccess(rfidCode);
       }
     });
 
-    return unsubscribe;
-  }, [userId]);
+    return () => {
+      unsubscribeState();
+      unsubscribeRFID();
+    };
+  }, [userId, systemState.mode]);
 
   const formatDateTime = (timestamp) => {
     if (!timestamp) return "N/A";
@@ -467,7 +464,9 @@ export default function UserDetail() {
               <Text style={styles.rfidSectionTitle}>Kelola RFID</Text>
               <View style={styles.rfidStatus}>
                 <Text style={styles.rfidStatusText}>
-                  {getSessionStatusMessage(systemStatus)}
+                  Mode: {systemState.mode === 'idle' ? 'Siap Digunakan' : 
+                        systemState.mode === 'pairing' ? 'Sedang Pairing RFID' : 
+                        systemState.mode === 'weighing' ? 'Sedang Menimbang' : 'Tidak Diketahui'}
                 </Text>
               </View>
 
@@ -596,6 +595,7 @@ export default function UserDetail() {
         onDevicePairing={handleDevicePairing}
         onManualPairing={handleManualPairing}
         loading={rfidLoading}
+        useModeBasedSystem={true}
       />
     </View>
   );

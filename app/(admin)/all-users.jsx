@@ -18,7 +18,7 @@ import {
   getAllUsersWithMeasurements,
 } from "../../services/adminService";
 import { generateAllUsersPDF } from "../../services/pdfService";
-import { endGlobalSession } from "../../services/globalSessionService";
+import { resetToIdle } from "../../services/rtdbModeService";
 import { formatAge } from "../../utils/ageCalculator";
 import { Colors } from "../../constants/Colors";
 
@@ -101,7 +101,7 @@ export default function AllUsers() {
   const handleResetSession = async () => {
     Alert.alert(
       "Reset Session",
-      "Apakah Anda yakin ingin mereset semua global session? Ini akan menghentikan semua sesi yang sedang berlangsung (pairing, weighing, dll).",
+      "Apakah Anda yakin ingin mereset sistem mode-based? Ini akan menghentikan semua sesi yang sedang berlangsung (pairing, weighing, dll) dan kembali ke mode idle.",
       [
         { text: "Batal", style: "cancel" },
         {
@@ -110,11 +110,11 @@ export default function AllUsers() {
           onPress: async () => {
             setResettingSession(true);
             try {
-              const result = await endGlobalSession();
+              const result = await resetToIdle();
               if (result.success) {
-                Alert.alert("Berhasil", "Semua global session berhasil direset!");
+                Alert.alert("Berhasil", "Sistem mode-based berhasil direset ke idle!");
               } else {
-                Alert.alert("Gagal", result.error || "Gagal mereset session");
+                Alert.alert("Gagal", result.error || "Gagal mereset sistem");
               }
             } catch (error) {
               Alert.alert("Kesalahan", "Terjadi kesalahan saat mereset session");

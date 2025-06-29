@@ -15,126 +15,114 @@ import LoadingSpinner from "../../components/ui/LoadingSpinner";
 import DataSelectionModal from "../../components/ui/DataSelectionModal";
 import WeighingResultModal from "../../components/ui/WeighingResultModal";
 import {
-  subscribeToSystemStatus,
   startWeighingSession,
-  endGlobalSession,
-  initializeSystemStatus,
-} from "../../services/globalSessionService";
+  subscribeToWeighingResults,
+  completeWeighingSession,
+  isSystemIdle,
+  subscribeToSystemState,
+  handleSystemError
+} from "../../services/rtdbModeService";
 import { addMeasurement } from "../../services/dataService";
+import { saveMeasurementFromRTDB } from "../../services/dataService";
 import { updateUserProfile } from "../../services/userService";
-import {
-  GLOBAL_SESSION_TYPES,
-  getSessionStatusMessage,
-  isSessionAvailable,
-  isMySession,
-} from "../../utils/globalStates";
+// Pure mode-based system - no legacy imports needed
 import { Colors } from "../../constants/Colors";
 
 export default function TimbangScreen() {
   const { userProfile } = useAuth();
   const router = useRouter();
 
-  const [systemStatus, setSystemStatus] = useState(null);
+  const [modeSystemState, setModeSystemState] = useState({ mode: 'idle' });
   const [selectionModalVisible, setSelectionModalVisible] = useState(false);
   const [resultModalVisible, setResultModalVisible] = useState(false);
   const [resultData, setResultData] = useState(null);
   const [loading, setLoading] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
 
-  useEffect(() => {
-    initializeSystemStatus();
-  }, []);
+  // No legacy system initialization needed
 
   useEffect(() => {
     if (!userProfile?.id) return;
 
-    const unsubscribe = subscribeToSystemStatus((doc) => {
-      if (doc.exists()) {
-        const data = doc.data();
-        setSystemStatus(data);
-
-        if (
-          data.sessionType === GLOBAL_SESSION_TYPES.WEIGHING &&
-          data.currentUserId === userProfile.id &&
-          data.measurementComplete
-        ) {
-          console.log('🔍 MEASUREMENT COMPLETION CHECK:');
-          console.log('  - sessionType:', data.sessionType);
-          console.log('  - currentUserId:', data.currentUserId);
-          console.log('  - userProfile.id:', userProfile.id);
-          console.log('  - measurementComplete:', data.measurementComplete);
-          console.log('  - weight:', data.weight, 'valid:', data.weight > 0);
-          console.log('  - height:', data.height, 'valid:', data.height > 0);
-          console.log('  - imt:', data.imt);
-          console.log('  - nutritionStatus:', data.nutritionStatus);
-          console.log('  - eatingPattern:', data.eatingPattern);
-          console.log('  - childResponse:', data.childResponse);
-          
-          if (data.weight > 0 && data.height > 0) {
-            console.log('✅ ALL CONDITIONS MET - Processing completion');
-            handleWeighingCompleted(data);
-          } else {
-            console.log('❌ MISSING VALID WEIGHT/HEIGHT - Cannot complete');
-            console.log('  Weight check:', data.weight, '>', 0, '=', data.weight > 0);
-            console.log('  Height check:', data.height, '>', 0, '=', data.height > 0);
-          }
-        }
-      }
+    // Mode-based system: Subscribe to weighing results
+    const unsubscribeResults = subscribeToWeighingResults((results) => {
+      console.log('🔍 MODE-BASED WEIGHING RESULTS:', results);
+      handleModeBasedWeighingCompleted(results);
     });
 
-    return unsubscribe;
+    // Subscribe to system state for monitoring
+    const unsubscribeState = subscribeToSystemState((state) => {
+      setModeSystemState(state);
+      console.log('🎯 MODE-BASED SYSTEM STATE:', state);
+    });
+
+    return () => {
+      unsubscribeResults();
+      unsubscribeState();
+    };
   }, [userProfile?.id]);
 
-  const handleWeighingCompleted = async (data) => {
+  const handleModeBasedWeighingCompleted = async (results) => {
     try {
       setLoading(true);
 
+      // Convert RTDB results to Firestore format
       const measurementData = {
-        weight: data.weight,
-        height: data.height,
-        imt: data.imt || 0,
-        nutritionStatus: data.nutritionStatus,
-        eatingPattern: data.eatingPattern,
-        childResponse: data.childResponse,
+        weight: parseFloat(results.berat),
+        height: parseFloat(results.tinggi),
+        imt: parseFloat(results.imt),
+        nutritionStatus: results.status_gizi,
+        eatingPattern: results.pola_makan,
+        childResponse: results.respon_anak,
+        ageYears: parseInt(results.usia_th),
+        ageMonths: parseInt(results.usia_bl),
+        gender: results.gender === 'L' ? 'male' : 'female',
+        dateTime: new Date()
       };
 
+      // Save to Firestore
       const addResult = await addMeasurement(userProfile.id, measurementData, userProfile);
 
       if (addResult.success) {
+        // Update user profile cache
         await updateUserProfile(userProfile.id, {
           latestWeighing: {
-            ...measurementData,
-            ageYears: userProfile.ageYears,
-            ageMonths: userProfile.ageMonths,
-            gender: userProfile.gender,
-            dateTime: new Date(),
-          },
+            weight: measurementData.weight,
+            height: measurementData.height,
+            imt: measurementData.imt,
+            nutritionStatus: measurementData.nutritionStatus,
+            eatingPattern: measurementData.eatingPattern,
+            childResponse: measurementData.childResponse,
+            ageYears: measurementData.ageYears,
+            ageMonths: measurementData.ageMonths,
+            gender: measurementData.gender,
+            dateTime: measurementData.dateTime
+          }
         });
 
-        setResultData({
-          ...measurementData,
-          ageYears: userProfile.ageYears,
-          ageMonths: userProfile.ageMonths,
-          gender: userProfile.gender,
-          dateTime: new Date(),
-        });
+        // Show results modal
+        setResultData(measurementData);
         setResultModalVisible(true);
-      }
 
-      await endGlobalSession();
+        // Complete session and cleanup
+        await completeWeighingSession();
+      }
     } catch (error) {
-      console.error("Error completing weighing:", error);
+      console.error("Error completing mode-based weighing:", error);
       Alert.alert("Kesalahan", "Gagal menyimpan data pengukuran");
+      await handleSystemError(error);
     } finally {
       setLoading(false);
     }
   };
 
+  // Legacy function removed - using mode-based system only
+
   const hasRFID = () => {
     return userProfile?.rfid && userProfile.rfid.trim() !== "";
   };
 
-  const handleStartWeighing = () => {
+  const handleStartWeighing = async () => {
     if (!hasRFID()) {
       Alert.alert(
         "RFID Belum Dipasang",
@@ -150,37 +138,50 @@ export default function TimbangScreen() {
       return;
     }
 
-    if (!isSessionAvailable(systemStatus)) {
-      Alert.alert(
-        "Alat Sedang Digunakan",
-        getSessionStatusMessage(systemStatus)
-      );
+    // Mode-based system: Check if system is idle
+    try {
+      const systemIdle = await isSystemIdle();
+      if (!systemIdle) {
+        Alert.alert(
+          "Alat Sedang Digunakan",
+          "Hardware sedang digunakan oleh pengguna lain. Silakan coba lagi nanti."
+        );
+        return;
+      }
+    } catch (error) {
+      Alert.alert("Kesalahan", "Gagal memeriksa status sistem");
       return;
     }
+    
     setSelectionModalVisible(true);
   };
 
   const handleDataSelection = async (selectionData) => {
     try {
       setLoading(true);
-      const result = await startWeighingSession(
-        userProfile.id,
-        userProfile.name,
-        userProfile.rfid,
-        selectionData,
-        userProfile
-      );
+      
+      // Mode-based system: Start weighing session
+      const sessionData = {
+        eatingPattern: selectionData.eatingPattern,
+        childResponse: selectionData.childResponse,
+        ageYears: userProfile.ageYears,
+        ageMonths: userProfile.ageMonths,
+        gender: userProfile.gender === 'male' ? 'L' : 'P'
+      };
+
+      const result = await startWeighingSession(sessionData);
 
       if (result.success) {
         setSelectionModalVisible(false);
         Alert.alert(
-          "Siap untuk Timbang",
+          "Sesi Dimulai",
           "Silakan tap kartu RFID Anda pada perangkat untuk memulai pengukuran."
         );
       } else {
         Alert.alert("Kesalahan", result.error);
       }
     } catch (error) {
+      console.error("Error starting weighing session:", error);
       Alert.alert("Kesalahan", "Gagal memulai sesi penimbangan");
     } finally {
       setLoading(false);
@@ -189,7 +190,7 @@ export default function TimbangScreen() {
 
   const handleCancelWeighing = async () => {
     try {
-      await endGlobalSession();
+      await completeWeighingSession();
       Alert.alert("Dibatalkan", "Sesi penimbangan telah dibatalkan");
     } catch (error) {
       Alert.alert("Kesalahan", "Gagal membatalkan sesi penimbangan");
@@ -206,24 +207,19 @@ export default function TimbangScreen() {
   };
 
   const getStatusColor = () => {
-    if (!systemStatus?.isInUse) return Colors.gray600;
-
-    if (systemStatus.timeout) return Colors.error;
-
-    if (isMySession(systemStatus, userProfile?.id)) {
-      if (systemStatus.measurementComplete) return Colors.success;
-      return Colors.primary;
-    }
-
-    return Colors.warning;
+    // Mode-based system status
+    if (modeSystemState.mode === 'idle') return Colors.gray600;
+    if (modeSystemState.mode === 'weighing') return Colors.primary;
+    if (modeSystemState.mode === 'pairing') return Colors.warning;
+    return Colors.gray600;
   };
 
   const canStartSession = () => {
-    return hasRFID() && isSessionAvailable(systemStatus) && !loading;
+    return hasRFID() && modeSystemState.mode === 'idle' && !loading;
   };
 
   const isMyActiveSession = () => {
-    return systemStatus?.isInUse && isMySession(systemStatus, userProfile?.id);
+    return modeSystemState.mode === 'weighing';
   };
 
   const handleRefresh = async () => {
@@ -280,7 +276,9 @@ export default function TimbangScreen() {
               ]}
             >
               <Text style={styles.statusText}>
-                {getSessionStatusMessage(systemStatus)}
+                {`Mode: ${modeSystemState.mode === 'idle' ? 'Siap Digunakan' : 
+                    modeSystemState.mode === 'weighing' ? 'Sedang Menimbang' : 
+                    modeSystemState.mode === 'pairing' ? 'Sedang Pairing RFID' : 'Tidak Diketahui'}`}
               </Text>
             </View>
           </View>
@@ -319,13 +317,10 @@ export default function TimbangScreen() {
               <Text style={styles.sessionTitle}>Sesi Saat Ini</Text>
               <View style={styles.sessionDetails}>
                 <Text style={styles.sessionItem}>
-                  Pola Makan: {systemStatus.eatingPattern}
+                  Status: Sedang Menimbang
                 </Text>
                 <Text style={styles.sessionItem}>
-                  Respon Anak: {systemStatus.childResponse}
-                </Text>
-                <Text style={styles.sessionItem}>
-                  RFID: {systemStatus.userRfid}
+                  Tap kartu RFID untuk memulai
                 </Text>
               </View>
             </View>

@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import {
   View,
   Text,
@@ -11,6 +11,12 @@ import {
 import Button from "./Button";
 import LoadingSpinner from "./LoadingSpinner";
 import { Colors } from "../../constants/Colors";
+import {
+  startRFIDPairing,
+  subscribeToRFIDDetection,
+  completePairingSession,
+  isSystemIdle
+} from "../../services/rtdbModeService";
 
 export default function RFIDPairingMethodModal({
   visible,
@@ -19,14 +25,62 @@ export default function RFIDPairingMethodModal({
   onDevicePairing,
   onManualPairing,
   loading = false,
+  useModeBasedSystem = true,
 }) {
   const [showManualInput, setShowManualInput] = useState(false);
   const [manualRfidCode, setManualRfidCode] = useState("");
   const [manualRfidNumber, setManualRfidNumber] = useState("");
   const [manualLoading, setManualLoading] = useState(false);
+  const [devicePairingActive, setDevicePairingActive] = useState(false);
+  const [detectedRfidCode, setDetectedRfidCode] = useState("");
+  const [waitingForNumber, setWaitingForNumber] = useState(false);
 
-  const handleDeviceMethod = () => {
-    onDevicePairing();
+  useEffect(() => {
+    if (devicePairingActive && useModeBasedSystem) {
+      // Subscribe to RFID detection
+      const unsubscribe = subscribeToRFIDDetection((rfidCode) => {
+        console.log('RFID detected:', rfidCode);
+        setDetectedRfidCode(rfidCode);
+        setWaitingForNumber(true);
+        setDevicePairingActive(false);
+      });
+
+      return unsubscribe;
+    }
+  }, [devicePairingActive, useModeBasedSystem]);
+
+  const handleDeviceMethod = async () => {
+    if (useModeBasedSystem) {
+      try {
+        // Check if system is idle
+        const systemIdle = await isSystemIdle();
+        if (!systemIdle) {
+          Alert.alert(
+            "System Busy", 
+            "Hardware sedang digunakan. Silakan coba lagi nanti."
+          );
+          return;
+        }
+
+        // Start RFID pairing session
+        const result = await startRFIDPairing();
+        if (result.success) {
+          setDevicePairingActive(true);
+          Alert.alert(
+            "Pairing Dimulai",
+            "Silakan tap kartu RFID Anda pada perangkat."
+          );
+        } else {
+          Alert.alert("Error", result.error || "Gagal memulai pairing RFID");
+        }
+      } catch (error) {
+        console.error("Error starting RFID pairing:", error);
+        Alert.alert("Error", "Gagal memulai pairing RFID");
+      }
+    } else {
+      // Legacy system
+      onDevicePairing();
+    }
   };
 
   const handleManualMethod = () => {
@@ -57,17 +111,70 @@ export default function RFIDPairingMethodModal({
     }
   };
 
-  const handleClose = () => {
+  const handleDeviceNumberSubmit = async () => {
+    if (!manualRfidNumber.trim()) {
+      Alert.alert("Error", "Nomor RFID tidak boleh kosong");
+      return;
+    }
+
+    setManualLoading(true);
+    try {
+      // Use detected RFID code from device
+      await onManualPairing(detectedRfidCode, manualRfidNumber.trim());
+      
+      // Complete the pairing session
+      if (useModeBasedSystem) {
+        await completePairingSession();
+      }
+      
+      // Reset states
+      setDetectedRfidCode("");
+      setManualRfidNumber("");
+      setWaitingForNumber(false);
+    } catch (error) {
+      console.error("Device RFID pairing error:", error);
+      Alert.alert("Error", "Gagal menyimpan data RFID");
+    } finally {
+      setManualLoading(false);
+    }
+  };
+
+  const handleClose = async () => {
+    try {
+      // Clean up any active pairing session
+      if (useModeBasedSystem && (devicePairingActive || waitingForNumber)) {
+        await completePairingSession();
+      }
+    } catch (error) {
+      console.error("Error cleaning up pairing session:", error);
+    }
+    
+    // Reset all states
     setShowManualInput(false);
     setManualRfidCode("");
     setManualRfidNumber("");
+    setDevicePairingActive(false);
+    setDetectedRfidCode("");
+    setWaitingForNumber(false);
     onClose();
   };
 
-  const handleBackToMethods = () => {
+  const handleBackToMethods = async () => {
+    try {
+      // Clean up any active pairing session
+      if (useModeBasedSystem && (devicePairingActive || waitingForNumber)) {
+        await completePairingSession();
+      }
+    } catch (error) {
+      console.error("Error cleaning up pairing session:", error);
+    }
+    
     setShowManualInput(false);
     setManualRfidCode("");
     setManualRfidNumber("");
+    setDevicePairingActive(false);
+    setDetectedRfidCode("");
+    setWaitingForNumber(false);
   };
 
   return (
@@ -79,7 +186,64 @@ export default function RFIDPairingMethodModal({
     >
       <View style={styles.overlay}>
         <View style={styles.modalContainer}>
-          {!showManualInput ? (
+          {devicePairingActive ? (
+            <>
+              <Text style={styles.title}>Menunggu Kartu RFID</Text>
+              <Text style={styles.subtitle}>untuk {userName}</Text>
+              
+              <LoadingSpinner 
+                size="large" 
+                text="Silakan tap kartu RFID pada perangkat..." 
+                style={styles.loadingSpinner}
+              />
+              
+              <Button
+                title="Batal"
+                onPress={handleClose}
+                variant="outline"
+                style={styles.cancelButton}
+              />
+            </>
+          ) : waitingForNumber ? (
+            <>
+              <Text style={styles.title}>Kartu RFID Terdeteksi</Text>
+              <Text style={styles.subtitle}>untuk {userName}</Text>
+              
+              <View style={styles.detectedCardContainer}>
+                <Text style={styles.detectedCardLabel}>Kode RFID:</Text>
+                <Text style={styles.detectedCardCode}>{detectedRfidCode}</Text>
+              </View>
+              
+              <View style={styles.inputContainer}>
+                <Text style={styles.inputLabel}>Nomor RFID</Text>
+                <TextInput
+                  style={styles.textInput}
+                  placeholder="Masukkan nomor RFID (contoh: 001)"
+                  value={manualRfidNumber}
+                  onChangeText={setManualRfidNumber}
+                  keyboardType="numeric"
+                  editable={!manualLoading}
+                  autoFocus
+                />
+              </View>
+              
+              <View style={styles.manualButtonsContainer}>
+                <Button
+                  title="Kembali"
+                  onPress={handleBackToMethods}
+                  variant="outline"
+                  style={styles.backButton}
+                  disabled={manualLoading}
+                />
+                <Button
+                  title={manualLoading ? "Menyimpan..." : "Simpan"}
+                  onPress={handleDeviceNumberSubmit}
+                  style={styles.saveButton}
+                  disabled={manualLoading || !manualRfidNumber.trim()}
+                />
+              </View>
+            </>
+          ) : !showManualInput ? (
             <>
               <Text style={styles.title}>Pilih Metode Pairing RFID</Text>
               <Text style={styles.subtitle}>untuk {userName}</Text>
@@ -274,5 +438,25 @@ const styles = StyleSheet.create({
   },
   saveButton: {
     flex: 1,
+  },
+  detectedCardContainer: {
+    backgroundColor: Colors.primary + "10",
+    borderRadius: 8,
+    padding: 16,
+    marginBottom: 20,
+    borderWidth: 1,
+    borderColor: Colors.primary + "30",
+  },
+  detectedCardLabel: {
+    fontSize: 14,
+    fontWeight: "500",
+    color: Colors.primary,
+    marginBottom: 4,
+  },
+  detectedCardCode: {
+    fontSize: 16,
+    fontWeight: "600",
+    color: Colors.primary,
+    fontFamily: "monospace",
   },
 });

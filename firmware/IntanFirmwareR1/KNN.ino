@@ -163,6 +163,36 @@ float calculateIMT(float weight, float height) {
   return round(imt * 100) / 100.0;
 }
 
+float calculateBMI(float weight, float height) {
+  if (height <= 0 || weight <= 0) return 0.0;
+  float bmi = weight / ((height / 100) * (height / 100));
+  if (isinf(bmi) || isnan(bmi)) return 0.0;
+  // Limit to 2 decimal places
+  return round(bmi * 100) / 100.0;
+}
+
+String getBMICategory(float bmi) {
+  if (bmi < 18.5)
+    return "gizi kurang";
+  else if (bmi >= 18.5 && bmi < 24.9)
+    return "gizi baik";
+  else if (bmi >= 25 && bmi < 29.9)
+    return "overweight";
+  else
+    return "obesitas";
+}
+
+String getNutritionStatusFromSession() {
+  return getNutritionStatus(
+    currentMeasurement.weight,
+    currentMeasurement.height,
+    currentSessionUser.ageYears,
+    currentSessionUser.ageMonths,
+    currentSessionUser.gender,
+    currentSession.eatingPattern,
+    currentSession.childResponse);
+}
+
 Gender encodeGender(String gender) {
   if (gender.equals("male") || gender.equals("laki-laki") || gender.equals("Laki-laki") || gender.equals("L")) {
     return LAKI_LAKI;
@@ -184,28 +214,4 @@ ResponAnak encodeChildResponse(String response) {
   return SEDANG;
 }
 
-StatusGizi encodeNutritionStatus(String status) {
-  if (status.equals("gizi buruk") || status.equals("Gizi Buruk")) return GIZI_BURUK;
-  if (status.equals("gizi kurang") || status.equals("Gizi Kurang")) return GIZI_KURANG;
-  if (status.equals("gizi baik") || status.equals("Gizi Baik")) return GIZI_BAIK;
-  if (status.equals("overweight") || status.equals("Overweight")) return OVERWEIGHT;
-  if (status.equals("obesitas") || status.equals("Obesitas")) return OBESITAS;
-  return GIZI_BAIK;
-}
-
-String nutritionStatusToString(StatusGizi status) {
-  switch (status) {
-    case GIZI_BURUK:
-      return "gizi buruk";
-    case GIZI_KURANG:
-      return "gizi kurang";
-    case GIZI_BAIK:
-      return "gizi baik";
-    case OVERWEIGHT:
-      return "overweight";
-    case OBESITAS:
-      return "obesitas";
-    default:
-      return "gizi baik";
-  }
-}
+// Unused functions removed for cleaner code

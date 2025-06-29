@@ -1,31 +1,21 @@
 #include "Header.h"
 
 void setup() {
+  // Initialize serial communication
   serialCommunication.begin(&Serial, 115200);
   Serial.println("=== INTAN System Starting ===");
+
+  // Load device preferences
   devicePreferences.begin("intan", false);
   SENSOR_HEIGHT_POLE = devicePreferences.getFloat("heightPole", 199.0);
-  devicePreferences.end();
+  displayMenurences.end();
   Serial.printf("Height pole: %.1f cm\n", SENSOR_HEIGHT_POLE);
+
+  // Initialize display
   displayMenu.flipVertical(true);
   displayMenu.initialize(true, initializeDisplayCallback, true);
-  initializeSensorModules();
-  initKNNMethods();
-  wifiTask.initialize(wifiTaskHandler);
-  systemBuzzer.toggleInit(100, 5);
-  Serial.println("=== System Ready ===");
-}
 
-void loop() {
-  updateSensorData();
-  handleUserInput();
-  updateDisplayInterface();
-  serialCommunication.receive(handleUSBCommand);
-  DigitalIn::updateAll(&confirmButton, &navigateButton, DigitalIn::stop());
-  DigitalOut::updateAll(&systemBuzzer, DigitalOut::stop());
-}
-
-void initializeSensorModules() {
+  // Initialize sensor modules
   sensorManager.addModule("rfid", new RFID_Mfrc522(5, 27));
   sensorManager.addModule("ultrasonic", new UltrasonicSens(32, 33, 200, 1, 1, 1000, 10));
   sensorManager.addModule("loadcell", new HX711Sens(26, 25, HX711Sens::KG, 0.25, 5, 2000, 0.25));
@@ -38,9 +28,20 @@ void initializeSensorModules() {
     loadCell->tare();
     Serial.printf("Load cell calibration: %.2f\n", calibrationFactor);
   });
+
+  // Initialize KNN
+  initKNNMethods();
+
+  // Initialize WiFi task
+  wifiTask.initialize(wifiTaskHandler);
+
+  // System ready signal
+  systemBuzzer.toggleInit(100, 5);
+  Serial.println("=== System Ready ===");
 }
 
-void updateSensorData() {
+void loop() {
+  // Update sensor data
   if (testingModeEnabled) {
     currentRfidTag = testRfidTag;
     currentWeight = testWeight;
@@ -68,9 +69,8 @@ void updateSensorData() {
       }
     });
   }
-}
 
-void handleUserInput() {
+  // Handle user input
   MenuCursor cursor{
     .up = false,
     .down = navigateButton.isPressed(),
@@ -79,69 +79,41 @@ void handleUserInput() {
     .show = true
   };
   displayMenu.onListen(&cursor, displayMenuCallback);
-}
 
-void updateDisplayInterface() {
+  // Update display interface
   if (needDisplayUpdate) {
     currentSystemState = pendingSystemState;
     needDisplayUpdate = false;
     Serial.print("| State updated to: ");
     Serial.println(currentSystemState);
   }
-  switch (currentSystemState) {
-    case SYSTEM_IDLE:
-      displayIdleScreen();
-      break;
-    case SYSTEM_RFID_PAIRING:
-      displayRFIDPairingScreen();
-      break;
-    case SYSTEM_WEIGHING_SESSION:
-      displayWeighingScreen();
-      break;
-    case SYSTEM_QUICK_MEASURE:
-      displayQuickMeasureScreen();
-      break;
-    case SYSTEM_ADMIN_MODE:
-      displayAdminScreen();
-      break;
-    default:
-      displayStartupScreen();
-      break;
+  displayMenuCallback();
+
+  // Mode-based system is now fully handled in WiFi.ino wifiTaskHandler()
+
+  // Handle serial commands
+  serialCommunication.receive(handleUSBCommand);
+
+  // Update digital inputs/outputs
+  DigitalIn::updateAll(&confirmButton, &navigateButton, DigitalIn::stop());
+  DigitalOut::updateAll(&systemBuzzer, DigitalOut::stop());
+
+  // Handle calibration requests
+  if (requestCalibration) {
+    auto loadCell = sensorManager.getModule<HX711Sens>("loadcell");
+    if (loadCell) {
+      loadCell->tare();
+      Serial.println("Load cell tared for calibration");
+    }
+    requestCalibration = false;
   }
-}
 
-float calculateBMI(float weight, float height) {
-  if (height <= 0 || weight <= 0) return 0.0;
-  float bmi = weight / ((height / 100) * (height / 100));
-  if (isinf(bmi) || isnan(bmi)) return 0.0;
-  // Limit to 2 decimal places
-  return round(bmi * 100) / 100.0;
-}
-
-String getBMICategory(float bmi) {
-  if (bmi < 18.5)
-    return "gizi kurang";
-  else if (bmi >= 18.5 && bmi < 24.9)
-    return "gizi baik";
-  else if (bmi >= 25 && bmi < 29.9)
-    return "overweight";
-  else
-    return "obesitas";
-}
-
-String getNutritionStatusFromSession() {
-  return getNutritionStatus(
-    currentMeasurement.weight,
-    currentMeasurement.height,
-    currentSessionUser.ageYears,
-    currentSessionUser.ageMonths,
-    currentSessionUser.gender,
-    currentSession.eatingPattern,
-    currentSession.childResponse);
-}
-
-void changeSystemState(SystemState newState) {
-  pendingSystemState = newState;
-  needDisplayUpdate = true;
-  Serial.printf("State change requested to: %d\n", newState);
+  if (requestTare) {
+    auto loadCell = sensorManager.getModule<HX711Sens>("loadcell");
+    if (loadCell) {
+      loadCell->tare();
+      Serial.println("Load cell tared successfully");
+    }
+    requestTare = false;
+  }
 }
