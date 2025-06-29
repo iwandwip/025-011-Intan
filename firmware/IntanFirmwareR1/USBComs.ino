@@ -37,12 +37,6 @@ void handleUSBCommand(const String &receivedData) {
     forceFirebaseSync = true;
     Serial.println("Forced Firebase sync");
   }
-  if (commandHeader == "CALIBRATE") {
-    performLoadCellCalibration();
-  }
-  if (commandHeader == "TARE") {
-    performLoadCellTare();
-  }
   if (commandHeader == "STATUS") {
     Serial.printf("System State: %d\n", currentSystemState);
     Serial.printf("Weighing State: %d\n", currentWeighingState);
@@ -52,7 +46,6 @@ void handleUSBCommand(const String &receivedData) {
     Serial.printf("System Initialized: %s\n", systemInitialized ? "Yes" : "No");
     Serial.printf("Active Session: %s\n", currentSession.isActive ? "Yes" : "No");
     Serial.printf("Testing Mode: %s\n", testingModeEnabled ? "ON" : "OFF");
-    Serial.printf("RTDB Mode: %s\n", currentRTDBMode.c_str());
     if (testingModeEnabled) {
       Serial.printf("Test RFID: %s\n", testRfidTag.c_str());
       Serial.printf("Test Weight: %.2f Kg\n", testWeight);
@@ -199,30 +192,5 @@ void handleUSBCommand(const String &receivedData) {
     Serial.println("  KNN#<ageYears, ageMonths, gender, weight, height, eatingPattern, childResponse>");
     Serial.println("  Example: KNN#6, 6, LAKI_LAKI, 16.3, 106.5, CUKUP, PASIF");
     Serial.println("================================");
-  }
-}
-
-////////// Load Cell Functions //////////
-
-void performLoadCellCalibration() {
-  auto loadCell = sensorManager.getModule<HX711Sens>("loadcell");
-  if (loadCell) {
-    Serial.println("Starting load cell calibration...");
-    Serial.println("Place known weight on scale and send CALIBRATE#[weight] command");
-    // Basic calibration logic - can be enhanced
-    loadCell->tare();
-    Serial.println("Load cell tared for calibration");
-  } else {
-    Serial.println("Load cell not found");
-  }
-}
-
-void performLoadCellTare() {
-  auto loadCell = sensorManager.getModule<HX711Sens>("loadcell");
-  if (loadCell) {
-    loadCell->tare();
-    Serial.println("Load cell tared successfully");
-  } else {
-    Serial.println("Load cell not found");
   }
 }

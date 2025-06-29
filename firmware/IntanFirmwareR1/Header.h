@@ -5,8 +5,7 @@
 #define ENABLE_MODULE_TIMER_TASK
 #define ENABLE_MODULE_SERIAL_HARD
 #define ENABLE_MODULE_DATETIME_NTP_V2
-#define ENABLE_MODULE_FIREBASE_APPLICATION_V3
-#define ENABLE_MODULE_FIREBASE_RTDB_V3
+#define ENABLE_MODULE_FIREBASE_FIRESTORE_V2
 #define ENABLE_MODULE_SH1106_MENU
 #define ENABLE_MODULE_KNN
 
@@ -34,13 +33,8 @@ const int DAYLIGHT_OFFSET_SEC = 0;
 DateTimeNTPV2 dateTimeManager(NTP_SERVER, GMT_OFFSET_SEC, DAYLIGHT_OFFSET_SEC);
 TaskHandle wifiTask;
 Preferences devicePreferences;
-// FirebaseV3Firestore firestoreClient;  // Removed - using only RTDB
+FirebaseV2Firestore firestoreClient;
 WiFiClientSecure wifiSecureClient;
-
-////////// Mode-based RTDB Integration - Firebase V3 Shared App //////////
-FirebaseV3Application *firebaseApp;
-FirebaseV3RTDB rtdbClient;
-WiFiClient rtdbWifiClient;
 
 ////////// Sensor Management //////////
 SensorModule sensorManager;
@@ -80,11 +74,6 @@ enum SystemState {
   SYSTEM_QUICK_MEASURE,
   SYSTEM_ADMIN_MODE,
 };
-
-////////// Mode-based System Variables //////////
-String currentRTDBMode = "idle";
-unsigned long lastModeCheck = 0;
-const unsigned long MODE_CHECK_INTERVAL = 1000;
 
 enum WeighingState {
   WEIGHING_IDLE,
@@ -192,34 +181,10 @@ enum StatusGizi {
 };
 
 ////////// Function Declarations //////////
-
-// KNN.ino functions
 float calculateIMT(float weight, float height);
-float calculateBMI(float weight, float height);
-String getBMICategory(float bmi);
-String getNutritionStatusFromSession();
-
-// WiFi.ino Firebase functions (external interfaces only)
-void sendModeBasedWeighingResultsWiFi(float weight, float height, String nutritionStatus);
-void sendModeBasedRFIDDetectionWiFi(String rfidCode);
-
-// USBComs.ino functions
-void performLoadCellCalibration();
-void performLoadCellTare();
 
 ////////// Sensor Configuration & Data //////////
 float SENSOR_HEIGHT_POLE = 199.0;
 volatile float currentWeight = 0.0;
 volatile float currentHeight = 0.0;
 volatile bool newSensorData = false;
-
-// Calibration request flags
-bool requestCalibration = false;
-bool requestTare = false;
-
-// Inline function for state change
-inline void changeSystemState(SystemState newState) {
-  pendingSystemState = newState;
-  needDisplayUpdate = true;
-  Serial.printf("State change requested to: %d\n", newState);
-}
