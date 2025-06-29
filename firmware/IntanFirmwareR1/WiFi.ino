@@ -154,6 +154,11 @@ void sendModeBasedWeighingResultsWiFi(float weight, float height, String nutriti
   }
   float imt = calculateIMT(weight, height);
   Serial.println("Sending mode-based weighing results...");
+  Serial.println("Weight: " + String(weight, 1) + " kg");
+  Serial.println("Height: " + String(height, 1) + " cm");
+  Serial.println("IMT: " + String(imt, 1));
+  Serial.println("Nutrition Status: " + nutritionStatus);
+  
   // Send results using direct RTDB updates
   rtdbClient.set("weighing_mode/set/pola_makan", currentSession.eatingPattern);
   rtdbClient.set("weighing_mode/set/respon_anak", currentSession.childResponse);
@@ -166,6 +171,10 @@ void sendModeBasedWeighingResultsWiFi(float weight, float height, String nutriti
   rtdbClient.set("weighing_mode/set/status_gizi", nutritionStatus);
 
   Serial.println("Mode-based results sent successfully");
+  Serial.println("All fields sent to Firebase RTDB:");
+  Serial.println("- berat: " + String(weight, 1));
+  Serial.println("- tinggi: " + String(height, 1));
+  Serial.println("- status_gizi: " + nutritionStatus);
 
   // Reset measurement data
   currentMeasurement.weight = 0.0;

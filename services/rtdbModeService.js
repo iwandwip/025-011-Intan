@@ -162,8 +162,24 @@ export const subscribeToWeighingResults = (callback) => {
   const resultsRef = ref(rtdb, 'weighing_mode/set');
   const unsubscribe = onValue(resultsRef, (snapshot) => {
     const results = snapshot.val();
+    console.log('Weighing results received:', results);
+    
     if (results && results.berat && results.tinggi && results.status_gizi) {
+      console.log('All required fields present:', {
+        berat: results.berat,
+        tinggi: results.tinggi,
+        status_gizi: results.status_gizi
+      });
       callback(results);
+    } else {
+      console.log('Missing required fields. Current results:', results);
+      if (results) {
+        console.log('Field check:', {
+          has_berat: !!results.berat,
+          has_tinggi: !!results.tinggi,
+          has_status_gizi: !!results.status_gizi
+        });
+      }
     }
   });
   

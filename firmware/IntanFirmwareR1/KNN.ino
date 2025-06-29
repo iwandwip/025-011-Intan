@@ -184,11 +184,11 @@ String getBMICategory(float bmi) {
 
 String getNutritionStatusFromSession() {
   return getNutritionStatus(
-    currentMeasurement.weight,
-    currentMeasurement.height,
-    currentSessionUser.ageYears,
-    currentSessionUser.ageMonths,
-    currentSessionUser.gender,
+    currentWeight,
+    currentHeight,
+    currentSession.ageYears,
+    currentSession.ageMonths,
+    currentSession.gender,
     currentSession.eatingPattern,
     currentSession.childResponse);
 }
