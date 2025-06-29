@@ -26,7 +26,7 @@ import { removeUserRFID } from "../../services/userService";
 import {
   startRFIDPairing,
   subscribeToRFIDDetection,
-  completeRFIDPairing,
+  completePairingSession,
   resetToIdle,
   subscribeToSystemState,
   isSystemIdle
@@ -271,7 +271,7 @@ export default function UserDetail() {
 
       if (result.success) {
         await loadUserDetails();
-        await completeRFIDPairing();
+        await completePairingSession();
         setRfidNumberModalVisible(false);
         setPendingRfidData(null);
 
