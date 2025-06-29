@@ -22,14 +22,23 @@ void wifiTaskHandler() {
       Serial.println("Failed to initialize NTP Client!");
     }
 
-    // Initialize RTDB for mode-based system (REQUIRED)
-    if (!rtdbClient.begin(rtdbWifiClient, FIREBASE_DATABASE_URL, FIREBASE_API_KEY, FIREBASE_USER_EMAIL, FIREBASE_USER_PASSWORD)) {
-      Serial.println("CRITICAL ERROR: Firebase RTDB initialization failed!");
-      Serial.println("Error: " + rtdbClient.getError());
+    // Initialize Firebase V3 Shared Application
+    firebaseApp = FirebaseV3Application::getInstance();
+    if (!firebaseApp->begin(FIREBASE_API_KEY, FIREBASE_USER_EMAIL, FIREBASE_USER_PASSWORD, FIREBASE_PROJECT_ID)) {
+      Serial.println("CRITICAL ERROR: Firebase V3 Application initialization failed!");
+      Serial.println("System cannot continue without Firebase - HALTING");
+      while (1) { delay(1000); }  // HALT system if Firebase fails
+    }
+    Serial.println("Firebase V3 Application initialization successful");
+
+    // Initialize RTDB with shared application
+    rtdbClient = FirebaseV3RTDB(firebaseApp);
+    if (!rtdbClient.begin(FIREBASE_DATABASE_URL)) {
+      Serial.println("CRITICAL ERROR: Firebase V3 RTDB initialization failed!");
       Serial.println("System cannot continue without RTDB - HALTING");
       while (1) { delay(1000); }  // HALT system if RTDB fails
     }
-    Serial.println("Firebase RTDB initialization successful - Mode-based system active");
+    Serial.println("Firebase V3 RTDB initialization successful - Mode-based system active");
 
     // Initialize RTDB to idle mode
     rtdbClient.set("mode", "idle");
@@ -148,8 +157,8 @@ void wifiTaskHandler() {
 
 // External function implementations that are called from other files
 void sendModeBasedWeighingResultsWiFi(float weight, float height, String nutritionStatus) {
-  if (!rtdbClient.ready()) {
-    Serial.println("RTDB not ready for sending results");
+  if (!firebaseApp || !rtdbClient.ready()) {
+    Serial.println("Firebase V3 not ready for sending results");
     return;
   }
   float imt = calculateIMT(weight, height);
@@ -158,7 +167,7 @@ void sendModeBasedWeighingResultsWiFi(float weight, float height, String nutriti
   Serial.println("Height: " + String(height, 1) + " cm");
   Serial.println("IMT: " + String(imt, 1));
   Serial.println("Nutrition Status: " + nutritionStatus);
-  
+
   // Send results using direct RTDB updates
   rtdbClient.set("weighing_mode/set/pola_makan", currentSession.eatingPattern);
   rtdbClient.set("weighing_mode/set/respon_anak", currentSession.childResponse);
@@ -182,8 +191,8 @@ void sendModeBasedWeighingResultsWiFi(float weight, float height, String nutriti
 }
 
 void sendModeBasedRFIDDetectionWiFi(String rfidCode) {
-  if (!rtdbClient.ready()) {
-    Serial.println("RTDB not ready for RFID detection");
+  if (!firebaseApp || !rtdbClient.ready()) {
+    Serial.println("Firebase V3 not ready for RFID detection");
     return;
   }
   Serial.println("Sending mode-based RFID detection: " + rfidCode);
