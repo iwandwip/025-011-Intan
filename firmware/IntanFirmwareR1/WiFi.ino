@@ -11,59 +11,59 @@ void wifiTaskHandler() {
   wifiTask.setInitCoreID(1);
   wifiTask.createTask(10000, [](void *pvParameter) {
     Serial.println("WiFi Task starting on Core 1...");
-    
+
     // Connect to WiFi
-    displayMenu.connectToWiFi("arin", "ab333333", 30);
+    displayMenu.connectToWiFi("TIMEOSPACE", "1234Saja", 30);
     displayMenu.showCircleLoading("Connecting WiFi", 50);
     wifiSecureClient.setInsecure();
-    
+
     // Initialize NTP
     if (!dateTimeManager.begin()) {
       Serial.println("Failed to initialize NTP Client!");
     }
-    
+
     // Initialize RTDB for mode-based system (REQUIRED)
     if (!rtdbClient.begin(rtdbWifiClient, FIREBASE_DATABASE_URL, FIREBASE_API_KEY, FIREBASE_USER_EMAIL, FIREBASE_USER_PASSWORD)) {
       Serial.println("CRITICAL ERROR: Firebase RTDB initialization failed!");
       Serial.println("Error: " + rtdbClient.getError());
       Serial.println("System cannot continue without RTDB - HALTING");
-      while (1) { delay(1000); } // HALT system if RTDB fails
+      while (1) { delay(1000); }  // HALT system if RTDB fails
     }
     Serial.println("Firebase RTDB initialization successful - Mode-based system active");
-    
+
     // Initialize RTDB to idle mode
     rtdbClient.set("mode", "idle");
     currentRTDBMode = "idle";
-    
+
     // Disable watchdog timers
     disableLoopWDT();
     disableCore0WDT();
     disableCore1WDT();
-    
+
     // Signal system ready
     systemBuzzer.toggleInit(100, 2);
     changeSystemState(SYSTEM_IDLE);
     systemInitialized = true;
-    
+
     // Main WiFi task loop
     for (;;) {
       // Update RTDB
       rtdbClient.loop();
-      
+
       // Update date/time
       static uint32_t lastDateTimeUpdate = 0;
       if (millis() - lastDateTimeUpdate >= 1000 && dateTimeManager.update()) {
         lastDateTimeUpdate = millis();
       }
-      
+
       // Check for RTDB mode changes
       if (rtdbClient.ready()) {
         String newMode = rtdbClient.getString("mode");
-        
+
         if (!newMode.isEmpty() && newMode != currentRTDBMode) {
           Serial.println("RTDB Mode change: " + currentRTDBMode + " -> " + newMode);
           currentRTDBMode = newMode;
-          
+
           // Handle mode change
           if (newMode == "idle") {
             // Switch to idle mode
@@ -71,23 +71,21 @@ void wifiTaskHandler() {
               currentSession.isActive = false;
             }
             changeSystemState(SYSTEM_IDLE);
-          } 
-          else if (newMode == "pairing") {
+          } else if (newMode == "pairing") {
             // Switch to RFID pairing mode
             Serial.println("Mode-based RFID pairing started");
             changeSystemState(SYSTEM_RFID_PAIRING);
-          }
-          else if (newMode == "weighing") {
+          } else if (newMode == "weighing") {
             // Switch to weighing mode
             Serial.println("Mode-based weighing session started");
-            
+
             // Load weighing parameters from RTDB
             String polaMakan = rtdbClient.getString("weighing_mode/get/pola_makan");
             String responAnak = rtdbClient.getString("weighing_mode/get/respon_anak");
             String usiaTh = rtdbClient.getString("weighing_mode/get/usia_th");
             String usiaBl = rtdbClient.getString("weighing_mode/get/usia_bl");
             String gender = rtdbClient.getString("weighing_mode/get/gender");
-            
+
             // Set session data
             currentSession.isActive = true;
             currentSession.sessionType = "weighing";
@@ -97,28 +95,28 @@ void wifiTaskHandler() {
             currentSession.ageYears = usiaTh.toInt();
             currentSession.ageMonths = usiaBl.toInt();
             currentSession.measurementComplete = false;
-            
+
             // Set measurement indices
             if (polaMakan == "Kurang") currentMeasurement.eatingPatternIndex = 0;
             else if (polaMakan == "Cukup") currentMeasurement.eatingPatternIndex = 1;
             else if (polaMakan == "Berlebih") currentMeasurement.eatingPatternIndex = 2;
             else currentMeasurement.eatingPatternIndex = 0;
-            
+
             if (responAnak == "Pasif") currentMeasurement.childResponseIndex = 0;
             else if (responAnak == "Sedang") currentMeasurement.childResponseIndex = 1;
             else if (responAnak == "Aktif") currentMeasurement.childResponseIndex = 2;
             else currentMeasurement.childResponseIndex = 0;
-            
+
             Serial.println("Mode-based weighing data loaded:");
             Serial.println("  Pola Makan: " + polaMakan);
             Serial.println("  Respon Anak: " + responAnak);
             Serial.println("  Usia: " + usiaTh + "th " + usiaBl + "bl");
             Serial.println("  Gender: " + gender);
-            
+
             changeSystemState(SYSTEM_WEIGHING_SESSION);
           }
         }
-        
+
         // Handle RFID detection for mode-based system
         if (!currentRfidTag.isEmpty()) {
           if (currentRTDBMode == "pairing") {
@@ -127,14 +125,12 @@ void wifiTaskHandler() {
             rtdbClient.set("pairing_mode", currentRfidTag);
             systemBuzzer.toggleInit(100, 2);
             currentRfidTag = "";
-          } 
-          else if (currentRTDBMode == "weighing") {
+          } else if (currentRTDBMode == "weighing") {
             // Weighing mode - validate RFID and proceed
             Serial.println("Mode-based weighing RFID validation: " + currentRfidTag);
             systemBuzzer.toggleInit(100, 3);
             currentRfidTag = "";
-          }
-          else if (currentRTDBMode == "idle") {
+          } else if (currentRTDBMode == "idle") {
             // Idle mode - check for admin card
             if (currentRfidTag == "ADMIN_CARD") {
               changeSystemState(SYSTEM_ADMIN_MODE);
@@ -144,26 +140,20 @@ void wifiTaskHandler() {
           }
         }
       }
-      
+
       vTaskDelay(pdMS_TO_TICKS(100));
     }
   });
 }
 
 // External function implementations that are called from other files
-
-
-
 void sendModeBasedWeighingResultsWiFi(float weight, float height, String nutritionStatus) {
   if (!rtdbClient.ready()) {
     Serial.println("RTDB not ready for sending results");
     return;
   }
-  
   float imt = calculateIMT(weight, height);
-  
   Serial.println("Sending mode-based weighing results...");
-  
   // Send results using direct RTDB updates
   rtdbClient.set("weighing_mode/set/pola_makan", currentSession.eatingPattern);
   rtdbClient.set("weighing_mode/set/respon_anak", currentSession.childResponse);
@@ -174,9 +164,9 @@ void sendModeBasedWeighingResultsWiFi(float weight, float height, String nutriti
   rtdbClient.set("weighing_mode/set/tinggi", String(height, 1));
   rtdbClient.set("weighing_mode/set/imt", String(imt, 1));
   rtdbClient.set("weighing_mode/set/status_gizi", nutritionStatus);
-  
+
   Serial.println("Mode-based results sent successfully");
-  
+
   // Reset measurement data
   currentMeasurement.weight = 0.0;
   currentMeasurement.height = 0.0;
@@ -187,10 +177,7 @@ void sendModeBasedRFIDDetectionWiFi(String rfidCode) {
     Serial.println("RTDB not ready for RFID detection");
     return;
   }
-  
   Serial.println("Sending mode-based RFID detection: " + rfidCode);
   rtdbClient.set("pairing_mode", rfidCode);
-  
   // System will return to idle when app completes the pairing
 }
-

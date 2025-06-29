@@ -8,7 +8,7 @@ void setup() {
   // Load device preferences
   devicePreferences.begin("intan", false);
   SENSOR_HEIGHT_POLE = devicePreferences.getFloat("heightPole", 199.0);
-  displayMenurences.end();
+  devicePreferences.end();
   Serial.printf("Height pole: %.1f cm\n", SENSOR_HEIGHT_POLE);
 
   // Initialize display
