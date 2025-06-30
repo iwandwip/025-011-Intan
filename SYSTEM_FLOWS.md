@@ -49,7 +49,7 @@ Data Bridge: RTDB (real-time) → Firestore (permanent storage)
 ```javascript
 {
   // ===== GLOBAL SYSTEM MODE =====
-  "mode": "idle",  // "idle" | "pairing" | "weighing"
+  "mode": "idle",  // "idle" | "pairing" | "weighing" | "tare" | "calibration"
   
   // ===== RFID PAIRING MODE =====
   "pairing_mode": "",  // Empty when idle, RFID code when detected
@@ -76,6 +76,39 @@ Data Bridge: RTDB (real-time) → Firestore (permanent storage)
       "tinggi": "",         // "193" - measured by ESP32
       "imt": "",            // "15.1" - calculated by ESP32
       "status_gizi": ""     // "obesitas" - KNN result by ESP32
+    }
+  },
+  
+  // ===== TARE MODE =====
+  "tare_mode": {
+    // Data FROM Mobile App TO ESP32
+    "get": {
+      "command": ""         // "start" - trigger tare operation
+    },
+    
+    // Data FROM ESP32 TO Mobile App
+    "set": {
+      "status": "",         // "processing" | "completed" | "failed"
+      "message": "",        // Status message for user feedback
+      "timestamp": ""       // When operation completed
+    }
+  },
+  
+  // ===== CALIBRATION MODE =====
+  "calibration_mode": {
+    // Data FROM Mobile App TO ESP32
+    "get": {
+      "command": "",        // "start" - trigger calibration
+      "known_weight": ""    // "5.0" - known weight for calibration (kg)
+    },
+    
+    // Data FROM ESP32 TO Mobile App
+    "set": {
+      "status": "",         // "waiting_weight" | "processing" | "completed" | "failed"
+      "message": "",        // Status message/instructions for user
+      "current_weight": "", // Current sensor reading during calibration
+      "calibration_factor": "", // Final calibration factor if successful
+      "timestamp": ""       // When operation completed
     }
   }
 }
@@ -444,9 +477,400 @@ String calculateKNN(float weight, float height, int ageYears, int ageMonths,
 }
 ```
 
+## Part 3: Load Cell Calibration Flow
+
+### Load Cell Calibration Workflow
+
+```mermaid
+sequenceDiagram
+    participant Admin as Admin App
+    participant RTDB as Realtime DB
+    participant ESP32 as ESP32 Hardware
+    
+    Admin->>RTDB: mode = "calibration"<br/>calibration_mode/get/command = "start"<br/>calibration_mode/get/known_weight = "5.0"
+    RTDB->>ESP32: mode changed to "calibration"
+    ESP32->>RTDB: Read calibration_mode/get/*
+    ESP32->>RTDB: calibration_mode/set/status = "waiting_weight"<br/>calibration_mode/set/message = "Place 5.0kg weight on scale"
+    RTDB->>Admin: Show instructions to user
+    Admin->>Admin: User places known weight
+    ESP32->>ESP32: Detect stable weight reading
+    ESP32->>RTDB: calibration_mode/set/status = "processing"<br/>calibration_mode/set/current_weight = "4.95"
+    ESP32->>ESP32: Calculate calibration factor
+    ESP32->>RTDB: calibration_mode/set/status = "completed"<br/>calibration_mode/set/calibration_factor = "-22.75"
+    RTDB->>Admin: Show calibration complete
+    Admin->>RTDB: Clear calibration_mode data<br/>mode = "idle"
+```
+
+### Calibration Implementation
+
+#### Mobile App (Admin Control)
+```javascript
+// services/rtdbModeService.js - Load Cell Calibration
+export const startLoadCellCalibration = async (knownWeight) => {
+  await set(ref(rtdb, 'mode'), 'calibration');
+  await set(ref(rtdb, 'calibration_mode/get'), {
+    command: 'start',
+    known_weight: knownWeight.toString()
+  });
+  await set(ref(rtdb, 'calibration_mode/set'), {
+    status: '',
+    message: '',
+    current_weight: '',
+    calibration_factor: '',
+    timestamp: ''
+  });
+};
+
+export const subscribeToCalibrationStatus = (callback) => {
+  return onValue(ref(rtdb, 'calibration_mode/set'), (snapshot) => {
+    const status = snapshot.val();
+    if (status && status.status) {
+      callback(status);
+    }
+  });
+};
+
+export const completeCalibrationSession = async () => {
+  await set(ref(rtdb, 'calibration_mode'), {
+    get: { command: '', known_weight: '' },
+    set: { status: '', message: '', current_weight: '', calibration_factor: '', timestamp: '' }
+  });
+  await set(ref(rtdb, 'mode'), 'idle');
+};
+
+// Component usage in admin control panel
+const handleCalibration = async () => {
+  if (!calibrationWeight || parseFloat(calibrationWeight) <= 0) {
+    Alert.alert("Error", "Please enter valid calibration weight");
+    return;
+  }
+
+  setCalibrating(true);
+  
+  try {
+    // Start calibration session
+    await startLoadCellCalibration(parseFloat(calibrationWeight));
+    
+    // Subscribe to calibration status updates
+    const unsubscribe = subscribeToCalibrationStatus((status) => {
+      switch (status.status) {
+        case 'waiting_weight':
+          Alert.alert('Place Weight', status.message);
+          break;
+        case 'processing':
+          Alert.alert('Processing', `Current reading: ${status.current_weight}kg`);
+          break;
+        case 'completed':
+          Alert.alert('Calibration Complete', 
+            `Success! New calibration factor: ${status.calibration_factor}`);
+          completeCalibrationSession();
+          setCalibrating(false);
+          unsubscribe();
+          break;
+        case 'failed':
+          Alert.alert('Calibration Failed', status.message);
+          completeCalibrationSession();
+          setCalibrating(false);
+          unsubscribe();
+          break;
+      }
+    });
+    
+  } catch (error) {
+    Alert.alert('Error', 'Failed to start calibration');
+    setCalibrating(false);
+  }
+};
+```
+
+#### ESP32 Hardware
+```cpp
+void handleCalibrationMode() {
+  // Read calibration parameters
+  String command = Firebase.getString(firebaseData, "calibration_mode/get/command");
+  String knownWeightStr = Firebase.getString(firebaseData, "calibration_mode/get/known_weight");
+  
+  if (command == "start") {
+    float knownWeight = knownWeightStr.toFloat();
+    
+    display.clearDisplay();
+    display.setCursor(0, 0);
+    display.println("=== CALIBRATION ===");
+    display.println("Known weight: " + knownWeightStr + "kg");
+    display.println("");
+    display.println("Step 1: Remove all weight");
+    display.println("Step 2: Place known weight");
+    display.display();
+    
+    // Set status to waiting
+    Firebase.setString(firebaseData, "calibration_mode/set/status", "waiting_weight");
+    Firebase.setString(firebaseData, "calibration_mode/set/message", 
+      "Remove all weight, then place " + knownWeightStr + "kg on scale");
+    
+    delay(3000); // Give user time to read
+    
+    // Wait for stable reading without weight (tare first)
+    loadCell.tare(10);
+    delay(2000);
+    
+    // Now wait for known weight
+    Firebase.setString(firebaseData, "calibration_mode/set/message", 
+      "Now place " + knownWeightStr + "kg weight on scale");
+    
+    display.clearDisplay();
+    display.println("Place " + knownWeightStr + "kg weight");
+    display.println("Waiting for stable reading...");
+    display.display();
+    
+    // Wait for stable weight reading
+    float currentReading = 0;
+    int stableCount = 0;
+    
+    while (stableCount < 10) { // Need 10 consecutive stable readings
+      currentReading = loadCell.get_units(5);
+      Firebase.setString(firebaseData, "calibration_mode/set/current_weight", String(currentReading, 2));
+      
+      display.clearDisplay();
+      display.println("Current: " + String(currentReading, 2) + "kg");
+      display.println("Target: " + knownWeightStr + "kg");
+      display.println("Stabilizing... " + String(stableCount) + "/10");
+      display.display();
+      
+      // Check if reading is close to expected weight
+      if (abs(currentReading - knownWeight) < (knownWeight * 0.1)) { // Within 10%
+        stableCount++;
+      } else {
+        stableCount = 0;
+      }
+      
+      delay(500);
+    }
+    
+    // Start processing
+    Firebase.setString(firebaseData, "calibration_mode/set/status", "processing");
+    Firebase.setString(firebaseData, "calibration_mode/set/message", "Calculating calibration factor...");
+    
+    display.clearDisplay();
+    display.println("Processing...");
+    display.display();
+    
+    // Calculate new calibration factor
+    float rawReading = loadCell.get_value(10); // Get raw ADC value
+    float newCalibrationFactor = rawReading / knownWeight;
+    
+    // Apply new calibration factor
+    loadCell.set_scale(newCalibrationFactor);
+    
+    // Save to preferences
+    preferences.begin("intan", false);
+    preferences.putFloat("calibration", newCalibrationFactor);
+    preferences.end();
+    
+    // Verify calibration
+    delay(1000);
+    float verifyReading = loadCell.get_units(10);
+    
+    if (abs(verifyReading - knownWeight) < (knownWeight * 0.05)) { // Within 5%
+      // Calibration successful
+      Firebase.setString(firebaseData, "calibration_mode/set/status", "completed");
+      Firebase.setString(firebaseData, "calibration_mode/set/message", "Calibration successful!");
+      Firebase.setString(firebaseData, "calibration_mode/set/calibration_factor", String(newCalibrationFactor, 2));
+      Firebase.setString(firebaseData, "calibration_mode/set/timestamp", String(millis()));
+      
+      display.clearDisplay();
+      display.println("=== SUCCESS ===");
+      display.println("Calibration complete!");
+      display.println("Factor: " + String(newCalibrationFactor, 2));
+      display.println("Verified: " + String(verifyReading, 2) + "kg");
+      display.display();
+      
+    } else {
+      // Calibration failed
+      Firebase.setString(firebaseData, "calibration_mode/set/status", "failed");
+      Firebase.setString(firebaseData, "calibration_mode/set/message", 
+        "Calibration failed. Expected: " + knownWeightStr + "kg, Got: " + String(verifyReading, 2) + "kg");
+      
+      display.clearDisplay();
+      display.println("=== FAILED ===");
+      display.println("Expected: " + knownWeightStr + "kg");
+      display.println("Got: " + String(verifyReading, 2) + "kg");
+      display.println("Try again...");
+      display.display();
+    }
+    
+    delay(5000); // Show result for 5 seconds
+  }
+}
+```
+
+## Part 4: Load Cell Tare Flow
+
+### Load Cell Tare Workflow
+
+```mermaid
+sequenceDiagram
+    participant Admin as Admin App
+    participant RTDB as Realtime DB
+    participant ESP32 as ESP32 Hardware
+    
+    Admin->>RTDB: mode = "tare"<br/>tare_mode/get/command = "start"
+    RTDB->>ESP32: mode changed to "tare"
+    ESP32->>RTDB: Read tare_mode/get/command
+    ESP32->>RTDB: tare_mode/set/status = "processing"<br/>tare_mode/set/message = "Removing all weight, please wait..."
+    RTDB->>Admin: Show tare in progress
+    ESP32->>ESP32: Perform tare operation (reset to zero)
+    ESP32->>RTDB: tare_mode/set/status = "completed"<br/>tare_mode/set/message = "Tare completed successfully"
+    RTDB->>Admin: Show tare complete
+    Admin->>RTDB: Clear tare_mode data<br/>mode = "idle"
+```
+
+### Tare Implementation
+
+#### Mobile App (Admin Control)
+```javascript
+// services/rtdbModeService.js - Load Cell Tare
+export const startLoadCellTare = async () => {
+  await set(ref(rtdb, 'mode'), 'tare');
+  await set(ref(rtdb, 'tare_mode/get'), {
+    command: 'start'
+  });
+  await set(ref(rtdb, 'tare_mode/set'), {
+    status: '',
+    message: '',
+    timestamp: ''
+  });
+};
+
+export const subscribeToTareStatus = (callback) => {
+  return onValue(ref(rtdb, 'tare_mode/set'), (snapshot) => {
+    const status = snapshot.val();
+    if (status && status.status) {
+      callback(status);
+    }
+  });
+};
+
+export const completeTareSession = async () => {
+  await set(ref(rtdb, 'tare_mode'), {
+    get: { command: '' },
+    set: { status: '', message: '', timestamp: '' }
+  });
+  await set(ref(rtdb, 'mode'), 'idle');
+};
+
+// Component usage in admin control panel
+const handleTare = async () => {
+  setTaring(true);
+  
+  try {
+    // Start tare session
+    await startLoadCellTare();
+    
+    // Subscribe to tare status updates
+    const unsubscribe = subscribeToTareStatus((status) => {
+      switch (status.status) {
+        case 'processing':
+          Alert.alert('Tare in Progress', status.message);
+          break;
+        case 'completed':
+          Alert.alert('Tare Complete', status.message);
+          completeTareSession();
+          setTaring(false);
+          unsubscribe();
+          break;
+        case 'failed':
+          Alert.alert('Tare Failed', status.message);
+          completeTareSession();
+          setTaring(false);
+          unsubscribe();
+          break;
+      }
+    });
+    
+  } catch (error) {
+    Alert.alert('Error', 'Failed to start tare operation');
+    setTaring(false);
+  }
+};
+```
+
+#### ESP32 Hardware
+```cpp
+void handleTareMode() {
+  // Read tare command
+  String command = Firebase.getString(firebaseData, "tare_mode/get/command");
+  
+  if (command == "start") {
+    display.clearDisplay();
+    display.setCursor(0, 0);
+    display.println("=== TARE MODE ===");
+    display.println("Resetting scale to zero...");
+    display.println("");
+    display.println("Please remove all weight");
+    display.println("from the scale");
+    display.display();
+    
+    // Set status to processing
+    Firebase.setString(firebaseData, "tare_mode/set/status", "processing");
+    Firebase.setString(firebaseData, "tare_mode/set/message", "Removing all weight, please wait...");
+    
+    delay(3000); // Give user time to remove weight
+    
+    try {
+      // Perform tare operation
+      loadCell.tare(20); // Take 20 readings for accuracy
+      
+      // Verify tare was successful
+      delay(1000);
+      float zeroReading = loadCell.get_units(5);
+      
+      if (abs(zeroReading) < 0.1) { // Should be very close to zero
+        // Tare successful
+        Firebase.setString(firebaseData, "tare_mode/set/status", "completed");
+        Firebase.setString(firebaseData, "tare_mode/set/message", "Tare completed successfully");
+        Firebase.setString(firebaseData, "tare_mode/set/timestamp", String(millis()));
+        
+        display.clearDisplay();
+        display.println("=== SUCCESS ===");
+        display.println("Tare completed!");
+        display.println("Scale reset to zero");
+        display.println("Reading: " + String(zeroReading, 3) + "kg");
+        display.display();
+        
+      } else {
+        // Tare failed
+        Firebase.setString(firebaseData, "tare_mode/set/status", "failed");
+        Firebase.setString(firebaseData, "tare_mode/set/message", 
+          "Tare failed. Current reading: " + String(zeroReading, 3) + "kg");
+        
+        display.clearDisplay();
+        display.println("=== FAILED ===");
+        display.println("Tare operation failed");
+        display.println("Current: " + String(zeroReading, 3) + "kg");
+        display.println("Should be ~0.000kg");
+        display.display();
+      }
+      
+    } catch (Exception& e) {
+      // Tare exception
+      Firebase.setString(firebaseData, "tare_mode/set/status", "failed");
+      Firebase.setString(firebaseData, "tare_mode/set/message", "Tare operation failed due to hardware error");
+      
+      display.clearDisplay();
+      display.println("=== ERROR ===");
+      display.println("Hardware error");
+      display.println("during tare operation");
+      display.display();
+    }
+    
+    delay(3000); // Show result for 3 seconds
+  }
+}
+```
+
 ## ESP32 State Management
 
-### Ultra-Simple State Machine
+### Enhanced State Machine with Load Cell Control
 ```cpp
 String currentMode = "idle";
 
@@ -454,13 +878,17 @@ void loop() {
   // Single point of control - listen to mode changes
   currentMode = Firebase.getString(firebaseData, "mode");
   
-  // Mode-based state machine (3 states only!)
+  // Mode-based state machine (5 states now!)
   if (currentMode == "idle") {
     handleIdleMode();
   } else if (currentMode == "pairing") {
     handlePairingMode();  
   } else if (currentMode == "weighing") {
     handleWeighingMode();
+  } else if (currentMode == "tare") {
+    handleTareMode();
+  } else if (currentMode == "calibration") {
+    handleCalibrationMode();
   }
   
   delay(1000); // Responsive 1-second checking
@@ -540,6 +968,14 @@ export const resetToIdle = async () => {
     get: { pola_makan: '', respon_anak: '', usia_th: '', usia_bl: '', gender: '' },
     set: { pola_makan: '', respon_anak: '', usia_th: '', usia_bl: '', gender: '', 
            berat: '', tinggi: '', imt: '', status_gizi: '' }
+  });
+  await set(ref(rtdb, 'tare_mode'), {
+    get: { command: '' },
+    set: { status: '', message: '', timestamp: '' }
+  });
+  await set(ref(rtdb, 'calibration_mode'), {
+    get: { command: '', known_weight: '' },
+    set: { status: '', message: '', current_weight: '', calibration_factor: '', timestamp: '' }
   });
 };
 
@@ -1052,6 +1488,80 @@ void handleError(String errorMessage) {
 3. **Monitoring**: Add logging for hybrid operations
 4. **Documentation**: Update all technical documentation
 
+## Load Cell Control & Maintenance
+
+### Administrative Control Features
+
+The system includes comprehensive load cell control capabilities for administrators:
+
+#### **Tare Operation**
+- **Purpose**: Reset load cell to zero (remove offset)
+- **When to use**: Daily maintenance, after moving device, when readings seem inaccurate
+- **Process**: Simple one-click operation via admin control panel
+- **Duration**: ~10 seconds including verification
+
+#### **Calibration Operation** 
+- **Purpose**: Set accurate weight measurements using known weight
+- **When to use**: Initial setup, after hardware changes, periodic accuracy verification
+- **Process**: Admin inputs known weight, places calibration weight, system auto-calibrates
+- **Duration**: ~60 seconds including stabilization and verification
+
+#### **Admin Control Panel Integration**
+```javascript
+// Complete admin control component integration
+import { 
+  startLoadCellTare, 
+  startLoadCellCalibration,
+  subscribeToTareStatus,
+  subscribeToCalibrationStatus 
+} from '../services/rtdbModeService';
+
+const AdminControlPanel = () => {
+  const [calibrationWeight, setCalibrationWeight] = useState('');
+  const [calibrating, setCalibrating] = useState(false);
+  const [taring, setTaring] = useState(false);
+
+  // Real-time status updates
+  // Real-time feedback to admin
+  // Automatic session cleanup
+  // Error handling and recovery
+};
+```
+
+### Load Cell Maintenance Best Practices
+
+#### **Daily Operations**
+1. **Morning Tare**: Start each day with tare operation
+2. **Accuracy Check**: Test with known weight periodically
+3. **Visual Inspection**: Check for physical damage or debris
+
+#### **Weekly Maintenance**
+1. **Calibration Verification**: Test accuracy with standard weight
+2. **Connection Check**: Verify all wiring connections
+3. **Clean Scale Platform**: Remove dust and debris
+
+#### **Monthly Maintenance**
+1. **Full Calibration**: Complete recalibration procedure
+2. **Data Review**: Check measurement consistency trends
+3. **Hardware Inspection**: Thorough physical examination
+
+### Troubleshooting Common Issues
+
+#### **Inaccurate Readings**
+1. **Solution 1**: Perform tare operation
+2. **Solution 2**: Check for obstructions under scale
+3. **Solution 3**: Full recalibration with known weight
+
+#### **Unstable Readings**
+1. **Solution 1**: Ensure stable platform
+2. **Solution 2**: Check environmental factors (wind, vibration)
+3. **Solution 3**: Verify electrical connections
+
+#### **Calibration Failure**
+1. **Solution 1**: Verify known weight accuracy
+2. **Solution 2**: Ensure proper weight placement
+3. **Solution 3**: Check load cell hardware connections
+
 ## Future Enhancements
 
 ### Planned Improvements
@@ -1060,6 +1570,8 @@ void handleError(String errorMessage) {
 - **Offline Capability**: Local processing with periodic sync
 - **Mobile Notifications**: Push alerts based on RTDB events
 - **Session Timeout**: Automatic cleanup for abandoned sessions
+- **Calibration Scheduling**: Automated reminders for periodic calibration
+- **Load Cell Health Monitoring**: Predictive maintenance alerts
 
 ### Integration Possibilities
 - **IoT Fleet Management**: Central monitoring of multiple devices
@@ -1067,6 +1579,7 @@ void handleError(String errorMessage) {
 - **Edge Computing**: Local data processing with cloud sync
 - **Mobile Analytics**: Usage patterns and system optimization
 - **School Integration**: Multi-school deployment with central management
+- **Maintenance Tracking**: Historical maintenance and calibration logs
 
 ## Conclusion
 

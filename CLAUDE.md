@@ -6,6 +6,8 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 This is a **React Native/Expo application** for child nutrition monitoring ("Penentuan Status Gizi Anak") that integrates with **ESP32 IoT hardware** for automated weight and height measurements. The system uses machine learning algorithms (K-NN and Decision Tree) to determine child nutrition status and features sophisticated real-time hardware coordination between multiple users.
 
+**System Purpose**: The application is designed for educational institutions (particularly early childhood education centers) to monitor and track children's nutritional status through automated measurements, helping teachers and parents identify potential nutrition issues early.
+
 ## Technology Stack
 
 ### Frontend/Mobile App
@@ -19,6 +21,7 @@ This is a **React Native/Expo application** for child nutrition monitoring ("Pen
 ### Backend/Database
 - **Firebase Authentication** for user management
 - **Firestore** for real-time data synchronization
+- **Firebase Realtime Database** for ESP32 mode control and sensor data exchange
 - **Firebase Admin SDK** 13.4.0 for ESP32 integration
 
 ### Hardware/IoT
@@ -29,6 +32,8 @@ This is a **React Native/Expo application** for child nutrition monitoring ("Pen
 - **HX711** load cell for weight measurement
 - **HC-SR04** ultrasonic sensor for height measurement
 - **SH1106** OLED display 128x64 for UI
+- **Buzzer** for audio feedback
+- **Push Buttons** for manual control
 
 ## Common Development Commands
 
@@ -93,7 +98,8 @@ npm run reinstall  # Clean and reinstall dependencies
    - `authService.js` - Authentication operations
    - `dataService.js` - User data CRUD operations
    - `weighingService.js` - Measurement session management
-   - `globalSessionService.js` - Hardware coordination
+   - `globalSessionService.js` - Hardware coordination via Firestore
+   - `rtdbModeService.js` - ESP32 mode control via Realtime Database
    - `adminService.js` - Admin user management operations
    - `userService.js` - User profile operations
    - `pdfService.js` - PDF report generation
@@ -103,25 +109,35 @@ npm run reinstall  # Clean and reinstall dependencies
 ### Firebase Structure
 
 ```
+Firestore:
 ├── users/                      # User profiles and settings
 │   └── [userId]/
 │       ├── profile data (name, birth date, etc.)
-│       └── measurements history
-├── userData/                   # Detailed measurement data
-│   └── [userId]/
-│       └── data/
+│       └── data/               # Subcollection for measurements
 │           └── [dataId]/       # Individual measurements
 │               ├── weight, height, timestamp
-│               ├── nutritionStatus, bmi
+│               ├── nutritionStatus, imt
 │               └── session metadata
-├── globalSessions/             # Hardware coordination
-│   └── timbangDevice/
-│       ├── isInUse, currentUserId
-│       ├── sessionData, sessionType
-│       ├── measurementData
-│       └── timeout management
 └── systemStatus/               # System monitoring
     └── hardware/               # ESP32 status and coordination
+        ├── isInUse, currentUserId
+        ├── sessionType (WEIGHING, RFID)
+        ├── measurementData
+        └── timeout management
+
+Realtime Database:
+├── mode                        # Current ESP32 mode (idle, pairing, weighing)
+├── pairing_mode                # RFID code during pairing
+└── weighing_mode/              # Weighing session data
+    ├── get/                    # Input data from app
+    │   ├── pola_makan
+    │   ├── respon_anak
+    │   ├── usia_th, usia_bl
+    │   └── gender
+    └── set/                    # Output data from ESP32
+        ├── berat, tinggi
+        ├── imt
+        └── status_gizi
 ```
 
 ### ESP32 Firmware Architecture
@@ -136,15 +152,33 @@ sensorManager.addModule("loadcell", new HX711Sens(26, 25, HX711Sens::KG, 0.25, 5
 
 #### ML Algorithm Implementation
 - **K-NN Algorithm**: Implemented in `KNN.ino` for nutrition status classification
-- **Decision Tree**: Alternative classification method
-- **Input Features**: Weight, Height, Age, Gender, Eating Pattern, Child Response
-- **Output Categories**: 5 nutrition status levels (Gizi Buruk, Kurang, Baik, Overweight, Obesitas)
+  - Uses 5 nearest neighbors with weighted voting
+  - Euclidean distance metric with normalization
+  - Training data: 120+ real child nutrition cases
+- **Decision Tree**: Alternative classification method (planned)
+- **Input Features**: 
+  - Age (years and months)
+  - Gender (Laki-laki/Perempuan)
+  - Weight (kg) and Height (cm)
+  - BMI/IMT (calculated)
+  - Eating Pattern (Kurang/Cukup/Berlebih)
+  - Child Response (Pasif/Sedang/Aktif)
+- **Output Categories**: 5 nutrition status levels
+  - Gizi Buruk (Severe malnutrition)
+  - Gizi Kurang (Malnutrition)
+  - Gizi Baik (Good nutrition)
+  - Overweight
+  - Obesitas (Obesity)
 
 ## Important Implementation Details
 
 1. **Authentication Flow** - Uses Firebase Auth with email/password. AuthContext provides user state across the app. Admin detection via hardcoded `admin@gmail.com` or role property.
 
-2. **Hardware Integration** - ESP32 communicates with Firebase directly using WiFi and service account authentication. The app coordinates sessions through globalSessions collection for real-time hardware sharing.
+2. **Hardware Integration** - ESP32 communicates with Firebase using dual-database approach:
+   - **Firestore** (via `systemStatus/hardware`) for session coordination and user data
+   - **Realtime Database** for mode control and sensor data exchange
+   - WiFi connection with service account authentication
+   - Real-time bidirectional communication between app and hardware
 
 3. **Data Persistence** - All user measurements are stored in Firestore under userData collection with user-specific subcollections. Uses AsyncStorage for local app state.
 
@@ -185,7 +219,8 @@ sensorManager.addModule("loadcell", new HX711Sens(26, 25, HX711Sens::KG, 0.25, 5
 - **Auth Domain**: `intan-680a4.firebaseapp.com`
 - **Admin Email**: `admin@gmail.com` (hardcoded admin detection)
 - **Service Account**: Required for ESP32 hardware integration
-- **Real-time Database**: Not used, only Firestore
+- **Real-time Database**: Used for ESP32 mode control and sensor data exchange
+- **Database URL**: `https://intan-680a4-default-rtdb.firebaseio.com/`
 - **Persistence**: AsyncStorage for React Native
 
 ### Deployment
@@ -205,12 +240,14 @@ sensorManager.addModule("loadcell", new HX711Sens(26, 25, HX711Sens::KG, 0.25, 5
 - **No Web Support**: While technically runnable on web, designed for mobile only
 
 ### Documentation Files
-- **GLOBAL_SESSION.md**: Detailed global session management documentation
-- **SESSION_MANAGEMENT.md**: Session coordination patterns
-- **WEIGHING_SESSION.md**: Weighing workflow documentation
-- **PAIRING_SESSION.md**: RFID pairing process
-- **BUILD_APK.md**: Build and deployment instructions
-- **ESP32_FIRESTORE_TROUBLESHOOTING.md**: Firebase integration troubleshooting
+- **01_GLOBAL_SESSION.md**: Detailed global session management documentation
+- **02_PAIRING_SESSION.md**: RFID pairing process and workflow
+- **03_WEIGHING_SESSION.md**: Weighing workflow documentation
+- **04_SESSION_MANAGEMENT.md**: Session coordination patterns
+- **05_ESP32_SIMULATOR.md**: Hardware simulator for testing
+- **06_BUILD_APK.md**: Build and deployment instructions
+- **07_ESP32_FIRESTORE_TROUBLESHOOTING.md**: Firebase integration troubleshooting
+- **08_DATA_COLLECTION_AND_RFID_PAIRING.md**: Data collection workflows
 
 ## Key Features & Capabilities
 
@@ -231,11 +268,15 @@ sensorManager.addModule("loadcell", new HX711Sens(26, 25, HX711Sens::KG, 0.25, 5
 
 ### Data Flow Architecture
 1. **User Authentication** → Firebase Auth
-2. **Session Coordination** → Global Session Management (Firestore)
-3. **Hardware Communication** → ESP32 ↔ Firebase (real-time)
-4. **Data Processing** → ML algorithms on ESP32 firmware
-5. **Data Storage** → Firestore collections with user-specific subcollections
-6. **Real-time Updates** → Firebase onSnapshot listeners
+2. **Session Coordination** → Global Session Management (Firestore `systemStatus/hardware`)
+3. **Mode Control** → RTDB mode service controls ESP32 states
+4. **Hardware Communication** → ESP32 ↔ Firebase (dual-database approach)
+   - Mode commands via RTDB
+   - Session data via Firestore
+   - Sensor readings via RTDB
+5. **Data Processing** → K-NN algorithm on ESP32 firmware
+6. **Data Storage** → Firestore collections with user-specific subcollections
+7. **Real-time Updates** → Firebase onSnapshot listeners (Firestore) and onValue (RTDB)
 
 ## Notable Implementation Patterns
 
@@ -248,5 +289,51 @@ All Firebase operations abstracted into service modules with consistent patterns
 ### Component-Based UI Architecture
 Comprehensive component system with ErrorBoundary, AuthGuard, modal system, and custom SVG illustrations.
 
+### Dual-Database Architecture
+Unique approach using both Firestore and Realtime Database:
+- **Firestore**: Primary database for user data, profiles, and session coordination
+- **Realtime Database**: Secondary database specifically for ESP32 communication (mode control, sensor data)
+This separation ensures optimal performance for both app data management and hardware real-time requirements.
+
 ### Expo Router Integration
 Modern file-based routing with grouped routes for different user roles: (auth), (tabs), (admin).
+
+## Additional Technical Details
+
+### State Management Approach
+- **Context API**: Primary state management with AuthContext for user authentication
+- **Local State**: Component-level state for UI interactions
+- **Firebase Listeners**: Real-time state synchronization with database
+- **AsyncStorage**: Persistent local storage for app preferences
+
+### Error Handling Strategy
+- **ErrorBoundary**: Catches JavaScript errors in component tree
+- **Try-Catch Blocks**: Comprehensive error handling in all service methods
+- **User Feedback**: Alert dialogs and toast messages for user-facing errors
+- **Console Logging**: Detailed error logging for debugging
+
+### Performance Optimizations
+- **Lazy Loading**: Screens loaded on-demand via Expo Router
+- **Memoization**: Used in complex components to prevent unnecessary re-renders
+- **Batch Operations**: Firebase batch writes for multiple data updates
+- **Debouncing**: Applied to search and filter operations
+
+### Testing & Development Tools
+- **ESP32 Simulator**: JavaScript-based hardware simulator for development
+- **Firebase Cleanup Script**: Utility to clean test data from database
+- **Data Generator**: Creates realistic test measurement data
+- **Console Debugger**: Custom debug levels for different modules
+
+### Mobile-Specific Considerations
+- **Keyboard Handling**: KeyboardAvoidingView for input forms
+- **Safe Area**: Proper handling of notches and system UI
+- **Orientation Lock**: Portrait-only for consistent UI
+- **Platform-Specific Code**: Minimal, mostly for keyboard behavior
+
+### Future Enhancement Opportunities
+- **Offline Support**: Implement Firebase offline persistence
+- **Multi-Language**: Add internationalization support
+- **Analytics**: Integrate Firebase Analytics for usage tracking
+- **Push Notifications**: Firebase Cloud Messaging for alerts
+- **Data Export**: CSV export functionality for measurements
+- **Multiple Devices**: Support for multiple ESP32 devices per location

@@ -35,6 +35,15 @@ export default function AdminLayout() {
         }}
       />
       <Tabs.Screen
+        name="control"
+        options={{
+          title: "Control",
+          tabBarIcon: ({ color, size }) => (
+            <Text style={{ color, fontSize: size }}>⚙️</Text>
+          ),
+        }}
+      />
+      <Tabs.Screen
         name="user-detail"
         options={{
           href: null,
