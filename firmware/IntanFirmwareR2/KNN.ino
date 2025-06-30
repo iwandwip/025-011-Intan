@@ -1,5 +1,3 @@
-KNN nutritionKNN(5, 8, 120);
-
 void initKNNMethods() {
   Serial.println("Initializing KNN Nutrition Status Model...");
   nutritionKNN.setDistanceMetric(EUCLIDEAN);
@@ -159,7 +157,6 @@ float calculateIMT(float weight, float height) {
   if (height <= 0) return 0.0;
   float heightInMeters = height / 100.0;
   float imt = weight / (heightInMeters * heightInMeters);
-  // Limit to 2 decimal places
   return round(imt * 100) / 100.0;
 }
 

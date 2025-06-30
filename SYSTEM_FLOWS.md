@@ -88,9 +88,7 @@ Data Bridge: RTDB (real-time) → Firestore (permanent storage)
     
     // Data FROM ESP32 TO Mobile App
     "set": {
-      "status": "",         // "processing" | "completed" | "failed"
-      "message": "",        // Status message for user feedback
-      "timestamp": ""       // When operation completed
+      "status": ""          // "processing" | "completed" | "failed"
     }
   },
   
@@ -104,11 +102,7 @@ Data Bridge: RTDB (real-time) → Firestore (permanent storage)
     
     // Data FROM ESP32 TO Mobile App
     "set": {
-      "status": "",         // "waiting_weight" | "processing" | "completed" | "failed"
-      "message": "",        // Status message/instructions for user
-      "current_weight": "", // Current sensor reading during calibration
-      "calibration_factor": "", // Final calibration factor if successful
-      "timestamp": ""       // When operation completed
+      "status": ""          // "waiting_weight" | "processing" | "completed" | "failed"
     }
   }
 }
@@ -513,18 +507,14 @@ export const startLoadCellCalibration = async (knownWeight) => {
     known_weight: knownWeight.toString()
   });
   await set(ref(rtdb, 'calibration_mode/set'), {
-    status: '',
-    message: '',
-    current_weight: '',
-    calibration_factor: '',
-    timestamp: ''
+    status: ''
   });
 };
 
 export const subscribeToCalibrationStatus = (callback) => {
-  return onValue(ref(rtdb, 'calibration_mode/set'), (snapshot) => {
+  return onValue(ref(rtdb, 'calibration_mode/set/status'), (snapshot) => {
     const status = snapshot.val();
-    if (status && status.status) {
+    if (status) {
       callback(status);
     }
   });
@@ -533,7 +523,7 @@ export const subscribeToCalibrationStatus = (callback) => {
 export const completeCalibrationSession = async () => {
   await set(ref(rtdb, 'calibration_mode'), {
     get: { command: '', known_weight: '' },
-    set: { status: '', message: '', current_weight: '', calibration_factor: '', timestamp: '' }
+    set: { status: '' }
   });
   await set(ref(rtdb, 'mode'), 'idle');
 };
@@ -553,22 +543,21 @@ const handleCalibration = async () => {
     
     // Subscribe to calibration status updates
     const unsubscribe = subscribeToCalibrationStatus((status) => {
-      switch (status.status) {
+      switch (status) {
         case 'waiting_weight':
-          Alert.alert('Place Weight', status.message);
+          Alert.alert('Place Weight', `Please place ${calibrationWeight}kg weight on the scale`);
           break;
         case 'processing':
-          Alert.alert('Processing', `Current reading: ${status.current_weight}kg`);
+          Alert.alert('Processing', 'Calibrating load cell, please wait...');
           break;
         case 'completed':
-          Alert.alert('Calibration Complete', 
-            `Success! New calibration factor: ${status.calibration_factor}`);
+          Alert.alert('Calibration Complete', 'Load cell calibration successful!');
           completeCalibrationSession();
           setCalibrating(false);
           unsubscribe();
           break;
         case 'failed':
-          Alert.alert('Calibration Failed', status.message);
+          Alert.alert('Calibration Failed', 'Calibration process failed. Please try again.');
           completeCalibrationSession();
           setCalibrating(false);
           unsubscribe();
@@ -735,16 +724,14 @@ export const startLoadCellTare = async () => {
     command: 'start'
   });
   await set(ref(rtdb, 'tare_mode/set'), {
-    status: '',
-    message: '',
-    timestamp: ''
+    status: ''
   });
 };
 
 export const subscribeToTareStatus = (callback) => {
-  return onValue(ref(rtdb, 'tare_mode/set'), (snapshot) => {
+  return onValue(ref(rtdb, 'tare_mode/set/status'), (snapshot) => {
     const status = snapshot.val();
-    if (status && status.status) {
+    if (status) {
       callback(status);
     }
   });
@@ -753,7 +740,7 @@ export const subscribeToTareStatus = (callback) => {
 export const completeTareSession = async () => {
   await set(ref(rtdb, 'tare_mode'), {
     get: { command: '' },
-    set: { status: '', message: '', timestamp: '' }
+    set: { status: '' }
   });
   await set(ref(rtdb, 'mode'), 'idle');
 };
@@ -768,18 +755,18 @@ const handleTare = async () => {
     
     // Subscribe to tare status updates
     const unsubscribe = subscribeToTareStatus((status) => {
-      switch (status.status) {
+      switch (status) {
         case 'processing':
-          Alert.alert('Tare in Progress', status.message);
+          Alert.alert('Tare in Progress', 'Resetting load cell to zero...');
           break;
         case 'completed':
-          Alert.alert('Tare Complete', status.message);
+          Alert.alert('Tare Complete', 'Load cell has been reset to zero successfully!');
           completeTareSession();
           setTaring(false);
           unsubscribe();
           break;
         case 'failed':
-          Alert.alert('Tare Failed', status.message);
+          Alert.alert('Tare Failed', 'Tare operation failed. Please try again.');
           completeTareSession();
           setTaring(false);
           unsubscribe();
@@ -971,11 +958,11 @@ export const resetToIdle = async () => {
   });
   await set(ref(rtdb, 'tare_mode'), {
     get: { command: '' },
-    set: { status: '', message: '', timestamp: '' }
+    set: { status: '' }
   });
   await set(ref(rtdb, 'calibration_mode'), {
     get: { command: '', known_weight: '' },
-    set: { status: '', message: '', current_weight: '', calibration_factor: '', timestamp: '' }
+    set: { status: '' }
   });
 };
 

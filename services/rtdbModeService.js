@@ -251,6 +251,103 @@ export const getCurrentSystemState = async () => {
 };
 
 // ======================
+// LOAD CELL TARE
+// ======================
+export const startLoadCellTare = async () => {
+  try {
+    await set(ref(rtdb, 'mode'), 'tare');
+    await set(ref(rtdb, 'tare_mode/get'), {
+      command: 'start'
+    });
+    await set(ref(rtdb, 'tare_mode/set'), {
+      status: ''
+    });
+    return { success: true };
+  } catch (error) {
+    console.error('Error starting tare:', error);
+    return { success: false, error: error.message };
+  }
+};
+
+export const subscribeToTareStatus = (callback) => {
+  if (!rtdb) {
+    console.error('RTDB not initialized');
+    return () => {};
+  }
+  
+  const tareRef = ref(rtdb, 'tare_mode/set/status');
+  return onValue(tareRef, (snapshot) => {
+    const status = snapshot.val();
+    if (status) {
+      callback(status);
+    }
+  });
+};
+
+export const completeTareSession = async () => {
+  try {
+    await set(ref(rtdb, 'tare_mode'), {
+      get: { command: '' },
+      set: { status: '' }
+    });
+    await set(ref(rtdb, 'mode'), 'idle');
+    return { success: true };
+  } catch (error) {
+    console.error('Error completing tare session:', error);
+    return { success: false, error: error.message };
+  }
+};
+
+// ======================
+// LOAD CELL CALIBRATION
+// ======================
+export const startLoadCellCalibration = async (knownWeight) => {
+  try {
+    await set(ref(rtdb, 'mode'), 'calibration');
+    await set(ref(rtdb, 'calibration_mode/get'), {
+      command: 'start',
+      known_weight: knownWeight.toString()
+    });
+    await set(ref(rtdb, 'calibration_mode/set'), {
+      status: ''
+    });
+    return { success: true };
+  } catch (error) {
+    console.error('Error starting calibration:', error);
+    return { success: false, error: error.message };
+  }
+};
+
+export const subscribeToCalibrationStatus = (callback) => {
+  if (!rtdb) {
+    console.error('RTDB not initialized');
+    return () => {};
+  }
+  
+  const calibrationRef = ref(rtdb, 'calibration_mode/set/status');
+  return onValue(calibrationRef, (snapshot) => {
+    const status = snapshot.val();
+    if (status) {
+      callback(status);
+    }
+  });
+};
+
+export const completeCalibrationSession = async () => {
+  try {
+    await set(ref(rtdb, 'calibration_mode'), {
+      get: { command: '', known_weight: '' },
+      set: { status: '' }
+    });
+    await set(ref(rtdb, 'mode'), 'idle');
+    return { success: true };
+  } catch (error) {
+    console.error('Error completing calibration session:', error);
+    return { success: false, error: error.message };
+  }
+};
+
+// ======================
 // SYSTEM MONITORING
 // ======================
 export const subscribeToSystemState = (callback) => {

@@ -37,6 +37,7 @@ FirebaseV3RTDB* firebase = nullptr;
 FirebaseV3Firestore* firestore = nullptr;
 FirebaseV3Messaging* messaging = nullptr;
 WiFiClientSecure client;
+KNN nutritionKNN(5, 8, 120);
 
 ////////// Sensor //////////
 SensorModule sensor;

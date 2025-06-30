@@ -11,6 +11,15 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 import Button from "../../components/ui/Button";
 import LoadingSpinner from "../../components/ui/LoadingSpinner";
 import { Colors } from "../../constants/Colors";
+import {
+  startLoadCellTare,
+  startLoadCellCalibration,
+  subscribeToTareStatus,
+  subscribeToCalibrationStatus,
+  completeTareSession,
+  completeCalibrationSession,
+  isSystemIdle
+} from "../../services/rtdbModeService";
 
 export default function ControlScreen() {
   const insets = useSafeAreaInsets();
@@ -24,34 +33,112 @@ export default function ControlScreen() {
       return;
     }
 
-    setCalibrating(true);
+    // Check if system is idle
     try {
-      // TODO: Implement loadcell calibration with weight
+      const systemIdle = await isSystemIdle();
+      if (!systemIdle) {
+        Alert.alert("System Busy", "Hardware sedang digunakan. Silakan coba lagi nanti.");
+        return;
+      }
+    } catch (error) {
+      Alert.alert("Error", "Gagal memeriksa status sistem");
+      return;
+    }
+
+    setCalibrating(true);
+    
+    try {
       const weight = parseFloat(calibrationWeight);
-      Alert.alert(
-        "Kalibrasi Load Cell",
-        `Fitur kalibrasi load cell akan segera tersedia.\n\nInstruksi:\n1. Letakkan beban ${weight} kg pada load cell\n2. Pastikan beban terdistribusi merata\n3. Proses kalibrasi akan dimulai`,
-        [{ text: "OK" }]
-      );
+      
+      // Start calibration session
+      const result = await startLoadCellCalibration(weight);
+      if (!result.success) {
+        Alert.alert("Error", result.error || "Gagal memulai kalibrasi");
+        setCalibrating(false);
+        return;
+      }
+      
+      // Subscribe to calibration status updates
+      const unsubscribe = subscribeToCalibrationStatus((status) => {
+        console.log('Calibration status:', status);
+        
+        switch (status) {
+          case 'waiting_weight':
+            Alert.alert('Place Weight', `Silakan letakkan beban ${weight} kg pada load cell`);
+            break;
+          case 'processing':
+            Alert.alert('Processing', 'Sedang mengkalibrasi load cell, harap tunggu...');
+            break;
+          case 'completed':
+            Alert.alert('Calibration Complete', 'Kalibrasi load cell berhasil!');
+            completeCalibrationSession();
+            setCalibrating(false);
+            unsubscribe();
+            break;
+          case 'failed':
+            Alert.alert('Calibration Failed', 'Proses kalibrasi gagal. Silakan coba lagi.');
+            completeCalibrationSession();
+            setCalibrating(false);
+            unsubscribe();
+            break;
+        }
+      });
+      
     } catch (error) {
       Alert.alert("Error", "Gagal melakukan kalibrasi load cell");
-    } finally {
       setCalibrating(false);
     }
   };
 
   const handleTare = async () => {
-    setTaring(true);
+    // Check if system is idle
     try {
-      // TODO: Implement loadcell tare
-      Alert.alert(
-        "Tare Load Cell",
-        "Fitur tare load cell akan segera tersedia. Load cell akan di-reset ke nol.",
-        [{ text: "OK" }]
-      );
+      const systemIdle = await isSystemIdle();
+      if (!systemIdle) {
+        Alert.alert("System Busy", "Hardware sedang digunakan. Silakan coba lagi nanti.");
+        return;
+      }
+    } catch (error) {
+      Alert.alert("Error", "Gagal memeriksa status sistem");
+      return;
+    }
+
+    setTaring(true);
+    
+    try {
+      // Start tare session
+      const result = await startLoadCellTare();
+      if (!result.success) {
+        Alert.alert("Error", result.error || "Gagal memulai tare");
+        setTaring(false);
+        return;
+      }
+      
+      // Subscribe to tare status updates
+      const unsubscribe = subscribeToTareStatus((status) => {
+        console.log('Tare status:', status);
+        
+        switch (status) {
+          case 'processing':
+            Alert.alert('Tare in Progress', 'Sedang mereset load cell ke nol...');
+            break;
+          case 'completed':
+            Alert.alert('Tare Complete', 'Load cell berhasil di-reset ke nol!');
+            completeTareSession();
+            setTaring(false);
+            unsubscribe();
+            break;
+          case 'failed':
+            Alert.alert('Tare Failed', 'Operasi tare gagal. Silakan coba lagi.');
+            completeTareSession();
+            setTaring(false);
+            unsubscribe();
+            break;
+        }
+      });
+      
     } catch (error) {
       Alert.alert("Error", "Gagal melakukan tare load cell");
-    } finally {
       setTaring(false);
     }
   };

@@ -13,7 +13,7 @@ void usbCommunicationCallback(const String& dataRecv) {
   if (dataHeader == "LOG_SENSOR") debug.isLogLevelEnabled(LOG_SENSOR) ? debug.disableLogLevel(LOG_SENSOR) : debug.enableLogLevel(LOG_SENSOR);
   if (dataHeader == "LOG_COMS") debug.isLogLevelEnabled(LOG_COMS) ? debug.disableLogLevel(LOG_COMS) : debug.enableLogLevel(LOG_COMS);
 
-  if (dataHeader == "CAL") performLoadCellCalibration();
+  if (dataHeader == "CAL") performLoadCellCalibration(2000);
   if (dataHeader == "TARE") performLoadCellTare();
 
   // Firebase RTDB
@@ -96,19 +96,20 @@ void usbCommunicationCallback(const String& dataRecv) {
   }
 }
 
-void performLoadCellCalibration() {
+float performLoadCellCalibration(float knownWeight) {
   auto loadCell = sensor.getModule<HX711Sens>("loadcell");
   Serial.println("KALIBRASI LEPAS SEMUA OBJEK DARI TIMBANGAN");
   loadCell->setScaleDelay(5000);
-  Serial.println("KALIBRASI LETAKKAN OBJEK 296 G DI TIMBANGAN");
+  Serial.println("KALIBRASI LETAKKAN OBJEK " + String(knownWeight) + " G DI TIMBANGAN");
   loadCell->tareDelay(5000);
   float units = loadCell->getUnits(10);
-  float calibrationFactor = loadCell->getCalibrateFactor(units, 296);
+  float calibrationFactor = loadCell->getCalibrateFactor(units, knownWeight);  // 296
   Serial.println("Calibration factor: " + String(calibrationFactor));
   loadCell->setScale(calibrationFactor);
   Serial.println("KALIBRASI BERHASIL");
   delay(5000);
   loadCell->tare();
+  return calibrationFactor;
 }
 
 void performLoadCellTare() {
