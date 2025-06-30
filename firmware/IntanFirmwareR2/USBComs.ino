@@ -7,7 +7,7 @@ void usbCommunicationCallback(const String& dataRecv) {
   debug.continuePrint("dataRecv", dataRecv, LOG_COMS);
   debug.endPrint(LOG_COMS, true);
 
-  if (dataHeader == "RST") ESP.restart();
+  if (dataHeader == "R" || dataHeader == "RST") ESP.restart();
 
   if (dataHeader == "LOG_INFO") debug.isLogLevelEnabled(LOG_INFO) ? debug.disableLogLevel(LOG_INFO) : debug.enableLogLevel(LOG_INFO);
   if (dataHeader == "LOG_SENSOR") debug.isLogLevelEnabled(LOG_SENSOR) ? debug.disableLogLevel(LOG_SENSOR) : debug.enableLogLevel(LOG_SENSOR);

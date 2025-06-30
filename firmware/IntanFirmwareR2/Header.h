@@ -56,6 +56,7 @@ DigitalIn buttonOk(-1);
 
 ////////// Output Module //////////
 DigitalOut buzzer(LED_BUILTIN);  // LED_BUILTIN
+SH1106Menu menu(0x3C, 21, 22);
 
 ////////// Global Utility Variable //////////
 bool firebaseEnable = false;

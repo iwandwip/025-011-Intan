@@ -49,7 +49,7 @@ Data Bridge: RTDB (real-time) → Firestore (permanent storage)
 ```javascript
 {
   // ===== GLOBAL SYSTEM MODE =====
-  "mode": "idle",  // "idle" | "pairing" | "weighing" | "tare" | "calibration"
+  "mode": "idle",  // "idle" | "pairing" | "weighing" | "tare" | "calibration" | "ultrasonic_calibration"
   
   // ===== RFID PAIRING MODE =====
   "pairing_mode": "",  // Empty when idle, RFID code when detected
@@ -103,6 +103,20 @@ Data Bridge: RTDB (real-time) → Firestore (permanent storage)
     // Data FROM ESP32 TO Mobile App
     "set": {
       "status": ""          // "waiting_weight" | "processing" | "completed" | "failed"
+    }
+  },
+  
+  // ===== ULTRASONIC CALIBRATION MODE =====
+  "ultrasonic_calibration_mode": {
+    // Data FROM Mobile App TO ESP32
+    "get": {
+      "command": "",        // "start" - trigger ultrasonic calibration
+      "pole_height": ""     // "200" - pole height for calibration (cm)
+    },
+    
+    // Data FROM ESP32 TO Mobile App
+    "set": {
+      "status": ""          // "processing" | "completed" | "failed"
     }
   }
 }
@@ -855,6 +869,174 @@ void handleTareMode() {
 }
 ```
 
+## Part 5: Ultrasonic Calibration Flow
+
+### Ultrasonic Calibration Workflow
+
+```mermaid
+sequenceDiagram
+    participant Admin as Admin App
+    participant RTDB as Realtime DB
+    participant ESP32 as ESP32 Hardware
+    
+    Admin->>RTDB: mode = "ultrasonic_calibration"<br/>ultrasonic_calibration_mode/get/command = "start"<br/>ultrasonic_calibration_mode/get/pole_height = "200"
+    RTDB->>ESP32: mode changed to "ultrasonic_calibration"
+    ESP32->>RTDB: Read ultrasonic_calibration_mode/get/*
+    ESP32->>RTDB: ultrasonic_calibration_mode/set/status = "processing"
+    RTDB->>Admin: Show calibration in progress
+    ESP32->>ESP32: Configure ultrasonic sensor with pole height
+    ESP32->>RTDB: ultrasonic_calibration_mode/set/status = "completed"
+    RTDB->>Admin: Show calibration complete
+    Admin->>RTDB: Clear ultrasonic_calibration_mode data<br/>mode = "idle"
+```
+
+### Ultrasonic Calibration Implementation
+
+#### Mobile App (Admin Control)
+```javascript
+// services/rtdbModeService.js - Ultrasonic Calibration
+export const startUltrasonicCalibration = async (poleHeight) => {
+  await set(ref(rtdb, 'mode'), 'ultrasonic_calibration');
+  await set(ref(rtdb, 'ultrasonic_calibration_mode/get'), {
+    command: 'start',
+    pole_height: poleHeight.toString()
+  });
+  await set(ref(rtdb, 'ultrasonic_calibration_mode/set'), {
+    status: ''
+  });
+};
+
+export const subscribeToUltrasonicCalibrationStatus = (callback) => {
+  return onValue(ref(rtdb, 'ultrasonic_calibration_mode/set/status'), (snapshot) => {
+    const status = snapshot.val();
+    if (status) {
+      callback(status);
+    }
+  });
+};
+
+export const completeUltrasonicCalibrationSession = async () => {
+  await set(ref(rtdb, 'ultrasonic_calibration_mode'), {
+    get: { command: '', pole_height: '' },
+    set: { status: '' }
+  });
+  await set(ref(rtdb, 'mode'), 'idle');
+};
+
+// Component usage in admin control panel
+const handleUltrasonicCalibration = async () => {
+  if (!poleHeight || parseFloat(poleHeight) <= 0) {
+    Alert.alert("Error", "Please enter valid pole height");
+    return;
+  }
+
+  setUltrasonicCalibrating(true);
+  
+  try {
+    // Start ultrasonic calibration session
+    await startUltrasonicCalibration(parseFloat(poleHeight));
+    
+    // Subscribe to calibration status updates
+    const unsubscribe = subscribeToUltrasonicCalibrationStatus((status) => {
+      switch (status) {
+        case 'processing':
+          Alert.alert('Processing', 'Mengatur tinggi tiang ultrasonic...');
+          break;
+        case 'completed':
+          Alert.alert('Setup Complete', 'Tinggi tiang berhasil diatur!');
+          completeUltrasonicCalibrationSession();
+          setUltrasonicCalibrating(false);
+          unsubscribe();
+          break;
+        case 'failed':
+          Alert.alert('Setup Failed', 'Pengaturan tinggi tiang gagal. Silakan coba lagi.');
+          completeUltrasonicCalibrationSession();
+          setUltrasonicCalibrating(false);
+          unsubscribe();
+          break;
+      }
+    });
+    
+  } catch (error) {
+    Alert.alert('Error', 'Failed to start ultrasonic calibration');
+    setUltrasonicCalibrating(false);
+  }
+};
+```
+
+#### ESP32 Hardware
+```cpp
+void handleUltrasonicCalibrationMode() {
+  // Read calibration parameters
+  String command = Firebase.getString(firebaseData, "ultrasonic_calibration_mode/get/command");
+  String poleHeightStr = Firebase.getString(firebaseData, "ultrasonic_calibration_mode/get/pole_height");
+  
+  if (command == "start") {
+    float poleHeight = poleHeightStr.toFloat();
+    
+    display.clearDisplay();
+    display.setCursor(0, 0);
+    display.println("=== ULTRASONIC SETUP ===");
+    display.println("Pole height: " + poleHeightStr + " cm");
+    display.println("");
+    display.println("Configuring sensor...");
+    display.display();
+    
+    // Set status to processing
+    Firebase.setString(firebaseData, "ultrasonic_calibration_mode/set/status", "processing");
+    
+    try {
+      // Configure ultrasonic sensor with pole height
+      // This sets the reference point for height measurement
+      ultrasonicSensor.setPoleHeight(poleHeight);
+      
+      // Save pole height to preferences
+      preferences.begin("intan", false);
+      preferences.putFloat("pole_height", poleHeight);
+      preferences.end();
+      
+      // Test sensor reading
+      delay(1000);
+      float testReading = ultrasonicSensor.getDistance();
+      
+      if (testReading > 0 && testReading < poleHeight) {
+        // Configuration successful
+        Firebase.setString(firebaseData, "ultrasonic_calibration_mode/set/status", "completed");
+        
+        display.clearDisplay();
+        display.println("=== SUCCESS ===");
+        display.println("Pole height set!");
+        display.println("Height: " + poleHeightStr + " cm");
+        display.println("Test reading: " + String(testReading, 1) + " cm");
+        display.display();
+        
+      } else {
+        // Configuration failed
+        Firebase.setString(firebaseData, "ultrasonic_calibration_mode/set/status", "failed");
+        
+        display.clearDisplay();
+        display.println("=== FAILED ===");
+        display.println("Invalid sensor reading");
+        display.println("Check sensor connection");
+        display.display();
+      }
+      
+    } catch (Exception& e) {
+      // Configuration exception
+      Firebase.setString(firebaseData, "ultrasonic_calibration_mode/set/status", "failed");
+      
+      display.clearDisplay();
+      display.println("=== ERROR ===");
+      display.println("Hardware error");
+      display.println("during configuration");
+      display.display();
+    }
+    
+    delay(3000); // Show result for 3 seconds
+  }
+}
+```
+
 ## ESP32 State Management
 
 ### Enhanced State Machine with Load Cell Control
@@ -865,7 +1047,7 @@ void loop() {
   // Single point of control - listen to mode changes
   currentMode = Firebase.getString(firebaseData, "mode");
   
-  // Mode-based state machine (5 states now!)
+  // Mode-based state machine (6 states now!)
   if (currentMode == "idle") {
     handleIdleMode();
   } else if (currentMode == "pairing") {
@@ -876,6 +1058,8 @@ void loop() {
     handleTareMode();
   } else if (currentMode == "calibration") {
     handleCalibrationMode();
+  } else if (currentMode == "ultrasonic_calibration") {
+    handleUltrasonicCalibrationMode();
   }
   
   delay(1000); // Responsive 1-second checking

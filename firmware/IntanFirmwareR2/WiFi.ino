@@ -52,7 +52,7 @@ void wifiTask(void* pvParameter) {
 
     static uint32_t dateTimeNTPTimer;
     if (millis() - dateTimeNTPTimer >= 1000 && dateTime.update()) {
-      // Serial.println(dateTime.getDateTimeString());
+      Serial.println(dateTime.getDateTimeString());
       dateTimeNTPTimer = millis();
     }
 
@@ -65,6 +65,9 @@ void wifiTask(void* pvParameter) {
       } else if (mode == "pairing") {
         if (!rfid.isEmpty()) {
           firebase->set("/pairing_mode", rfid);
+          Serial.print("| rfid: ");
+          Serial.print(rfid);
+          Serial.println();
           rfid = "";
         }
       } else if (mode == "weighing") {
@@ -74,13 +77,21 @@ void wifiTask(void* pvParameter) {
         if (command == "start") {
           performLoadCellTare();
           firebase->set("/tare_mode/set/status", "completed");
+          Serial.print("| command: ");
+          Serial.print(command);
+          Serial.println();
         }
       } else if (mode == "calibration") {
         String command = firebase->getString("/calibration_mode/get/command");
         float known_weight = firebase->getString("/calibration_mode/get/known_weight").toFloat();
-        if (command == "start") {
+        if (command == "start" && known_weight != 0.0f) {
           performLoadCellCalibration(known_weight / 1000.f);
           firebase->set("/calibration_mode/set/status", "completed");
+          Serial.print("| command: ");
+          Serial.print(command);
+          Serial.print("| known_weight: ");
+          Serial.print(known_weight);
+          Serial.println();
         }
       }
       firebaseRTDBTimer = millis();

@@ -348,6 +348,55 @@ export const completeCalibrationSession = async () => {
 };
 
 // ======================
+// ULTRASONIC CALIBRATION
+// ======================
+export const startUltrasonicCalibration = async (poleHeight) => {
+  try {
+    await set(ref(rtdb, 'mode'), 'ultrasonic_calibration');
+    await set(ref(rtdb, 'ultrasonic_calibration_mode/get'), {
+      command: 'start',
+      pole_height: poleHeight.toString()
+    });
+    await set(ref(rtdb, 'ultrasonic_calibration_mode/set'), {
+      status: ''
+    });
+    return { success: true };
+  } catch (error) {
+    console.error('Error starting ultrasonic calibration:', error);
+    return { success: false, error: error.message };
+  }
+};
+
+export const subscribeToUltrasonicCalibrationStatus = (callback) => {
+  if (!rtdb) {
+    console.error('RTDB not initialized');
+    return () => {};
+  }
+  
+  const ultrasonicRef = ref(rtdb, 'ultrasonic_calibration_mode/set/status');
+  return onValue(ultrasonicRef, (snapshot) => {
+    const status = snapshot.val();
+    if (status) {
+      callback(status);
+    }
+  });
+};
+
+export const completeUltrasonicCalibrationSession = async () => {
+  try {
+    await set(ref(rtdb, 'ultrasonic_calibration_mode'), {
+      get: { command: '', pole_height: '' },
+      set: { status: '' }
+    });
+    await set(ref(rtdb, 'mode'), 'idle');
+    return { success: true };
+  } catch (error) {
+    console.error('Error completing ultrasonic calibration session:', error);
+    return { success: false, error: error.message };
+  }
+};
+
+// ======================
 // SYSTEM MONITORING
 // ======================
 export const subscribeToSystemState = (callback) => {
