@@ -12,8 +12,8 @@ void setup() {
   task.setInitCoreID(1);
   task.createTask(10000, wifiTask);
 
-  menu.flipVertical(true);
-  menu.initialize(true, initializeDisplayCallback, true);
+  // menu.flipVertical(true);
+  // menu.initialize(true, initializeDisplayCallback, true);
 
   // sensor.addModule("rfid", new RFID_Mfrc522(5, 27));
   // sensor.addModule("ultrasonic", new UltrasonicSens(32, 33, 200, 1, 1, 1000, 10));
@@ -64,14 +64,14 @@ void loop() {
   // debug.continuePrint("height", height, LOG_SENSOR);
   // debug.endPrint(LOG_SENSOR, true);
 
-  MenuCursor cursor{
-    .up = false,
-    .down = navigateButton.isPressed(),
-    .select = confirmButton.isReleased(),
-    .back = false,
-    .show = true
-  };
-  menu.onListen(&cursor, menuCallback);
+  // MenuCursor cursor{
+  //   .up = false,
+  //   .down = buttonDown.isPressed(),
+  //   .select = buttonOk.isReleased(),
+  //   .back = false,
+  //   .show = true
+  // };
+  // menu.onListen(&cursor, menuCallback);
 
   usbSerial.receiveString(usbCommunicationCallback);
 

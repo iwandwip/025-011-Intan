@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import {
   View,
   Text,
@@ -7,6 +7,7 @@ import {
   Alert,
   TextInput,
 } from "react-native";
+import AsyncStorage from "@react-native-async-storage/async-storage";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import Button from "../../components/ui/Button";
 import LoadingSpinner from "../../components/ui/LoadingSpinner";
@@ -24,13 +25,57 @@ import {
   isSystemIdle
 } from "../../services/rtdbModeService";
 
+const STORAGE_KEYS = {
+  LAST_CALIBRATION_WEIGHT: 'lastCalibrationWeight',
+  LAST_POLE_HEIGHT: 'lastPoleHeight',
+};
+
 export default function ControlScreen() {
   const insets = useSafeAreaInsets();
+
+  // Load last used values on component mount
+  useEffect(() => {
+    loadLastValues();
+  }, []);
+
+  const loadLastValues = async () => {
+    try {
+      const [lastWeight, lastHeight] = await Promise.all([
+        AsyncStorage.getItem(STORAGE_KEYS.LAST_CALIBRATION_WEIGHT),
+        AsyncStorage.getItem(STORAGE_KEYS.LAST_POLE_HEIGHT),
+      ]);
+      
+      if (lastWeight) setLastCalibrationWeight(lastWeight);
+      if (lastHeight) setLastPoleHeight(lastHeight);
+    } catch (error) {
+      console.error('Error loading last values:', error);
+    }
+  };
+
+  const saveCalibrationWeight = async (weight) => {
+    try {
+      await AsyncStorage.setItem(STORAGE_KEYS.LAST_CALIBRATION_WEIGHT, weight.toString());
+      setLastCalibrationWeight(weight.toString());
+    } catch (error) {
+      console.error('Error saving calibration weight:', error);
+    }
+  };
+
+  const savePoleHeight = async (height) => {
+    try {
+      await AsyncStorage.setItem(STORAGE_KEYS.LAST_POLE_HEIGHT, height.toString());
+      setLastPoleHeight(height.toString());
+    } catch (error) {
+      console.error('Error saving pole height:', error);
+    }
+  };
   const [calibrating, setCalibrating] = useState(false);
   const [taring, setTaring] = useState(false);
   const [ultrasonicCalibrating, setUltrasonicCalibrating] = useState(false);
   const [calibrationWeight, setCalibrationWeight] = useState("");
   const [poleHeight, setPoleHeight] = useState("");
+  const [lastCalibrationWeight, setLastCalibrationWeight] = useState(null);
+  const [lastPoleHeight, setLastPoleHeight] = useState(null);
 
   const handleCalibration = async () => {
     if (!calibrationWeight || parseFloat(calibrationWeight) <= 0) {
@@ -76,6 +121,7 @@ export default function ControlScreen() {
             break;
           case 'completed':
             Alert.alert('Calibration Complete', 'Kalibrasi load cell berhasil!');
+            saveCalibrationWeight(weight);
             completeCalibrationSession();
             setCalibrating(false);
             unsubscribe();
@@ -192,6 +238,7 @@ export default function ControlScreen() {
             break;
           case 'completed':
             Alert.alert('Calibration Complete', `Tinggi tiang berhasil diatur ke ${height} cm!`);
+            savePoleHeight(height);
             completeUltrasonicCalibrationSession();
             setUltrasonicCalibrating(false);
             unsubscribe();
@@ -253,6 +300,11 @@ export default function ControlScreen() {
               <Text style={styles.inputHelper}>
                 Masukkan berat beban standar yang akan digunakan untuk kalibrasi
               </Text>
+              {lastCalibrationWeight && (
+                <Text style={styles.lastValueText}>
+                  Kalibrasi terakhir: {lastCalibrationWeight} kg
+                </Text>
+              )}
             </View>
             
             <Button
@@ -309,6 +361,11 @@ export default function ControlScreen() {
               <Text style={styles.inputHelper}>
                 Masukkan tinggi tiang dari lantai ke sensor dalam centimeter
               </Text>
+              {lastPoleHeight && (
+                <Text style={styles.lastValueText}>
+                  Pengaturan terakhir: {lastPoleHeight} cm
+                </Text>
+              )}
             </View>
             
             <Button
@@ -504,5 +561,12 @@ const styles = StyleSheet.create({
     fontSize: 12,
     color: Colors.gray500,
     lineHeight: 16,
+  },
+  lastValueText: {
+    fontSize: 12,
+    color: Colors.primary,
+    fontWeight: '500',
+    marginTop: 4,
+    fontStyle: 'italic',
   },
 });

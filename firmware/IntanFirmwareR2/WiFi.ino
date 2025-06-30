@@ -97,7 +97,7 @@ void wifiTask(void* pvParameter) {
         String command = firebase->getString("/ultrasonic_calibration_mode/get/command");
         float pole_height = firebase->getString("/ultrasonic_calibration_mode/get/pole_height").toFloat();
         if (command == "start" && pole_height != 0.0f) {
-          irebase->set("/ultrasonic_calibration_mode/set/status", "completed");
+          firebase->set("/ultrasonic_calibration_mode/set/status", "completed");
           Serial.print("| command: ");
           Serial.print(command);
           Serial.print("| pole_height: ");
