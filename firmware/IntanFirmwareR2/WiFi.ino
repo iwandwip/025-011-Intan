@@ -52,7 +52,7 @@ void wifiTask(void* pvParameter) {
 
     static uint32_t dateTimeNTPTimer;
     if (millis() - dateTimeNTPTimer >= 1000 && dateTime.update()) {
-      Serial.println(dateTime.getDateTimeString());
+      // Serial.println(dateTime.getDateTimeString());
       dateTimeNTPTimer = millis();
     }
 
@@ -91,6 +91,17 @@ void wifiTask(void* pvParameter) {
           Serial.print(command);
           Serial.print("| known_weight: ");
           Serial.print(known_weight);
+          Serial.println();
+        }
+      } else if (mode == "ultrasonic_calibration") {
+        String command = firebase->getString("/ultrasonic_calibration_mode/get/command");
+        float pole_height = firebase->getString("/ultrasonic_calibration_mode/get/pole_height").toFloat();
+        if (command == "start" && pole_height != 0.0f) {
+          irebase->set("/ultrasonic_calibration_mode/set/status", "completed");
+          Serial.print("| command: ");
+          Serial.print(command);
+          Serial.print("| pole_height: ");
+          Serial.print(pole_height);
           Serial.println();
         }
       }

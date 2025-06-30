@@ -14,10 +14,13 @@ import { Colors } from "../../constants/Colors";
 import {
   startLoadCellTare,
   startLoadCellCalibration,
+  startUltrasonicCalibration,
   subscribeToTareStatus,
   subscribeToCalibrationStatus,
+  subscribeToUltrasonicCalibrationStatus,
   completeTareSession,
   completeCalibrationSession,
+  completeUltrasonicCalibrationSession,
   isSystemIdle
 } from "../../services/rtdbModeService";
 
@@ -25,7 +28,9 @@ export default function ControlScreen() {
   const insets = useSafeAreaInsets();
   const [calibrating, setCalibrating] = useState(false);
   const [taring, setTaring] = useState(false);
+  const [ultrasonicCalibrating, setUltrasonicCalibrating] = useState(false);
   const [calibrationWeight, setCalibrationWeight] = useState("");
+  const [poleHeight, setPoleHeight] = useState("");
 
   const handleCalibration = async () => {
     if (!calibrationWeight || parseFloat(calibrationWeight) <= 0) {
@@ -143,6 +148,69 @@ export default function ControlScreen() {
     }
   };
 
+  const handleUltrasonicCalibration = async () => {
+    if (!poleHeight || parseFloat(poleHeight) <= 0) {
+      Alert.alert("Error", "Silakan masukkan tinggi tiang yang valid (lebih dari 0 cm)");
+      return;
+    }
+
+    // Check if system is idle
+    try {
+      const systemIdle = await isSystemIdle();
+      if (!systemIdle) {
+        Alert.alert("System Busy", "Hardware sedang digunakan. Silakan coba lagi nanti.");
+        return;
+      }
+    } catch (error) {
+      Alert.alert("Error", "Gagal memeriksa status sistem");
+      return;
+    }
+
+    setUltrasonicCalibrating(true);
+    
+    try {
+      const height = parseFloat(poleHeight);
+      
+      // Start ultrasonic calibration session
+      const result = await startUltrasonicCalibration(height);
+      if (!result.success) {
+        Alert.alert("Error", result.error || "Gagal memulai kalibrasi ultrasonic");
+        setUltrasonicCalibrating(false);
+        return;
+      }
+      
+      // Subscribe to ultrasonic calibration status updates
+      const unsubscribe = subscribeToUltrasonicCalibrationStatus((status) => {
+        console.log('Ultrasonic calibration status:', status);
+        
+        switch (status) {
+          case 'measuring':
+            Alert.alert('Pengukuran', 'Sedang mengukur jarak ke lantai untuk kalibrasi...');
+            break;
+          case 'processing':
+            Alert.alert('Processing', `Sedang mengatur tinggi tiang ke ${height} cm, harap tunggu...`);
+            break;
+          case 'completed':
+            Alert.alert('Calibration Complete', `Tinggi tiang berhasil diatur ke ${height} cm!`);
+            completeUltrasonicCalibrationSession();
+            setUltrasonicCalibrating(false);
+            unsubscribe();
+            break;
+          case 'failed':
+            Alert.alert('Calibration Failed', 'Proses kalibrasi ultrasonic gagal. Silakan coba lagi.');
+            completeUltrasonicCalibrationSession();
+            setUltrasonicCalibrating(false);
+            unsubscribe();
+            break;
+        }
+      });
+      
+    } catch (error) {
+      Alert.alert("Error", "Gagal melakukan kalibrasi ultrasonic");
+      setUltrasonicCalibrating(false);
+    }
+  };
+
   return (
     <View style={styles.container}>
       <ScrollView 
@@ -180,7 +248,7 @@ export default function ControlScreen() {
                 value={calibrationWeight}
                 onChangeText={setCalibrationWeight}
                 keyboardType="decimal-pad"
-                editable={!calibrating && !taring}
+                editable={!calibrating && !taring && !ultrasonicCalibrating}
               />
               <Text style={styles.inputHelper}>
                 Masukkan berat beban standar yang akan digunakan untuk kalibrasi
@@ -190,7 +258,7 @@ export default function ControlScreen() {
             <Button
               title={calibrating ? "Mengkalibrasi..." : "Mulai Kalibrasi"}
               onPress={handleCalibration}
-              disabled={calibrating || taring || !calibrationWeight}
+              disabled={calibrating || taring || ultrasonicCalibrating || !calibrationWeight}
               style={styles.actionButton}
             />
           </View>
@@ -206,8 +274,47 @@ export default function ControlScreen() {
             <Button
               title={taring ? "Melakukan Tare..." : "Tare Sekarang"}
               onPress={handleTare}
-              disabled={calibrating || taring}
+              disabled={calibrating || taring || ultrasonicCalibrating}
               variant="outline"
+              style={styles.actionButton}
+            />
+          </View>
+        </View>
+
+        <View style={styles.section}>
+          <Text style={styles.sectionTitle}>Ultrasonic Control</Text>
+          <Text style={styles.sectionDescription}>
+            Kontrol dan kalibrasi sensor tinggi (ultrasonic)
+          </Text>
+
+          <View style={styles.card}>
+            <View style={styles.cardHeader}>
+              <Text style={styles.cardIcon}>📏</Text>
+              <Text style={styles.cardTitle}>Atur Tinggi Tiang</Text>
+            </View>
+            <Text style={styles.cardDescription}>
+              Kalibrasi sensor ultrasonic dengan mengatur tinggi tiang pengukuran
+            </Text>
+            
+            <View style={styles.inputContainer}>
+              <Text style={styles.inputLabel}>Tinggi Tiang (cm)</Text>
+              <TextInput
+                style={styles.textInput}
+                placeholder="Contoh: 200"
+                value={poleHeight}
+                onChangeText={setPoleHeight}
+                keyboardType="decimal-pad"
+                editable={!calibrating && !taring && !ultrasonicCalibrating}
+              />
+              <Text style={styles.inputHelper}>
+                Masukkan tinggi tiang dari lantai ke sensor dalam centimeter
+              </Text>
+            </View>
+            
+            <Button
+              title={ultrasonicCalibrating ? "Mengkalibrasi..." : "Atur Tinggi Tiang"}
+              onPress={handleUltrasonicCalibration}
+              disabled={calibrating || taring || ultrasonicCalibrating || !poleHeight}
               style={styles.actionButton}
             />
           </View>
@@ -247,11 +354,15 @@ export default function ControlScreen() {
           </View>
         </View>
 
-        {(calibrating || taring) && (
+        {(calibrating || taring || ultrasonicCalibrating) && (
           <View style={styles.loadingContainer}>
             <LoadingSpinner 
               size="small" 
-              text={calibrating ? "Kalibrasi dalam proses..." : "Tare dalam proses..."} 
+              text={
+                calibrating ? "Kalibrasi dalam proses..." : 
+                taring ? "Tare dalam proses..." : 
+                "Kalibrasi ultrasonic dalam proses..."
+              } 
             />
           </View>
         )}

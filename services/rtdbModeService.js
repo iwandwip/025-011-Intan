@@ -67,6 +67,18 @@ export const resetToIdle = async () => {
         status_gizi: '' 
       }
     });
+    await set(ref(rtdb, 'tare_mode'), {
+      get: { command: '' },
+      set: { status: '' }
+    });
+    await set(ref(rtdb, 'calibration_mode'), {
+      get: { command: '', known_weight: '' },
+      set: { status: '' }
+    });
+    await set(ref(rtdb, 'ultrasonic_calibration_mode'), {
+      get: { command: '', pole_height: '' },
+      set: { status: '' }
+    });
     return { success: true };
   } catch (error) {
     console.error('Error resetting to idle:', error);
