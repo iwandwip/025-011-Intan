@@ -117,39 +117,6 @@ function AdminHome() {
               </View>
             </View>
 
-            <View style={styles.statsCard}>
-              <Text style={styles.cardTitle}>Ringkasan Sistem</Text>
-
-              <View style={styles.statItem}>
-                <Text style={styles.statIcon}>👥</Text>
-                <View style={styles.statContent}>
-                  <Text style={styles.statLabel}>Manajemen Pengguna</Text>
-                  <Text style={styles.statDescription}>
-                    Lihat dan kelola semua data siswa
-                  </Text>
-                </View>
-              </View>
-
-              <View style={styles.statItem}>
-                <Text style={styles.statIcon}>📊</Text>
-                <View style={styles.statContent}>
-                  <Text style={styles.statLabel}>Analisis Data</Text>
-                  <Text style={styles.statDescription}>
-                    Pantau tren status gizi
-                  </Text>
-                </View>
-              </View>
-
-              <View style={styles.statItem}>
-                <Text style={styles.statIcon}>⚖️</Text>
-                <View style={styles.statContent}>
-                  <Text style={styles.statLabel}>Integrasi IoT</Text>
-                  <Text style={styles.statDescription}>
-                    Sistem timbangan terhubung
-                  </Text>
-                </View>
-              </View>
-            </View>
           </View>
 
           <View style={styles.actionsContainer}>
@@ -206,16 +173,6 @@ const styles = StyleSheet.create({
     shadowRadius: 4,
     elevation: 3,
   },
-  statsCard: {
-    backgroundColor: Colors.white,
-    borderRadius: 12,
-    padding: 20,
-    shadowColor: Colors.shadow.color,
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
-    elevation: 3,
-  },
   cardTitle: {
     fontSize: 18,
     fontWeight: "600",
@@ -242,31 +199,6 @@ const styles = StyleSheet.create({
     color: Colors.gray900,
     flex: 2,
     textAlign: "right",
-  },
-  statItem: {
-    flexDirection: "row",
-    alignItems: "center",
-    paddingVertical: 12,
-    borderBottomWidth: 1,
-    borderBottomColor: Colors.gray100,
-  },
-  statIcon: {
-    fontSize: 24,
-    marginRight: 16,
-    width: 32,
-  },
-  statContent: {
-    flex: 1,
-  },
-  statLabel: {
-    fontSize: 16,
-    fontWeight: "500",
-    color: Colors.gray900,
-    marginBottom: 4,
-  },
-  statDescription: {
-    fontSize: 14,
-    color: Colors.gray600,
   },
   actionsContainer: {
     gap: 12,
