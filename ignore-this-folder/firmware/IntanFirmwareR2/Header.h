@@ -126,6 +126,7 @@ struct CurrentSession {
   String status_gizi;
 };
 
+CurrentSession userSession;
 String mode;
 
 float poleHeight = 0.0;

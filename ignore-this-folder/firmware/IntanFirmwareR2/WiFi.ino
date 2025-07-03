@@ -61,7 +61,8 @@ void wifiTask(void* pvParameter) {
       // firebase->set("/test/float", random(100) + 3.14159, 2);
       mode = firebase->getString("/mode");
       if (mode == "idle") {
-        //
+        CurrentSession emptySession;
+        userSession = emptySession;
       } else if (mode == "pairing") {
         if (!rfid.isEmpty()) {
           firebase->set("/pairing_mode", rfid);
@@ -71,7 +72,11 @@ void wifiTask(void* pvParameter) {
           rfid = "";
         }
       } else if (mode == "weighing") {
-        //
+        userSession.pola_makan = firebase->getString("/weighing_mode/get/pola_makan");
+        userSession.respon_anak = firebase->getString("/weighing_mode/get/respon_anak");
+        userSession.usia_th = firebase->getString("/weighing_mode/get/usia_th");
+        userSession.usia_bl = firebase->getString("/weighing_mode/get/usia_bl");
+        userSession.gender = firebase->getString("/weighing_mode/get/gender");
       } else if (mode == "tare") {
         String command = firebase->getString("/tare_mode/get/command");
         if (command == "start") {
